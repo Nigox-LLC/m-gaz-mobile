@@ -4,6 +4,7 @@ import 'package:m_gaz/global_widget/global_app_bar.dart';
 import 'package:m_gaz/ui/home/measurement_devices/grs_measurement_devices/grs_measurement_devices_screen.dart';
 import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/technological_measuring_screen.dart';
 import '../../../../core/common/words.dart';
+import 'industrial_collectors/industrial_collectors_screen.dart';
 
 class MeasurementDevicesScreen extends StatelessWidget {
   const MeasurementDevicesScreen({super.key});
@@ -50,9 +51,7 @@ class MeasurementDevicesScreen extends StatelessWidget {
                     iconColor: Colors.white,
                     title: Words.industrialCollectors.tr(),
                     subtitle: Words.industrialDesc.tr(),
-                    onTap: () {
-
-                    },
+                    onTap: () => push(IndustrialCollectorsScreen()),
                   ),
                   const SizedBox(height: 24),
 
@@ -112,7 +111,6 @@ class MeasurementDevicesScreen extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                // Orqa fon uchun dekorativ element
                 Positioned(
                   right: -40,
                   top: -40,

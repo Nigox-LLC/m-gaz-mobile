@@ -3,10 +3,10 @@ import 'package:m_gaz/core/models/technological-measuring/teach_measure_detail/t
 import '../../../../../core/models/technological-measuring/technological_measuring.dart';
 
 
-enum TechMeasureStatus { initial, loading, success, fail }
+enum TechMeasuresStatus { initial, loading, success, fail }
 
-class TechMeasureState extends Equatable {
-  final TechMeasureStatus status;
+class TechMeasuresState extends Equatable {
+  final TechMeasuresStatus status;
   final List<TechnologicalMeasuringDocument> items;
   final String? nextUrl;
   final bool hasReachedMax;
@@ -16,8 +16,8 @@ class TechMeasureState extends Equatable {
   final TechnologicalMeasuringDocument? selectedDocument;
   final TeachMeasureDetail? teachMeasureDetail;
 
-  const TechMeasureState({
-    this.status = TechMeasureStatus.initial,
+  const TechMeasuresState({
+    this.status = TechMeasuresStatus.initial,
     this.items = const [],
     this.nextUrl,
     this.hasReachedMax = false,
@@ -27,8 +27,8 @@ class TechMeasureState extends Equatable {
     this.teachMeasureDetail
   });
 
-  TechMeasureState copyWith({
-    TechMeasureStatus? status,
+  TechMeasuresState copyWith({
+    TechMeasuresStatus? status,
     List<TechnologicalMeasuringDocument>? items,
     String? nextUrl,
     bool? hasReachedMax,
@@ -37,7 +37,7 @@ class TechMeasureState extends Equatable {
     TechnologicalMeasuringDocument? selectedDocument,
     TeachMeasureDetail? teachMeasureDetail,
   }) {
-    return TechMeasureState(
+    return TechMeasuresState(
       status: status ?? this.status,
       items: items ?? this.items,
       nextUrl: nextUrl ?? this.nextUrl,

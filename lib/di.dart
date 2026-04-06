@@ -8,8 +8,6 @@ import 'package:m_gaz/core/api/global/global_api.dart';
 import 'package:m_gaz/core/api/task/task_api.dart';
 import 'package:m_gaz/core/api/tech_measure_api/tech_measure_api.dart';
 import 'package:m_gaz/core/api/working-with-stamps/working_with_stamps_api.dart';
-import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/technological_measuring_bloc.dart';
-import 'package:m_gaz/ui/home/working_with_consumers/bloc/consumer_relations_bloc.dart';
 import 'package:m_toast/m_toast.dart';
 import 'core/api/base/base_api.dart';
 import 'core/api/grs/grs_measurement_api.dart';
@@ -72,7 +70,7 @@ Future<void> _setupFactory() async {
   di.registerLazySingleton(() => UserApi(di.get()));
   di.registerLazySingleton(() => ConsumerRelationsApi(di.get()));
   di.registerLazySingleton(() => GlobalApi(di.get()));
-  di.registerLazySingleton(() => TechMeasureApi(di.get()));
+  di.registerLazySingleton(() => TechMeasureApi(di.get<ApiBase>()));
   di.registerLazySingleton(() => TaskApi(di.get()));
   di.registerLazySingleton(() => AttendanceApi(di.get()));
   // di.registerLazySingleton(() => EGXUApi(di.get()));
@@ -80,6 +78,5 @@ Future<void> _setupFactory() async {
   di.registerLazySingleton(() => GrsMeasurementDevicesApi(di.get()));
 
 
-  di.registerFactory(() => ConsumerRelationsBloc());
-  di.registerFactory(() => TechMeasureBloc());
+  // di.registerFactory(() => TechMeasuresBloc());
 }

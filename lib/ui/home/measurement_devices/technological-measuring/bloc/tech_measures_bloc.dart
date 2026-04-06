@@ -1,29 +1,28 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/technological_measuring_event.dart';
-import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/technological_measuring_state.dart';
-
+import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/tech_measures_event.dart';
+import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/tech_measures_state.dart';
 import '../../../../../core/api/tech_measure_api/tech_Measure_api.dart';
 import '../../../../../di.dart';
 
-  class TechMeasureBloc extends Bloc<TechMeasureEvent, TechMeasureState> {
-  final TechMeasureApi api = di.get<TechMeasureApi>();
+class TechMeasuresBloc extends Bloc<TechMeasuresEvent, TechMeasuresState> {
+  final TechMeasureApi api;
 
-  TechMeasureBloc() : super(const TechMeasureState()) {
+  TechMeasuresBloc({required this.api}) : super(const TechMeasuresState()) {
     on<TechMeasureLoad>(_onFetched);
     on<TechMeasureLoadMore>(_onLoadMore);
     on<TechMeasureDetailFetched>(_onDocumentFetched);
   }
 
   Future<void> _onFetched(
-    TechMeasureLoad event,
-    Emitter<TechMeasureState> emit,
-  ) async {
-    emit(state.copyWith(status: TechMeasureStatus.loading));
+      TechMeasureLoad event,
+      Emitter<TechMeasuresState> emit,
+      ) async {
+    emit(state.copyWith(status: TechMeasuresStatus.loading));
     try {
       final response = await api.getDocuments(limit: 20);
       emit(
         state.copyWith(
-          status: TechMeasureStatus.success,
+          status: TechMeasuresStatus.success,
           items: response.results,
           nextUrl: response.next,
           hasReachedMax: response.next == null,
@@ -32,7 +31,7 @@ import '../../../../../di.dart';
     } catch (e) {
       emit(
         state.copyWith(
-          status: TechMeasureStatus.fail,
+          status: TechMeasuresStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
         ),
       );
@@ -40,9 +39,9 @@ import '../../../../../di.dart';
   }
 
   Future<void> _onLoadMore(
-    TechMeasureLoadMore event,
-    Emitter<TechMeasureState> emit,
-  ) async {
+      TechMeasureLoadMore event,
+      Emitter<TechMeasuresState> emit,
+      ) async {
     if (state.hasReachedMax || state.isLoadingMore || state.nextUrl == null) {
       return;
     }
@@ -52,7 +51,7 @@ import '../../../../../di.dart';
       final response = await api.getNextPage(state.nextUrl!);
       emit(
         state.copyWith(
-          status: TechMeasureStatus.success,
+          status: TechMeasuresStatus.success,
           items: [...state.items, ...response.results],
           nextUrl: response.next,
           hasReachedMax: response.next == null,
@@ -62,7 +61,7 @@ import '../../../../../di.dart';
     } catch (e) {
       emit(
         state.copyWith(
-          status: TechMeasureStatus.fail,
+          status: TechMeasuresStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isLoadingMore: false,
         ),
@@ -71,22 +70,22 @@ import '../../../../../di.dart';
   }
 
   Future<void> _onDocumentFetched(
-    TechMeasureDetailFetched event,
-    Emitter<TechMeasureState> emit,
-  ) async {
-    emit(state.copyWith(status: TechMeasureStatus.loading));
+      TechMeasureDetailFetched event,
+      Emitter<TechMeasuresState> emit,
+      ) async {
+    emit(state.copyWith(status: TechMeasuresStatus.loading));
     try {
       final document = await api.getDocumentById(event.documentId);
       emit(
         state.copyWith(
-          status: TechMeasureStatus.success,
+          status: TechMeasuresStatus.success,
           teachMeasureDetail: document,
         ),
       );
     } catch (e) {
       emit(
         state.copyWith(
-          status: TechMeasureStatus.fail,
+          status: TechMeasuresStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
         ),
       );

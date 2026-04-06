@@ -5,9 +5,9 @@ import 'package:m_gaz/core/utils/colors.dart';
 import '../../../../core/common/words.dart';
 import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/sub_page/teach_measure_detail_screen.dart';
 import '../../../../core/extension/navigator_extension.dart';
-import 'bloc/technological_measuring_bloc.dart';
-import 'bloc/technological_measuring_event.dart';
-import 'bloc/technological_measuring_state.dart';
+import 'bloc/tech_measures_bloc.dart';
+import 'bloc/tech_measures_event.dart';
+import 'bloc/tech_measures_state.dart';
 import 'widgets/tech_measure_card.dart';
 
 class TechMeasureScreen extends StatefulWidget {
@@ -24,7 +24,7 @@ class _TechMeasureScreenState extends State<TechMeasureScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TechMeasureBloc>().add(TechMeasureLoad());
+      context.read<TechMeasuresBloc>().add(TechMeasureLoad());
     });
     _scrollController.addListener(_onScroll);
   }
@@ -32,12 +32,12 @@ class _TechMeasureScreenState extends State<TechMeasureScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      context.read<TechMeasureBloc>().add(TechMeasureLoadMore());
+      context.read<TechMeasuresBloc>().add(TechMeasureLoadMore());
     }
   }
 
   Future<void> _onRefresh() async {
-    context.read<TechMeasureBloc>().add(TechMeasureLoad());
+    context.read<TechMeasuresBloc>().add(TechMeasureLoad());
     await Future.delayed(const Duration(milliseconds: 300));
   }
 
@@ -53,7 +53,7 @@ class _TechMeasureScreenState extends State<TechMeasureScreen> {
     return Scaffold(
       backgroundColor: AppColors.cF5F5F5,
       appBar: CustomGlobalAppBar(title: Words.technologicalMeasuringDevices.tr()),
-      body: BlocBuilder<TechMeasureBloc, TechMeasureState>(
+      body: BlocBuilder<TechMeasuresBloc, TechMeasuresState>(
         builder: (context, state) {
           return AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
@@ -69,21 +69,21 @@ class _TechMeasureScreenState extends State<TechMeasureScreen> {
     return MediaQuery.of(context).size.width > 600;
   }
 
-  Widget _buildBody(TechMeasureState state) {
+  Widget _buildBody(TechMeasuresState state) {
     switch (state.status) {
-      case TechMeasureStatus.initial:
+      case TechMeasuresStatus.initial:
         return const SizedBox.shrink();
 
-      case TechMeasureStatus.loading:
+      case TechMeasuresStatus.loading:
         if (state.items.isEmpty) {
           return _buildShimmerLoading();
         }
         return _buildDocumentList(state);
 
-      case TechMeasureStatus.fail:
+      case TechMeasuresStatus.fail:
         return _buildErrorState(state.errorMessage ?? Words.unknown.tr());
 
-      case TechMeasureStatus.success:
+      case TechMeasuresStatus.success:
         if (state.items.isEmpty) {
           return _buildEmptyState();
         }
@@ -193,7 +193,7 @@ class _TechMeasureScreenState extends State<TechMeasureScreen> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                context.read<TechMeasureBloc>().add(TechMeasureLoad());
+                context.read<TechMeasuresBloc>().add(TechMeasureLoad());
               },
               icon: const Icon(Icons.refresh_rounded),
               label: Text(Words.retry.tr()),
@@ -249,7 +249,7 @@ class _TechMeasureScreenState extends State<TechMeasureScreen> {
   }
 
   // ==================== DOCUMENT LIST (ADAPTIVE) ====================
-  Widget _buildDocumentList(TechMeasureState state) {
+  Widget _buildDocumentList(TechMeasuresState state) {
     final bool isTablet = _isTablet(context);
 
     return RefreshIndicator(

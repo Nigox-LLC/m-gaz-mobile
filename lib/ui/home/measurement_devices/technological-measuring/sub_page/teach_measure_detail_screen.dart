@@ -13,9 +13,9 @@ import '../../../../../core/models/technological-measuring/teach_measure_detail/
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_hourly_indicator_image.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_item.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_real_item.dart';
-import '../bloc/technological_measuring_bloc.dart';
-import '../bloc/technological_measuring_event.dart';
-import '../bloc/technological_measuring_state.dart';
+import '../bloc/tech_measures_bloc.dart';
+import '../bloc/tech_measures_event.dart';
+import '../bloc/tech_measures_state.dart';
 
 class TechMeasureDetailScreen extends StatefulWidget {
   final int documentId;
@@ -35,7 +35,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
   }
 
   void _loadDocument() {
-    context.read<TechMeasureBloc>().add(
+    context.read<TechMeasuresBloc>().add(
       TechMeasureDetailFetched(widget.documentId),
     );
   }
@@ -48,15 +48,15 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
         title: Words.documentDetails.tr(),
         centerTitle: true,
       ),
-      body: BlocBuilder<TechMeasureBloc, TechMeasureState>(
+      body: BlocBuilder<TechMeasuresBloc, TechMeasuresState>(
         builder: (context, state) {
           return switch (state.status) {
-            TechMeasureStatus.loading => _buildShimmerLoading(),
-            TechMeasureStatus.fail => _buildErrorView(
+            TechMeasuresStatus.loading => _buildShimmerLoading(),
+            TechMeasuresStatus.fail => _buildErrorView(
               context,
               state.errorMessage,
             ),
-            TechMeasureStatus.success =>
+            TechMeasuresStatus.success =>
               state.teachMeasureDetail == null
                   ? _buildEmptyView()
                   : _buildDocumentContent(state.teachMeasureDetail!),

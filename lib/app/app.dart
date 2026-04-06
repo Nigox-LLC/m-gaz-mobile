@@ -2,13 +2,15 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
+import 'package:m_gaz/core/api/tech_measure_api/tech_Measure_api.dart';
 import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/working-with-stamps/bloc/working_with_stamps_bloc.dart';
+import '../di.dart';
 import '../global_bloc/global_bloc.dart';
 import '../ui/auth/login/bloc/login_bloc.dart';
 import '../ui/home/measurement_devices/grs_measurement_devices/bloc/grs_measurement_devices_bloc.dart';
-import '../ui/home/measurement_devices/technological-measuring/bloc/technological_measuring_bloc.dart';
+import '../ui/home/measurement_devices/technological-measuring/bloc/tech_measures_bloc.dart';
 import '../ui/home/working_with_consumers/bloc/consumer_relations_bloc.dart';
 
 class MainApp extends StatelessWidget {
@@ -25,7 +27,7 @@ class MainApp extends StatelessWidget {
           create: (context) => ConsumerRelationsBloc(),
         ),
         BlocProvider<GlobalBloc>(create: (context) => GlobalBloc()),
-        BlocProvider<TechMeasureBloc>(create: (context) => TechMeasureBloc()),
+        BlocProvider<TechMeasuresBloc>(create: (context) => TechMeasuresBloc(api: di.get<TechMeasureApi>())),
         BlocProvider<TaskBloc>(create: (context) => TaskBloc()),
         BlocProvider<AttendanceBloc>(create: (context) => AttendanceBloc()),
         BlocProvider<WorkingWithStampBloc>(
