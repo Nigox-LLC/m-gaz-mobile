@@ -221,7 +221,7 @@ class StepEgxuListState extends State<StepEgxuList> {
                   .whereType<String>()
                   .toList(),
               selectedItem: gasNetwork,
-              hintText: state.isGasNetworkLoading
+              hintText: state.isGasNetworksLoading
                   ? Words.loading.tr()
                   : Words.select.tr(),
               getTitle: (e) => e,

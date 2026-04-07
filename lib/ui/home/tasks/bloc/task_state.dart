@@ -17,6 +17,9 @@ class TaskState extends Equatable {
   final TaskModel? selectedTask;
   final TaskModel? taskDetail;
 
+  final bool isCompletingTask;      // ✅ YANGI
+
+
   const TaskState({
     this.status = TaskStatus.initial,
     this.tasks = const [],
@@ -26,7 +29,8 @@ class TaskState extends Equatable {
     this.isLoadingMore = false,
     this.errorMessage,
     this.selectedTask,
-    this.taskDetail
+    this.taskDetail,
+    this.isCompletingTask = false,   // ✅ YANGI
   });
 
   TaskState copyWith({
@@ -39,6 +43,8 @@ class TaskState extends Equatable {
     String? errorMessage,
     TaskModel? selectedTask,
     TaskModel? taskDetail,
+    bool? isCompletingTask,           // ✅ YANGI
+
   }) {
     return TaskState(
       status: status ?? this.status,
@@ -50,6 +56,8 @@ class TaskState extends Equatable {
       errorMessage: errorMessage ?? this.errorMessage,
       taskDetail: taskDetail ?? this.taskDetail,
       selectedTask: selectedTask ?? this.selectedTask,
+      isCompletingTask: isCompletingTask ?? this.isCompletingTask,
+
     );
   }
 
@@ -64,6 +72,7 @@ class TaskState extends Equatable {
         isLoadingMore,
         errorMessage,
         selectedTask,
-        taskDetail
+        taskDetail,
+        isCompletingTask
       ];
 }

@@ -61,7 +61,7 @@ class _StampAddCardState extends State<StampAddCard> {
 
             BlocBuilder<GlobalBloc, GlobalState>(
               builder: (context, state) {
-                if (state.isStampInstallationPointLoading) {
+                if (state.isStampInstallationPointsLoading) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(child: CircularProgressIndicator()),

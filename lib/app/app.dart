@@ -2,7 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
-import 'package:m_gaz/core/api/tech_measure_api/tech_Measure_api.dart';
 import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/working-with-stamps/bloc/working_with_stamps_bloc.dart';
@@ -27,7 +26,7 @@ class MainApp extends StatelessWidget {
           create: (context) => ConsumerRelationsBloc(),
         ),
         BlocProvider<GlobalBloc>(create: (context) => GlobalBloc()),
-        BlocProvider<TechMeasuresBloc>(create: (context) => TechMeasuresBloc(api: di.get<TechMeasureApi>())),
+        BlocProvider<TechMeasuresBloc>(create: (context) => di.get<TechMeasuresBloc>()),
         BlocProvider<TaskBloc>(create: (context) => TaskBloc()),
         BlocProvider<AttendanceBloc>(create: (context) => AttendanceBloc()),
         BlocProvider<WorkingWithStampBloc>(

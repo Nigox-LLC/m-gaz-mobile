@@ -46,8 +46,8 @@ class TechMeasureApi {
   }
 
   Future<PaginatedResponse<TechnologicalMeasuringDocument>> getNextPage(
-    String url,
-  ) async {
+      String url,
+      ) async {
     try {
       debugPrint("🔹 Keyingi sahifa so'rov yuborilmoqda...");
       debugPrint("🔹 URL: $url");

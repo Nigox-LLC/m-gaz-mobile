@@ -121,12 +121,19 @@ class ConsumerRelationsApi {
     required String factory1,
     required String factory2,
   }) async {
+    // Debug print uchun
+    debugPrint("🔹 Tekshirilayotgan fabrikalar: factory1=$factory1, factory2=$factory2");
+
     final response = await _base.dio.get(
       'consumer-relations-documents/factory-exist/',
       queryParameters: {
-        'factory': [factory1, factory2],
+        'factory': [factory1],
       },
     );
+
+    // Javobni ham tekshirish uchun debugPrint
+    debugPrint("🔹 Response status: ${response.statusCode}");
+    debugPrint("🔹 Response data: ${response.data}");
 
     if (response.statusCode == 200) {
       return ConsumerFactoryExistResponse.fromJson(response.data);

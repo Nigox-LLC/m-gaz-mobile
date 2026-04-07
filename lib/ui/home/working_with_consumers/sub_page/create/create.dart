@@ -41,7 +41,7 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
   UserModel? profile;
 
   final _steps = [
-    StepperItem(title: Words.main.tr(), icon: Icons.location_on_outlined),
+    StepperItem(title: Words.email.tr(), icon: Icons.location_on_outlined),
     StepperItem(title: Words.egxu.tr(), icon: Icons.list_alt),
     StepperItem(title: Words.company.tr(), icon: Icons.factory_outlined),
     StepperItem(title: Words.certificates.tr(), icon: Icons.file_present),

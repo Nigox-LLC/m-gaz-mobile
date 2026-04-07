@@ -13,6 +13,8 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     on<TaskAnalysisLoad>(_onFetchAnalysis);
     on<TaskLoadMore>(_onLoadMore);
     on<TaskDetailFetched>(_onDocumentFetched);
+    on<TaskComplete>(_onTaskComplete);     // ✅ YANGI
+
   }
 
   Future<void> _onFetched(TaskLoad event, Emitter<TaskState> emit) async {
@@ -107,6 +109,41 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           errorMessage: e.toString().replaceAll('Exception: ', ''),
         ),
       );
+    }
+  }
+
+  Future<void> _onTaskComplete(
+      TaskComplete event,
+      Emitter<TaskState> emit,
+      ) async {
+    emit(state.copyWith(isCompletingTask: true));
+    try {
+      final updatedTask = await api.completeTask(
+        taskId: event.taskId,
+        filePath: event.filePath,
+      );
+
+      // Task list yangilash
+      final updatedTasks = state.tasks.map((task) {
+        if (task.id == event.taskId) {
+          return updatedTask;
+        }
+        return task;
+      }).toList();
+
+      emit(state.copyWith(
+        status: TaskStatus.success,
+        tasks: updatedTasks,
+        isCompletingTask: false,
+      ));
+
+      debugPrint("✅ Task bajarildi: ${event.taskId}");
+    } catch (e) {
+      emit(state.copyWith(
+        status: TaskStatus.fail,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        isCompletingTask: false,
+      ));
     }
   }
 }

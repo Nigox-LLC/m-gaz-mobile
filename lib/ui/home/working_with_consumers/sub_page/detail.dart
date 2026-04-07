@@ -64,7 +64,7 @@ class _ConsumerRelationsDetailScreenState
       backgroundColor: AppColors.cF9F9F9,
       body: BlocConsumer<ConsumerRelationsBloc, ConsumerRelationsState>(
         listener: (context, state) {
-          if (state.status == ConsumerRelationsStatus.success) {
+          if (state.detailStatus == DocumentDetailStatus.loaded) {
             _animationController.forward();
           }
         },
@@ -123,12 +123,12 @@ class _ConsumerRelationsDetailScreenState
   }
 
   Widget _buildContent(ConsumerRelationsState state) {
-    switch (state.status) {
-      case ConsumerRelationsStatus.loading:
+    switch (state.detailStatus) {
+      case DocumentDetailStatus.loading:
         return _buildSkeletonLoading();
-      case ConsumerRelationsStatus.fail:
+      case DocumentDetailStatus.fail:
         return _buildErrorView(state.errorMessage);
-      case ConsumerRelationsStatus.success:
+      case DocumentDetailStatus.loaded:
         final document = state.selectedDocument;
         if (document == null) return _buildEmptyView();
         return FadeTransition(

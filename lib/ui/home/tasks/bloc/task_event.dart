@@ -21,3 +21,16 @@ class TaskDetailFetched extends TaskEvent {
   @override
   List<Object> get props => [documentId];
 }
+
+class TaskComplete extends TaskEvent {
+  final int taskId;
+  final String? filePath;
+
+  const TaskComplete({
+    required this.taskId,
+    this.filePath,
+  });
+
+  @override
+  List<Object?> get props => [taskId, filePath];
+}

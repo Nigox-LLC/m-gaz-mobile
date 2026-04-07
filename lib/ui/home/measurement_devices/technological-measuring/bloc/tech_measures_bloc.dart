@@ -1,13 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/tech_measures_event.dart';
 import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/tech_measures_state.dart';
-import '../../../../../core/api/tech_measure_api/tech_Measure_api.dart';
-import '../../../../../di.dart';
+import '../../../../../core/api/tech_measure/tech_measure.dart';
 
 class TechMeasuresBloc extends Bloc<TechMeasuresEvent, TechMeasuresState> {
-  final TechMeasureApi api;
+  final TechMeasureApi _api;
 
-  TechMeasuresBloc({required this.api}) : super(const TechMeasuresState()) {
+  TechMeasuresBloc(this._api) : super(const TechMeasuresState()) {
     on<TechMeasureLoad>(_onFetched);
     on<TechMeasureLoadMore>(_onLoadMore);
     on<TechMeasureDetailFetched>(_onDocumentFetched);
@@ -19,7 +18,7 @@ class TechMeasuresBloc extends Bloc<TechMeasuresEvent, TechMeasuresState> {
       ) async {
     emit(state.copyWith(status: TechMeasuresStatus.loading));
     try {
-      final response = await api.getDocuments(limit: 20);
+      final response = await _api.getDocuments(limit: 20);
       emit(
         state.copyWith(
           status: TechMeasuresStatus.success,
@@ -48,7 +47,7 @@ class TechMeasuresBloc extends Bloc<TechMeasuresEvent, TechMeasuresState> {
 
     emit(state.copyWith(isLoadingMore: true));
     try {
-      final response = await api.getNextPage(state.nextUrl!);
+      final response = await _api.getNextPage(state.nextUrl!);
       emit(
         state.copyWith(
           status: TechMeasuresStatus.success,
@@ -75,7 +74,7 @@ class TechMeasuresBloc extends Bloc<TechMeasuresEvent, TechMeasuresState> {
       ) async {
     emit(state.copyWith(status: TechMeasuresStatus.loading));
     try {
-      final document = await api.getDocumentById(event.documentId);
+      final document = await _api.getDocumentById(event.documentId);
       emit(
         state.copyWith(
           status: TechMeasuresStatus.success,

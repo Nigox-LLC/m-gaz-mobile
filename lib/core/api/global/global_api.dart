@@ -418,6 +418,7 @@ class GlobalApi {
       );
 
       debugPrint("🔹 Tamga ornatish nuqtalari Types javob status code: ${response.statusCode}");
+      debugPrint("Respomse data: ${response.data}");
 
       if (response.statusCode == 200) {
         return (response.data as List)

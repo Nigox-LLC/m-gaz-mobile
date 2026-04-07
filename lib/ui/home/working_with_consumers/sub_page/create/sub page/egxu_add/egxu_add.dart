@@ -34,7 +34,6 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
 
   EgxuListModel? selectedEgxu;
   String? selectedEgxuError;
-  bool loading = false;
 
   @override
   void initState() {
@@ -62,113 +61,150 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
     return Scaffold(
       backgroundColor: AppColors.cF5F5F5,
       appBar: CustomGlobalAppBar(title: Words.addEgxu.tr()),
-      body: BlocListener<ConsumerRelationsBloc, ConsumerRelationsState>(
+      body: BlocConsumer<ConsumerRelationsBloc, ConsumerRelationsState>(
         listener: (context, state) {
-          print("🎧 LISTENER TRIGGERED: ${state.status}"); // Ko'rsatilgan
+          debugPrint("🎧 LISTENER TRIGGERED: factoryStatus=${state.factoryStatus}");
 
-          if (state.status == ConsumerRelationsStatus.loading) {
-            setState(() => loading = true);
+          // Factory check success - factory exists
+          if (state.isFactoryExists) {
+            debugPrint("❌ FACTORY EXISTS - Dialog ko'rsatiladi");
+            _showExistDialog();
             return;
           }
 
-          if (state.status == ConsumerRelationsStatus.success) {
-            setState(() => loading = false);
-
-            // ✅ Endi natijani checkingiz kerak
-            if (state.factoryExists == true) {
-              debugPrint("❌ FACTORY EXISTS - Dialog ko'rsatiladi");
-              _showExistDialog();
-            } else {
-              debugPrint("✅ FACTORY NOT EXISTS - Pop qilinmoqda");
-              Navigator.of(context).pop(
-                EgxuItem(
-                  dateFrom: fromCtrl.text,
-                  dateTo: toCtrl.text,
-                  type: selectedEgxu!.name,
-                  factory1: factory1Ctrl.text,
-                  factory2: factory2Ctrl.text,
-                  imagePath: selectedEgxu!.photo, // 🔥🔥🔥
-                ),
-              );
-            }
+          // Factory check success - factory not exists
+          if (state.isFactoryNotExists) {
+            debugPrint("✅ FACTORY NOT EXISTS - Pop qilinmoqda");
+            Navigator.of(context).pop(
+              EgxuItem(
+                dateFrom: fromCtrl.text,
+                dateTo: toCtrl.text,
+                type: selectedEgxu!.name,
+                factory1: factory1Ctrl.text,
+                factory2: factory2Ctrl.text,
+                imagePath: selectedEgxu!.photo,
+              ),
+            );
             return;
           }
 
-          if (state.status == ConsumerRelationsStatus.fail) {
-            setState(() => loading = false);
+          // Error handling
+          if (state.generalStatus == ConsumerGeneralStatus.fail &&
+              state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage ?? Words.errorOccurred.tr())),
+              SnackBar(content: Text(state.errorMessage!)),
             );
           }
         },
-        child: _buildForm(),
+        builder: (context, state) {
+          final isLoading = state.isFactoryChecking;
+
+          return _buildForm(isLoading);
+        },
       ),
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool loading) {
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
         child: Column(
           children: [
-            CustomDateFormField(controller: fromCtrl, title: Words.dateFrom.tr()),
-            CustomDateFormField(controller: toCtrl, title: Words.dateTo.tr(),readOnly:true),
+            CustomDateFormField(
+              controller: fromCtrl,
+              title: Words.dateFrom.tr(),
+            ),
+            CustomDateFormField(
+              controller: toCtrl,
+              title: Words.dateTo.tr(),
+              readOnly: true,
+            ),
 
+            // ✅ Yangi GlobalState ga mos o'zgartirish
             BlocBuilder<GlobalBloc, GlobalState>(
               builder: (context, state) {
-                if (state.status == GlobalStatus.loading) {
-                  return const CircularProgressIndicator();
+                // Eski: state.status == GlobalStatus.loading
+                // Yangi: state.isEgxuTypesLoading
+                if (state.isEgxuTypesLoading) {
+                  return const Center(child: CircularProgressIndicator());
                 }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GenericSelectableField<EgxuListModel>(
-                      title: Words.egxuType.tr(),
-                      items: state.egxuTypes,
-                      selectedItem: selectedEgxu,
-                      hintText: Words.select.tr(),
-                      getTitle: (e) => e.name,
-                      isEqual: (a, b) => a.id == b.id,
-                      onChanged: (v) {
-                        setState(() {
-                          selectedEgxu = v;
-                          selectedEgxuError = null;
-                        });
-                      },
-                    ),
-                    if (selectedEgxuError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12, top: 6),
-                        child: Text(
-                          selectedEgxuError!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+
+                // ✅ Yangi: state.isEgxuTypesLoaded
+                if (state.isEgxuTypesLoaded) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GenericSelectableField<EgxuListModel>(
+                        title: Words.egxuType.tr(),
+                        items: state.egxuTypes,
+                        selectedItem: selectedEgxu,
+                        hintText: Words.select.tr(),
+                        getTitle: (e) => e.name,
+                        isEqual: (a, b) => a.id == b.id,
+                        onChanged: (v) {
+                          setState(() {
+                            selectedEgxu = v;
+                            selectedEgxuError = null;
+                          });
+                        },
+                      ),
+                      if (selectedEgxuError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12, top: 6),
+                          child: Text(
+                            selectedEgxuError!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
+                    ],
+                  );
+                }
+
+                // Fail holati
+                if (state.egxuTypesStatus == EgxuTypesStatus.fail) {
+                  return Column(
+                    children: [
+                      Text(state.errorMessage ?? "Xatolik yuz berdi"),
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<GlobalBloc>().add(EgxuTypesRequested());
+                        },
+                        child: const Text("Qayta yuklash"),
                       ),
-                  ],
-                );
+                    ],
+                  );
+                }
+
+                return const SizedBox.shrink();
               },
             ),
 
-            CustomTextField(label: Words.factoryOne.tr(), controller: factory1Ctrl),
+            CustomTextField(
+              label: Words.factoryOne.tr(),
+              controller: factory1Ctrl,
+            ),
             16.getH(),
-            CustomTextField(label: Words.factoryTwo.tr(), controller: factory2Ctrl),
+            CustomTextField(
+              label: Words.factoryTwo.tr(),
+              controller: factory2Ctrl,
+            ),
             24.getH(),
 
             loading
                 ? const CircularProgressIndicator()
                 : SizedBox(
-                    width: double.infinity,
-                    child: CustomButton(
-                      title: Words.add.tr(),
-                      icon: AppTools.add,
-                      onTap: _submit,
-                    ),
-                  ),
+              width: double.infinity,
+              child: CustomButton(
+                title: Words.add.tr(),
+                icon: AppTools.add,
+                onTap: _submit,
+              ),
+            ),
           ],
         ),
       ),
@@ -189,5 +225,14 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    fromCtrl.dispose();
+    toCtrl.dispose();
+    factory1Ctrl.dispose();
+    factory2Ctrl.dispose();
+    super.dispose();
   }
 }

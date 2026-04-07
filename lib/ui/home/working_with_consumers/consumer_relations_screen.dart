@@ -9,6 +9,7 @@ import '../../../core/extension/navigator_extension.dart';
 import '../../../core/utils/colors.dart';
 import 'bloc/consumer_relations_bloc.dart';
 import 'bloc/consumer_relations_state.dart';
+import 'sub_page/detail.dart';
 
 class ConsumerRelationsScreen extends StatefulWidget {
   const ConsumerRelationsScreen({super.key});
@@ -84,26 +85,24 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
   }
 
   Widget _buildBody(ConsumerRelationsState state, bool isTablet) {
-    switch (state.status) {
-      case ConsumerRelationsStatus.initial:
+    switch (state.documentsStatus) {  // ✅ legacyStatus emas, documentsStatus
+      case DocumentsStatus.initial:
         return const SizedBox.shrink();
 
-      case ConsumerRelationsStatus.loading:
+      case DocumentsStatus.loading:
         return _buildShimmerLoading(isTablet);
 
-      case ConsumerRelationsStatus.fail:
+      case DocumentsStatus.fail:
         return _buildErrorState(state.errorMessage ?? "");
 
-      case ConsumerRelationsStatus.success:
+      case DocumentsStatus.loaded:
         if (state.documents.isEmpty) {
           return _buildEmptyState();
         }
         return _buildDocumentList(state, isTablet);
 
-      case ConsumerRelationsStatus.exist:
-      case ConsumerRelationsStatus.notExist:
-        return const SizedBox.shrink();
-    }
+      case DocumentsStatus.loadingMore:
+        return _buildDocumentList(state, isTablet); }
   }
 
   // ==================== SHIMMER LOADING ====================
@@ -291,7 +290,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
                   index: index,
                   onTap: () => push(
                     ConsumerRelationsDetailScreen(
-                      documentId: state.documents[index].id ?? 0,
+                      documentId: state.documents[index].id ,
                     ),
                   ),
                 );
@@ -314,7 +313,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
                     index: index,
                     onTap: () => push(
                       ConsumerRelationsDetailScreen(
-                        documentId: state.documents[index].id ?? 0,
+                        documentId: state.documents[index].id ,
                       ),
                     ),
                   );

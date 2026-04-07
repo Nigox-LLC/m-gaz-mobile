@@ -57,12 +57,10 @@ class TaskApi {
 
       // ❗ Object bo‘lib kelsa to‘g‘ridan o‘qiymiz
       return TaskAnalysisModel.fromJson(response.data);
-
     } catch (e) {
       throw Exception("API error: $e");
     }
   }
-
 
   Future<PaginatedResponse<TaskModel>> getNextPage(String url) async {
     try {
@@ -115,6 +113,54 @@ class TaskApi {
       debugPrint("🔹 Javob status code: ${response.statusCode}");
 
       if (response.statusCode == 200) {
+        return TaskModel.fromJson(response.data);
+      } else {
+        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      final error = e.response?.data;
+      String errorMessage =
+          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      debugPrint("❌ DioException: $errorMessage");
+      throw Exception(errorMessage);
+    } catch (e) {
+      debugPrint("❌ UNKNOWN ERROR: $e");
+      throw Exception("Kutilmagan xatolik: $e");
+    }
+  }
+
+  Future<TaskModel> completeTask({
+    required int taskId,
+    String? filePath,
+  }) async {
+    try {
+      debugPrint("🔹 Task bajarildi deb belgilanmoqda... ID: $taskId");
+
+      FormData formData;
+
+      if (filePath != null) {
+        // Fayl bilan birga yuborish
+        final fileName = filePath.split('/').last;
+        formData = FormData.fromMap({
+          'answer_file': await MultipartFile.fromFile(
+            filePath,
+            filename: fileName,
+          ),
+        });
+        debugPrint("📎 Fayl biriktirildi: $fileName");
+      } else {
+        // Faylsiz yuborish (agar kerak bo'lsa)
+        formData = FormData.fromMap({});
+      }
+
+      final response = await _base.dio.patch(
+        'task/done/$taskId/',
+        data: formData,
+      );
+
+      debugPrint("🔹 Javob status code: ${response.statusCode}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return TaskModel.fromJson(response.data);
       } else {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');

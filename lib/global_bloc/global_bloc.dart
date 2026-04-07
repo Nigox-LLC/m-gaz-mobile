@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../core/api/global/global_api.dart';
 import '../di.dart';
@@ -24,153 +23,185 @@ class GlobalBloc extends Bloc<GlobalEvent, GlobalState> {
   // ================= INITIAL =================
 
   Future<void> _onInitial(
-    EgxuFormInitialDataRequested event,
-    Emitter<GlobalState> emit,
-  ) async {
-    await _load(
-      emit,
-      before: () => emit(state.copyWith(status: GlobalStatus.loading)),
-      request: () async {
-        final results = await Future.wait([
-          _api.getRegions(),
-          _api.getActivityTypes(),
-          _api.getEgxuConnectionPoints(),
-          _api.getDirections(),
-          _api.getMinistries(),
-          _api.getGrpTypes(),
-          _api.getStampInstallationPoints(),
-        ]);
-
-        emit(
-          state.copyWith(
-            status: GlobalStatus.loaded,
-            regions: results[0],
-            activityTypes: results[1],
-            connectionPoints: results[2],
-            directions: results[3],
-            ministries: results[4],
-            grpTypes: results[5],
-            stampInstallationPoints: results[6],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _onEgxuTypesRequested(
-    EgxuTypesRequested event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(state.copyWith(status: GlobalStatus.loading));
+      EgxuFormInitialDataRequested event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(
+      generalStatus: GlobalGeneralStatus.loading,
+      regionsStatus: RegionsStatus.loading,
+      activityTypesStatus: ActivityTypesStatus.loading,
+      connectionPointsStatus: ConnectionPointsStatus.loading,
+      directionsStatus: DirectionsStatus.loading,
+      ministriesStatus: MinistriesStatus.loading,
+      grpTypesStatus: GrpTypesStatus.loading,
+      stampInstallationPointsStatus: StampInstallationPointsStatus.loading,
+    ));
 
     try {
-      final types = await _api.getEgxuTypes();
-      emit(state.copyWith(status: GlobalStatus.loaded, egxuTypes: types));
+      final results = await Future.wait([
+        _api.getRegions(),
+        _api.getActivityTypes(),
+        _api.getEgxuConnectionPoints(),
+        _api.getDirections(),
+        _api.getMinistries(),
+        _api.getGrpTypes(),
+        _api.getStampInstallationPoints(),
+      ]);
+
+      emit(state.copyWith(
+        generalStatus: GlobalGeneralStatus.success,
+        regionsStatus: RegionsStatus.loaded,
+        activityTypesStatus: ActivityTypesStatus.loaded,
+        connectionPointsStatus: ConnectionPointsStatus.loaded,
+        directionsStatus: DirectionsStatus.loaded,
+        ministriesStatus: MinistriesStatus.loaded,
+        grpTypesStatus: GrpTypesStatus.loaded,
+        stampInstallationPointsStatus: StampInstallationPointsStatus.loaded,
+        regions: results[0],
+        activityTypes: results[1],
+        connectionPoints: results[2],
+        directions: results[3],
+        ministries: results[4],
+        grpTypes: results[5],
+        stampInstallationPoints: results[6],
+      ));
     } catch (e) {
-      emit(
-        state.copyWith(status: GlobalStatus.fail, errorMessage: e.toString()),
-      );
+      emit(state.copyWith(
+        generalStatus: GlobalGeneralStatus.fail,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+      ));
     }
   }
 
+  // ================= EGXU TYPES =================
+
+  Future<void> _onEgxuTypesRequested(
+      EgxuTypesRequested event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(egxuTypesStatus: EgxuTypesStatus.loading));
+
+    try {
+      final types = await _api.getEgxuTypes();
+      emit(state.copyWith(
+        egxuTypesStatus: EgxuTypesStatus.loaded,
+        egxuTypes: types,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        egxuTypesStatus: EgxuTypesStatus.fail,
+        errorMessage: e.toString(),
+      ));
+    }
+  }
+
+  // ================= CONSUMERS =================
+
   Future<void> _onConsumersRequested(
-    EgxuFormConsumersRequested event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(state.copyWith(isConsumerLoading: true));
+      EgxuFormConsumersRequested event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(consumersStatus: ConsumersStatus.loading));
 
-    await _load(
-      emit,
-      request: () async {
-        final consumers = await _api.getConsumers(
-          regionId: event.regionId,
-          districtId: event.districtId,
-        );
+    try {
+      final consumers = await _api.getConsumers(
+        regionId: event.regionId,
+        districtId: event.districtId,
+      );
 
-        emit(state.copyWith(consumers: consumers, isConsumerLoading: false));
-      },
-    );
+      emit(state.copyWith(
+        consumersStatus: ConsumersStatus.loaded,
+        consumers: consumers,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        consumersStatus: ConsumersStatus.fail,
+        errorMessage: e.toString(),
+      ));
+    }
   }
 
   // ================= REGION =================
 
   Future<void> _onRegionSelected(
-    EgxuFormRegionSelected event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(
-      state.copyWith(
-        regionId: event.regionId,
-        districtId: null,
-        districts: const [],
-        isDistrictLoading: true,
-      ),
-    );
+      EgxuFormRegionSelected event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(
+      regionId: event.regionId,
+      districtId: null,
+      clearDistricts: true,
+      districtsStatus: DistrictsStatus.loading,
+    ));
 
-    await _load(
-      emit,
-      request: () async {
-        final districts = await _api.getDistricts(event.regionId);
-        emit(state.copyWith(districts: districts, isDistrictLoading: false));
-      },
-    );
+    try {
+      final districts = await _api.getDistricts(event.regionId);
+      emit(state.copyWith(
+        districtsStatus: DistrictsStatus.loaded,
+        districts: districts,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        districtsStatus: DistrictsStatus.fail,
+        errorMessage: e.toString(),
+      ));
+    }
   }
 
   // ================= DISTRICT =================
 
   Future<void> _onDistrictSelected(
-    EgxuFormDistrictSelected event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(
-      state.copyWith(
+      EgxuFormDistrictSelected event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(
+      districtId: event.districtId,
+      employeesStatus: EmployeesStatus.loading,
+      consumersStatus: ConsumersStatus.loading,
+      neighborhoodsStatus: NeighborhoodsStatus.loading,
+      gasNetworksStatus: GasNetworksStatus.loading,
+    ));
+
+    try {
+      final rId = state.regionId!;
+
+      final employeesResponse = await _api.getEmployees(
+        regionId: rId,
         districtId: event.districtId,
-        isEmployeeLoading: true,
-        isConsumerLoading: true,
-        isNeighborhoodLoading: true,
-        isGasNetworkLoading: true,
-      ),
-    );
+      );
 
-    await _load(
-      emit,
-      request: () async {
-        final rId = state.regionId!;
+      final results = await Future.wait([
+        _api.getConsumers(regionId: rId, districtId: event.districtId),
+        _api.getNeighborhoods(regionId: rId, districtId: event.districtId),
+      ]);
 
-        final employeesResponse = await _api.getEmployees(
-          regionId: rId,
-          districtId: event.districtId,
-        );
-
-        final results = await Future.wait([
-          _api.getConsumers(regionId: rId, districtId: event.districtId),
-          _api.getNeighborhoods(regionId: rId, districtId: event.districtId),
-        ]);
-
-        emit(
-          state.copyWith(
-            employees: employeesResponse.results,
-            consumers: results[0],
-            neighborhoods: results[1],
-            isEmployeeLoading: false,
-            isConsumerLoading: false,
-            isNeighborhoodLoading: false,
-            isGasNetworkLoading: false,
-          ),
-        );
-      },
-    );
+      emit(state.copyWith(
+        employeesStatus: EmployeesStatus.loaded,
+        consumersStatus: ConsumersStatus.loaded,
+        neighborhoodsStatus: NeighborhoodsStatus.loaded,
+        gasNetworksStatus: GasNetworksStatus.loaded,
+        employees: employeesResponse.results,
+        consumers: results[0],
+        neighborhoods: results[1],
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        employeesStatus: EmployeesStatus.fail,
+        consumersStatus: ConsumersStatus.fail,
+        neighborhoodsStatus: NeighborhoodsStatus.fail,
+        gasNetworksStatus: GasNetworksStatus.fail,
+        errorMessage: e.toString(),
+      ));
+    }
   }
 
+  // ================= GAS NETWORKS =================
+
   Future<void> _getGasNetworks(
-    GetGasNetworksEvent event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(
-      state.status == GlobalStatus.loading
-          ? state.copyWith(isGasNetworkLoading: true)
-          : state,
-    );
+      GetGasNetworksEvent event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(gasNetworksStatus: GasNetworksStatus.loading));
 
     try {
       final result = await _api.getGasNetworks(
@@ -178,147 +209,139 @@ class GlobalBloc extends Bloc<GlobalEvent, GlobalState> {
         districtId: event.districtId,
       );
 
-      emit(state.copyWith(gasNetworks: result, isGasNetworkLoading: false));
+      emit(state.copyWith(
+        gasNetworksStatus: GasNetworksStatus.loaded,
+        gasNetworks: result,
+      ));
     } catch (e) {
-      emit(
-        state.copyWith(isGasNetworkLoading: false, errorMessage: e.toString()),
-      );
+      emit(state.copyWith(
+        gasNetworksStatus: GasNetworksStatus.fail,
+        errorMessage: e.toString(),
+      ));
     }
   }
 
   // ================= GRS =================
 
   Future<void> _onGrsSelected(
-    EgxuFormGrsSelected event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(
-      state.copyWith(
-        isIndustrialCollectorLoading: true,
-        isMeasuringDeviceLoading: true,
-      ),
-    );
+      EgxuFormGrsSelected event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(
+      industrialCollectorsStatus: IndustrialCollectorsStatus.loading,
+      measuringDevicesStatus: MeasuringDevicesStatus.loading,
+    ));
 
-    await _load(
-      emit,
-      request: () async {
-        final rId = state.regionId!;
-        final results = await Future.wait([
-          _api.getIndustrialCollectors(regionId: rId, grsId: event.grsId),
-          _api.getMeasuringDevices(regionId: rId, grsId: event.grsId),
-        ]);
-
-        emit(
-          state.copyWith(
-            industrialCollectors: results[0],
-            measuringDevices: results[1],
-            isIndustrialCollectorLoading: false,
-            isMeasuringDeviceLoading: false,
-          ),
-        );
-      },
-    );
-  }
-
-  // ================= HELPER =================
-
-  Future<void> _load(
-    Emitter<GlobalState> emit, {
-    required Future<void> Function() request,
-    VoidCallback? before,
-  }) async {
     try {
-      before?.call();
-      await request();
+      final rId = state.regionId!;
+      final results = await Future.wait([
+        _api.getIndustrialCollectors(regionId: rId, grsId: event.grsId),
+        _api.getMeasuringDevices(regionId: rId, grsId: event.grsId),
+      ]);
+
+      emit(state.copyWith(
+        industrialCollectorsStatus: IndustrialCollectorsStatus.loaded,
+        measuringDevicesStatus: MeasuringDevicesStatus.loaded,
+        industrialCollectors: results[0],
+        measuringDevices: results[1],
+      ));
     } catch (e) {
-      emit(
-        state.copyWith(
-          isDistrictLoading: false,
-          isEmployeeLoading: false,
-          isConsumerLoading: false,
-          isNeighborhoodLoading: false,
-          isGasNetworkLoading: false,
-          isIndustrialCollectorLoading: false,
-          isMeasuringDeviceLoading: false,
-          errorMessage: e.toString().replaceAll('Exception: ', ''),
-        ),
-      );
+      emit(state.copyWith(
+        industrialCollectorsStatus: IndustrialCollectorsStatus.fail,
+        measuringDevicesStatus: MeasuringDevicesStatus.fail,
+        errorMessage: e.toString(),
+      ));
     }
   }
 
-  Future<void> _onStampInstallationPointsRequested(
-    StampInstallationPointsRequested event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(state.copyWith(isStampInstallationPointLoading: true));
+  // ================= STAMP INSTALLATION POINTS =================
 
-    await _load(
-      emit,
-      request: () async {
-        final list = await _api.getStampInstallationPoints();
-        emit(
-          state.copyWith(
-            stampInstallationPoints: list,
-            isStampInstallationPointLoading: false,
-          ),
-        );
-      },
-    );
+  Future<void> _onStampInstallationPointsRequested(
+      StampInstallationPointsRequested event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(
+      stampInstallationPointsStatus: StampInstallationPointsStatus.loading,
+    ));
+
+    try {
+      final list = await _api.getStampInstallationPoints();
+      emit(state.copyWith(
+        stampInstallationPointsStatus: StampInstallationPointsStatus.loaded,
+        stampInstallationPoints: list,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        stampInstallationPointsStatus: StampInstallationPointsStatus.fail,
+        errorMessage: e.toString(),
+      ));
+    }
   }
 
+  // ================= GAS EQUIPMENT =================
+
   Future<void> _onGetGasEquipment(
-    GasEquipmentFetched event,
-    Emitter<GlobalState> emit,
-  ) async {
-    emit(state.copyWith(status: GlobalStatus.loading));
+      GasEquipmentFetched event,
+      Emitter<GlobalState> emit,
+      ) async {
+    emit(state.copyWith(
+      gasEquipmentStatus: GasEquipmentStatus.loading,
+      clearGasEquipment: true,
+    ));
+
     try {
       final response = await _api.getGasEquipment(limit: 10);
-      emit(
-        state.copyWith(
-          status: GlobalStatus.success,
-          gasEquipment: response.results,
-          nextUrl: response.next,
-          hasReachedMax: response.next == null,
+      emit(state.copyWith(
+        gasEquipmentStatus: GasEquipmentStatus.loaded,
+        gasEquipment: response.results,
+        gasEquipmentPagination: PaginationInfo(
+          count: response.count,
+          next: response.next,
+          hasMore: response.next != null,
         ),
-      );
+      ));
     } catch (e) {
-      emit(
-        state.copyWith(
-          status: GlobalStatus.fail,
-          errorMessage: e.toString().replaceAll('Exception: ', ''),
-        ),
-      );
+      emit(state.copyWith(
+        gasEquipmentStatus: GasEquipmentStatus.fail,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+      ));
     }
   }
 
   Future<void> _onLoadMore(
-    GasEquipmentLoadMore event,
-    Emitter<GlobalState> emit,
-  ) async {
-    if (state.hasReachedMax || state.isLoadingMore || state.nextUrl == null) {
+      GasEquipmentLoadMore event,
+      Emitter<GlobalState> emit,
+      ) async {
+    if (state.isLoadingMoreGasEquipment || !state.hasMoreGasEquipment) {
       return;
     }
 
-    emit(state.copyWith(isLoadingMore: true));
+    emit(state.copyWith(
+      gasEquipmentStatus: GasEquipmentStatus.loadingMore,
+      isLoadingMoreGasEquipment: true,
+    ));
+
     try {
-      final response = await _api.getNextPage(state.nextUrl!);
-      emit(
-        state.copyWith(
-          status: GlobalStatus.success,
-          gasEquipment: [...state.gasEquipment, ...response.results],
-          nextUrl: response.next,
-          hasReachedMax: response.next == null,
-          isLoadingMore: false,
+      final nextUrl = state.gasEquipmentPagination.next;
+      if (nextUrl == null) return;
+
+      final response = await _api.getNextPage(nextUrl);
+      emit(state.copyWith(
+        gasEquipmentStatus: GasEquipmentStatus.loaded,
+        appendGasEquipment: true,
+        gasEquipment: response.results,
+        gasEquipmentPagination: PaginationInfo(
+          next: response.next,
+          hasMore: response.next != null,
         ),
-      );
+        isLoadingMoreGasEquipment: false,
+      ));
     } catch (e) {
-      emit(
-        state.copyWith(
-          status: GlobalStatus.fail,
-          errorMessage: e.toString().replaceAll('Exception: ', ''),
-          isLoadingMore: false,
-        ),
-      );
+      emit(state.copyWith(
+        gasEquipmentStatus: GasEquipmentStatus.fail,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+        isLoadingMoreGasEquipment: false,
+      ));
     }
   }
 }
