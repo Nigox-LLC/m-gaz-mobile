@@ -83,6 +83,11 @@ class ConsumerRelationsState extends Equatable {
   // Eski status (backward compatibility uchun)
   final ConsumerGeneralStatus? legacyStatus;
 
+  // Search & filter holati
+  final String searchQuery;
+  final int? regionFilterId;
+  final int? districtFilterId;
+
   const ConsumerRelationsState({
     this.generalStatus = ConsumerGeneralStatus.initial,
     this.errorMessage,
@@ -95,6 +100,9 @@ class ConsumerRelationsState extends Equatable {
     this.detailStatus = DocumentDetailStatus.initial,
     this.selectedDocument,
     this.legacyStatus,
+    this.searchQuery = '',
+    this.regionFilterId,
+    this.districtFilterId,
   });
 
   // Helper getterlar
@@ -129,9 +137,14 @@ class ConsumerRelationsState extends Equatable {
     DocumentDetailStatus? detailStatus,
     WorkingWithConsumersDetailModel? selectedDocument,
     ConsumerGeneralStatus? legacyStatus,
+    String? searchQuery,
+    int? regionFilterId,
+    int? districtFilterId,
     bool clearDocuments = false,
     bool clearSelectedDocument = false,
     bool appendDocuments = false,
+    bool clearRegionFilter = false,
+    bool clearDistrictFilter = false,
   }) {
     return ConsumerRelationsState(
       generalStatus: generalStatus ?? this.generalStatus,
@@ -151,6 +164,13 @@ class ConsumerRelationsState extends Equatable {
           ? null
           : (selectedDocument ?? this.selectedDocument),
       legacyStatus: legacyStatus ?? this.legacyStatus,
+      searchQuery: searchQuery ?? this.searchQuery,
+      regionFilterId: clearRegionFilter
+          ? null
+          : (regionFilterId ?? this.regionFilterId),
+      districtFilterId: clearDistrictFilter
+          ? null
+          : (districtFilterId ?? this.districtFilterId),
     );
   }
 
@@ -167,5 +187,8 @@ class ConsumerRelationsState extends Equatable {
     detailStatus,
     selectedDocument,
     legacyStatus,
+    searchQuery,
+    regionFilterId,
+    districtFilterId,
   ];
 }

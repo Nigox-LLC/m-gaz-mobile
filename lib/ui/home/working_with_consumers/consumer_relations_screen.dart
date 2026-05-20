@@ -9,7 +9,6 @@ import '../../../core/extension/navigator_extension.dart';
 import '../../../core/utils/colors.dart';
 import 'bloc/consumer_relations_bloc.dart';
 import 'bloc/consumer_relations_state.dart';
-import 'sub_page/detail.dart';
 
 class ConsumerRelationsScreen extends StatefulWidget {
   const ConsumerRelationsScreen({super.key});
@@ -21,14 +20,21 @@ class ConsumerRelationsScreen extends StatefulWidget {
 
 class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
   final _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _searchController.addListener(_onSearchControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ConsumerRelationsBloc>().add(ConsumerRelationsFetched());
     });
+  }
+
+  void _onSearchControllerChanged() {
+    // suffix clear icon ko'rinishi uchun setState
+    setState(() {});
   }
 
   void _onScroll() {
@@ -41,6 +47,8 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.removeListener(_onSearchControllerChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -54,9 +62,16 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
       appBar: _buildModernAppBar(),
       body: BlocBuilder<ConsumerRelationsBloc, ConsumerRelationsState>(
         builder: (context, state) {
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _buildBody(state, isTablet),
+          return Column(
+            children: [
+              _buildSearchField(context),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _buildBody(state, isTablet),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -65,6 +80,57 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
         child: FloatingActionButton(
           child: const Icon(Icons.add),
           onPressed: () => push(EgxuCreateScreen()),
+        ),
+      ),
+    );
+  }
+
+  // ==================== SEARCH FIELD ====================
+  Widget _buildSearchField(BuildContext context) {
+    final hasQuery = _searchController.text.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          context.read<ConsumerRelationsBloc>().add(
+            ConsumerRelationsSearchChanged(value),
+          );
+        },
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: 'Qidirish...',
+          hintStyle: const TextStyle(color: Colors.black45),
+          prefixIcon: const Icon(Icons.search, color: Colors.black54),
+          suffixIcon: hasQuery
+              ? IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black54),
+                  onPressed: () {
+                    _searchController.clear();
+                    context.read<ConsumerRelationsBloc>().add(
+                      const ConsumerRelationsSearchChanged(''),
+                    );
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide(color: AppColors.c181D27, width: 1.5),
+          ),
         ),
       ),
     );

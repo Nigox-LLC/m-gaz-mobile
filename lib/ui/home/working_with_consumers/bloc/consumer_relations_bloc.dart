@@ -1,3 +1,4 @@
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/api/working_with_consumers_api/consumer_relations_api.dart';
@@ -14,6 +15,14 @@ class ConsumerRelationsBloc extends Bloc<ConsumerRelationsEvent, ConsumerRelatio
     on<ConsumerRelationsLoadMore>(_onLoadMore);
     on<CheckFactoryExistRequested>(_checkFactory);
     on<ConsumerRelationsDocumentFetched>(_onDocumentFetched);
+    on<ConsumerRelationsSearchChanged>(
+      _onSearchChanged,
+      transformer: restartable(),
+    );
+    on<ConsumerRelationsFilterChanged>(
+      _onFilterChanged,
+      transformer: restartable(),
+    );
   }
 
   // ============= Documents List =============
@@ -27,7 +36,12 @@ class ConsumerRelationsBloc extends Bloc<ConsumerRelationsEvent, ConsumerRelatio
     ));
 
     try {
-      final response = await _api.getDocuments(limit: 20);
+      final response = await _api.getDocuments(
+        limit: 20,
+        search: state.searchQuery,
+        region: state.regionFilterId,
+        district: state.districtFilterId,
+      );
 
       emit(state.copyWith(
         documentsStatus: DocumentsStatus.loaded,
@@ -42,6 +56,85 @@ class ConsumerRelationsBloc extends Bloc<ConsumerRelationsEvent, ConsumerRelatio
       emit(state.copyWith(
         documentsStatus: DocumentsStatus.fail,
         generalStatus: ConsumerGeneralStatus.fail,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+      ));
+    }
+  }
+
+  // ============= Search Changed (debounced) =============
+  Future<void> _onSearchChanged(
+    ConsumerRelationsSearchChanged event,
+    Emitter<ConsumerRelationsState> emit,
+  ) async {
+    // searchQuery'ni darhol state'ga yozish (UI sync uchun)
+    emit(state.copyWith(searchQuery: event.query));
+
+    // Debounce: 400ms ichida yangi event kelsa restartable() bekor qiladi
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (emit.isDone) return;
+
+    emit(state.copyWith(
+      documentsStatus: DocumentsStatus.loading,
+      clearDocuments: true,
+    ));
+
+    try {
+      final response = await _api.getDocuments(
+        limit: 20,
+        search: event.query,
+        region: state.regionFilterId,
+        district: state.districtFilterId,
+      );
+      emit(state.copyWith(
+        documentsStatus: DocumentsStatus.loaded,
+        documents: response.results,
+        documentsPagination: PaginationInfo(
+          count: response.count,
+          next: response.next,
+          hasMore: response.next != null,
+        ),
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        documentsStatus: DocumentsStatus.fail,
+        errorMessage: e.toString().replaceAll('Exception: ', ''),
+      ));
+    }
+  }
+
+  // ============= Filter Changed (region/district) =============
+  Future<void> _onFilterChanged(
+    ConsumerRelationsFilterChanged event,
+    Emitter<ConsumerRelationsState> emit,
+  ) async {
+    emit(state.copyWith(
+      regionFilterId: event.regionId,
+      districtFilterId: event.districtId,
+      clearRegionFilter: event.clearRegion,
+      clearDistrictFilter: event.clearDistrict,
+      documentsStatus: DocumentsStatus.loading,
+      clearDocuments: true,
+    ));
+
+    try {
+      final response = await _api.getDocuments(
+        limit: 20,
+        search: state.searchQuery,
+        region: state.regionFilterId,
+        district: state.districtFilterId,
+      );
+      emit(state.copyWith(
+        documentsStatus: DocumentsStatus.loaded,
+        documents: response.results,
+        documentsPagination: PaginationInfo(
+          count: response.count,
+          next: response.next,
+          hasMore: response.next != null,
+        ),
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        documentsStatus: DocumentsStatus.fail,
         errorMessage: e.toString().replaceAll('Exception: ', ''),
       ));
     }

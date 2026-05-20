@@ -15,14 +15,24 @@ class ConsumerRelationsApi {
   Future<PaginatedResponse<WorkingWithConsumersList>> getDocuments({
     int limit = 20,
     int offset = 0,
+    String? search,
+    int? region,
+    int? district,
   }) async {
     try {
       debugPrint("🔹 Consumer Relations so'rov yuborilmoqda...");
-      debugPrint("🔹 Limit: $limit, Offset: $offset");
+      debugPrint("🔹 Limit: $limit, Offset: $offset, search: $search, region: $region, district: $district");
+
+      final query = <String, dynamic>{'limit': limit, 'offset': offset};
+      if (search != null && search.trim().isNotEmpty) {
+        query['search'] = search.trim();
+      }
+      if (region != null) query['region'] = region;
+      if (district != null) query['district'] = district;
 
       final response = await _base.dio.get(
         'consumer-relations-documents/',
-        queryParameters: {'limit': limit, 'offset': offset},
+        queryParameters: query,
       );
 
       debugPrint("🔹 Javob status code: ${response.statusCode}");
