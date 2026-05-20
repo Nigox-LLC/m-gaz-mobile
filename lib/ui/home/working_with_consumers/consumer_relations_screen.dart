@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:m_gaz/global_widget/global_app_bar.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/sub_page/create/create.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/sub_page/detail.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/widget/document_card.dart';
+import 'package:m_gaz/ui/home/working_with_consumers/widget/filter_bottom_sheet.dart';
 import '../../../core/common/words.dart';
 import '../../../core/extension/navigator_extension.dart';
 import '../../../core/utils/colors.dart';
@@ -64,7 +66,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
         builder: (context, state) {
           return Column(
             children: [
-              _buildSearchField(context),
+              _buildSearchField(context, state),
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
@@ -86,11 +88,25 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
   }
 
   // ==================== SEARCH FIELD ====================
-  Widget _buildSearchField(BuildContext context) {
+  Widget _buildSearchField(BuildContext context, ConsumerRelationsState state) {
     final hasQuery = _searchController.text.isNotEmpty;
+    final filterActive =
+        state.regionFilterId != null || state.districtFilterId != null;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: TextField(
+      child: Row(
+        children: [
+          Expanded(child: _buildSearchTextField(context, hasQuery)),
+          const SizedBox(width: 8),
+          _buildFilterButton(context, state, filterActive),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchTextField(BuildContext context, bool hasQuery) {
+    return TextField(
         controller: _searchController,
         onChanged: (value) {
           context.read<ConsumerRelationsBloc>().add(
@@ -132,8 +148,89 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
             borderSide: BorderSide(color: AppColors.c181D27, width: 1.5),
           ),
         ),
+      );
+  }
+
+  Widget _buildFilterButton(
+    BuildContext context,
+    ConsumerRelationsState state,
+    bool active,
+  ) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _openFilterSheet(context, state),
+            child: Container(
+              width: 52,
+              height: 52,
+              alignment: Alignment.center,
+              child: SvgPicture.asset(
+                'assets/icons/filter-funnel.svg',
+                width: 22,
+                colorFilter: ColorFilter.mode(
+                  active ? AppColors.c1570EF : Colors.black87,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (active)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: AppColors.c1570EF,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _openFilterSheet(
+    BuildContext context,
+    ConsumerRelationsState state,
+  ) async {
+    final result = await showModalBottomSheet<FilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FilterBottomSheet(
+        initialRegionId: state.regionFilterId,
+        initialDistrictId: state.districtFilterId,
       ),
     );
+
+    if (result == null || !context.mounted) return;
+
+    if (result.cleared) {
+      context.read<ConsumerRelationsBloc>().add(
+        const ConsumerRelationsFilterChanged(
+          clearRegion: true,
+          clearDistrict: true,
+        ),
+      );
+    } else {
+      context.read<ConsumerRelationsBloc>().add(
+        ConsumerRelationsFilterChanged(
+          regionId: result.regionId,
+          districtId: result.districtId,
+          clearRegion: result.regionId == null,
+          clearDistrict: result.districtId == null,
+        ),
+      );
+    }
   }
 
   // ==================== HELPER ====================
