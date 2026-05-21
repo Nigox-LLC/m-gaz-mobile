@@ -544,7 +544,7 @@ class _SectionCard extends StatelessWidget {
 
               // 🤖 Robot Animation (optimized size and position)
               if (showLottie) ...[
-                SizedBox(width: 12.w),
+                SizedBox(width: 6.w),
                 Container(
                   width: 70.w, // Optimal size
                   height: 70.w,
