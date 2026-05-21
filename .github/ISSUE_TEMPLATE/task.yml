@@ -1,0 +1,36 @@
+name: Task
+description: Development uchun yangi task ochish
+title: "[Task]: "
+labels:
+  - task
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Maqsad
+      description: Bu task nimani hal qilishi kerak?
+      placeholder: Qisqa va aniq yozing.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Qaysi ekranlar, modullar yoki fayllar ta'sirlanadi?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Qabul qilish shartlari
+      description: Task tugaganini qanday tekshiramiz?
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Izohlar
+      description: Dizayn, API, test yoki deployment bo'yicha qo'shimcha ma'lumot.
