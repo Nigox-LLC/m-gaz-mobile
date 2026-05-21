@@ -80,7 +80,7 @@ class _StampAddCardState extends State<StampAddCard> {
               },
             ),
 
-            CustomTextField(controller: qrController, label: "QR code"),
+            CustomTextField(controller: qrController, label: Words.qrCode.tr()),
 
             _status(),
 

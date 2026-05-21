@@ -329,18 +329,18 @@ class _IndustrialCollectorsScreenState
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
+            const SizedBox(
               width: 24,
               height: 24,
               child: CircularProgressIndicator(strokeWidth: 3),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Text(
-              'Yuklanmoqda...',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              Words.loading.tr(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
         ),

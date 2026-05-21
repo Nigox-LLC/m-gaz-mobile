@@ -164,7 +164,7 @@ class _ConsumerRelationsDetailScreenState
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: Container(
-        // height: height,
+        height: 180,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -505,7 +505,7 @@ class _ConsumerRelationsDetailScreenState
                         const SizedBox(height: 12),
                         _buildInfoRow(
                           icon: Icons.table_view_rounded,
-                          label: 'Excel ID',
+                          label: Words.excelId.tr(),
                           value: doc.excelId.toString(),
                           color: AppColors.c00A6FB,
                         ),
@@ -522,26 +522,34 @@ class _ConsumerRelationsDetailScreenState
   }
 
   Widget _buildInfoGrid(List<_InfoItem> items) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return _buildInfoTile(item);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useSingleColumn = constraints.maxWidth < 360;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: useSingleColumn ? 1 : 2,
+            mainAxisExtent: useSingleColumn ? 82 : 96,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _buildInfoTile(item, compact: !useSingleColumn);
+          },
+        );
       },
     );
   }
 
-  Widget _buildInfoTile(_InfoItem item) {
+  Widget _buildInfoTile(_InfoItem item, {required bool compact}) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 12,
+        vertical: compact ? 10 : 12,
+      ),
       decoration: BoxDecoration(
         color: item.bgColor,
         borderRadius: BorderRadius.circular(16),
@@ -555,26 +563,33 @@ class _ConsumerRelationsDetailScreenState
             children: [
               Icon(item.icon, size: 14, color: item.color),
               const SizedBox(width: 6),
-              Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: item.color,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.2,
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: TextStyle(
+                    fontSize: compact ? 10.5 : 11,
+                    color: item.color,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: -0.2,
+                    height: 1.15,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: compact ? 5 : 6),
           Text(
             item.value,
-            style: const TextStyle(
-              fontSize: 14,
+            style: TextStyle(
+              fontSize: compact ? 13 : 14,
               fontWeight: FontWeight.w600,
               color: AppColors.c101623,
+              height: 1.2,
             ),
-            maxLines: 1,
+            maxLines: 2,
+            softWrap: true,
             overflow: TextOverflow.ellipsis,
           ),
         ],
@@ -1732,13 +1747,17 @@ class _ConsumerRelationsDetailScreenState
                 child: Icon(icon, size: 22, color: color),
               ),
               const SizedBox(width: 14),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.c101623,
-                  letterSpacing: -0.3,
+              Flexible(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.c101623,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
