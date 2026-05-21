@@ -7,13 +7,13 @@ import 'package:m_gaz/ui/home/working_with_consumers/sub_page/create/widget/step
 import 'package:m_gaz/ui/home/working_with_consumers/sub_page/create/widget/step/step_egxu_list.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/sub_page/create/widget/step/step_main_info.dart';
 import '../../../../../core/common/words.dart';
-import '../../../../../core/models/user/user_model.dart';
 import '../../../../../core/utils/colors.dart';
+import '../../../../../features/auth/domain/entities/user.dart';
+import '../../../../../features/auth/presentation/bloc/login_bloc.dart';
 import '../../../../../global_bloc/global_bloc.dart';
 import '../../../../../global_bloc/global_event.dart';
 import '../../../../../global_bloc/global_state.dart';
 import '../../../../../global_widget/global_app_bar.dart';
-import '../../../../auth/login/bloc/login_bloc.dart';
 import 'bloc/egxu_create_bloc.dart';
 import 'bloc/egxu_create_event.dart';
 import 'bloc/egxu_create_state.dart';
@@ -38,7 +38,7 @@ class _EgxuCreateView extends StatefulWidget {
 }
 
 class _EgxuCreateViewState extends State<_EgxuCreateView> {
-  UserModel? profile;
+  User? profile;
 
   final _steps = [
     StepperItem(title: Words.email.tr(), icon: Icons.location_on_outlined),
