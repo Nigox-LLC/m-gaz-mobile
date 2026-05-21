@@ -197,6 +197,7 @@ enum Words {
   position,
   exitProfile,
   chooseLanguage,
+  main,
   uz,
   ru,
   save,

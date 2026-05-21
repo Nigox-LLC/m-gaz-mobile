@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   final List<BottomNavItemModel> _navItems = [
     BottomNavItemModel(
-      title: Words.email.tr(),
+      title: Words.main.tr(),
       icon: Icons.home_rounded,
       screen: const DashboardPage(),
     ),
