@@ -461,29 +461,26 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
                 );
               },
             )
-          : Padding(
-              padding: EdgeInsets.only(bottom: 80),
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                physics: const BouncingScrollPhysics(),
-                itemCount:
-                    state.documents.length + (state.isLoadingMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == state.documents.length) {
-                    return _buildLoadingMoreIndicator(isTablet);
-                  }
-                  return DocumentCard(
-                    document: state.documents[index],
-                    index: index,
-                    onTap: () => push(
-                      ConsumerRelationsDetailScreen(
-                        documentId: state.documents[index].id,
-                      ),
+          : ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              physics: const BouncingScrollPhysics(),
+              itemCount:
+                  state.documents.length + (state.isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == state.documents.length) {
+                  return _buildLoadingMoreIndicator(isTablet);
+                }
+                return DocumentCard(
+                  document: state.documents[index],
+                  index: index,
+                  onTap: () => push(
+                    ConsumerRelationsDetailScreen(
+                      documentId: state.documents[index].id,
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
     );
   }
