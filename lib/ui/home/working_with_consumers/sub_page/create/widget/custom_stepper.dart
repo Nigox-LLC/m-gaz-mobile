@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:m_gaz/core/extension/size_extension.dart';
+import '../../../../../../core/common/words.dart';
 import '../../../../../../core/utils/colors.dart';
 import '../../../../../../core/utils/style.dart';
 import '../create.dart';
@@ -50,7 +51,7 @@ class CustomStepper extends StatelessWidget {
                           : AppColors.grey,
                     ),
                     child: Text(
-                      steps[index].title,
+                      steps[index].title.tr(),
                       textAlign: TextAlign.center,
                     ),
                   ),

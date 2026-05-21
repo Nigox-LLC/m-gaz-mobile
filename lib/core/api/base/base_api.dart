@@ -29,7 +29,7 @@
             if (options.extra['no_token'] != true && accessToken.isNotEmpty) {
               options.headers["Authorization"] = "Bearer $accessToken";
               options.headers["Accept-Language"] =
-                  mainKey.currentContext?.locale.languageCode ?? "en";
+                  mainKey.currentContext?.locale.languageCode ?? "uz";
             }
             return handler.next(options);
           },

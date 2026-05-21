@@ -16,10 +16,7 @@ import '../../../../../../../global_widget/global_dropdown.dart';
 class StepEgxuList extends StatefulWidget {
   final void Function(Map<String, dynamic>) onDataSaved;
 
-  const StepEgxuList({
-    super.key,
-    required this.onDataSaved,
-  });
+  const StepEgxuList({super.key, required this.onDataSaved});
 
   @override
   State<StepEgxuList> createState() => StepEgxuListState();
@@ -105,7 +102,7 @@ class StepEgxuListState extends State<StepEgxuList> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle(Words.egxuInfo.tr()),
+            _buildSectionTitle(Words.eghuInfo.tr()),
             _buildTextFields(),
             SizedBox(height: 24.w),
             _buildDropdowns(),
@@ -167,11 +164,14 @@ class StepEgxuListState extends State<StepEgxuList> {
           keyboardType: TextInputType.number,
         ),
         SizedBox(height: 12.w),
-        CustomTextField(controller: diff, label: Words.indicatorDifference.tr()),
+        CustomTextField(
+          controller: diff,
+          label: Words.indicatorDifference.tr(),
+        ),
         SizedBox(height: 12.w),
         CustomTextField(
           controller: grpLost,
-          label: Words.grpLoss.tr(),
+          label: Words.gtpLoss.tr(),
           keyboardType: TextInputType.number,
         ),
         SizedBox(height: 12.w),
@@ -190,7 +190,7 @@ class StepEgxuListState extends State<StepEgxuList> {
         return Column(
           children: [
             GenericSelectableField<SelectItem>(
-              title: Words.grpExist.tr(),
+              title: Words.gtpExist.tr(),
               items: grpExistsItems,
               selectedItem: grpExists,
               hintText: Words.select.tr(),
@@ -230,7 +230,7 @@ class StepEgxuListState extends State<StepEgxuList> {
             ),
             SizedBox(height: 12.w),
             GenericSelectableField<String>(
-              title: Words.egxuConnectionPoint.tr(),
+              title: Words.eghuConnectionPoint.tr(),
               items: state.connectionPoints
                   .map((e) => e.name)
                   .whereType<String>()
@@ -245,7 +245,7 @@ class StepEgxuListState extends State<StepEgxuList> {
             ),
             SizedBox(height: 12.w),
             GenericSelectableField<SelectItem>(
-              title: Words.moveGrpAfterEgxu.tr(),
+              title: Words.moveGtpAfterEghu.tr(),
               items: moveGrpAfterEgxuItems,
               selectedItem: afterEgxuGrp,
               hintText: Words.select.tr(),
@@ -294,7 +294,7 @@ class StepEgxuListState extends State<StepEgxuList> {
                 Icon(Icons.photo_library_outlined, size: 20),
                 SizedBox(width: 8.w),
                 Text(
-                  Words.egxuIndicatorImages.tr(),
+                  Words.eghuIndicatorImages.tr(),
                   style: AppTextStyles.style600.copyWith(fontSize: 14.w),
                 ),
               ],
@@ -329,7 +329,7 @@ class StepEgxuListState extends State<StepEgxuList> {
                 Icon(Icons.folder_open_outlined, size: 20),
                 SizedBox(width: 8.w),
                 Text(
-                  Words.egxuDailyFiles.tr(),
+                  Words.eghuDailyFiles.tr(),
                   style: AppTextStyles.style600.copyWith(fontSize: 14.w),
                 ),
               ],
@@ -497,31 +497,31 @@ class StepEgxuListState extends State<StepEgxuList> {
 }
 
 // ========== SelectItem listlari (unchanged) ==========
-final List<SelectItem> gasDisconnectReasons = [
+List<SelectItem> get gasDisconnectReasons => [
   SelectItem(code: "SEASONAL", label: Words.seasonalReason.tr()),
   SelectItem(code: "DEBT", label: Words.debtReason.tr()),
   SelectItem(code: "ACTIVITY_SUSPENDED", label: Words.activitySuspended.tr()),
-  SelectItem(
-    code: "METER_NOT_CONNECTED",
-    label: Words.meterNotConnected.tr(),
-  ),
+  SelectItem(code: "METER_NOT_CONNECTED", label: Words.meterNotConnected.tr()),
   SelectItem(code: "NO_MODEM_USAGE", label: Words.noModemUsage.tr()),
   SelectItem(code: "TEMPORARY_NOT_USED", label: Words.temporaryNotUsed.tr()),
 ];
 
-final List<SelectItem> counterStatusItems = [
+List<SelectItem> get counterStatusItems => [
   SelectItem(code: "Installed", label: Words.installed.tr()),
-  SelectItem(code: "TemporarilyDisabled", label: Words.temporarilyDisabled.tr()),
+  SelectItem(
+    code: "TemporarilyDisabled",
+    label: Words.temporarilyDisabled.tr(),
+  ),
   SelectItem(code: "Untied", label: Words.untied.tr()),
   SelectItem(code: "New", label: Words.newItem.tr()),
 ];
 
-final List<SelectItem> moveGrpAfterEgxuItems = [
-  SelectItem(code: "BEFORE_EGHU", label: Words.beforeEgxu.tr()),
-  SelectItem(code: "AFTER_EGHU", label: Words.afterEgxu.tr()),
+List<SelectItem> get moveGrpAfterEgxuItems => [
+  SelectItem(code: "BEFORE_EGHU", label: Words.beforeEghu.tr()),
+  SelectItem(code: "AFTER_EGHU", label: Words.afterEghu.tr()),
 ];
 
-final List<SelectItem> grpExistsItems = [
+List<SelectItem> get grpExistsItems => [
   SelectItem(code: "True", label: Words.yes.tr()),
   SelectItem(code: "False", label: Words.no.tr()),
 ];

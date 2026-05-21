@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../core/common/words.dart';
 import 'app_tools.dart';
 
 class EmptyWidget extends StatelessWidget {
@@ -15,9 +16,9 @@ class EmptyWidget extends StatelessWidget {
             width: MediaQuery.of(context).size.width / 3,
             height: MediaQuery.of(context).size.height / 3,
           ),
-          const Text(
-            'Hech qanday ma\'lumot topilmadi',
-            style: TextStyle(fontSize: 16),
+          Text(
+            Words.noInformationFound.tr(),
+            style: const TextStyle(fontSize: 16),
             textAlign: TextAlign.center,
           ),
         ],

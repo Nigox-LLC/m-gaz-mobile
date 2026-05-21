@@ -101,9 +101,9 @@ class _ConsumerRelationsDetailScreenState
         onPressed: () => Navigator.of(context).pop(),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'Hujjat Tafsilotlari',
-          style: TextStyle(
+        title: Text(
+          Words.documentDetails.tr(),
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -309,7 +309,7 @@ class _ConsumerRelationsDetailScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            'Hujjat topilmadi',
+            Words.documentNotFound.tr(),
             style: TextStyle(fontSize: 14, color: AppColors.cA1A8B0),
           ),
         ],
@@ -333,7 +333,10 @@ class _ConsumerRelationsDetailScreenState
         children: [
           _buildHeroCard(doc),
           const SizedBox(height: 24),
-          _buildSectionTitle('EGXU Elementlari', icon: Icons.devices_rounded),
+          _buildSectionTitle(
+            Words.eghuElements.tr(),
+            icon: Icons.devices_rounded,
+          ),
           const SizedBox(height: 16),
           _buildEgxuList(doc.egxuList ?? []),
           const SizedBox(height: 24),
@@ -730,7 +733,7 @@ class _ConsumerRelationsDetailScreenState
           ),
           const SizedBox(height: 4),
           Text(
-            'EGXU elementlari topilmadi',
+            'EGHU elementlari topilmadi',
             style: TextStyle(color: AppColors.cA1A8B0, fontSize: 13),
           ),
         ],
@@ -779,7 +782,7 @@ class _ConsumerRelationsDetailScreenState
               ),
               leading: _buildStatusAvatar(item.isActive ?? false),
               title: Text(
-                'EGXU #${item.id}',
+                'EGHU #${item.id}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -906,7 +909,9 @@ class _ConsumerRelationsDetailScreenState
           ),
           const SizedBox(width: 4),
           Text(
-            isActive ? 'FAOL' : 'NOFAOL',
+            isActive
+                ? Words.active.tr().toUpperCase()
+                : Words.inactive.tr().toUpperCase(),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -920,55 +925,55 @@ class _ConsumerRelationsDetailScreenState
 
   Widget _buildGasInfoSection(ConsumerRelationEgxu egxu) {
     return _buildDetailCard(
-      title: 'Gaz Ma\'lumotlari',
+      title: Words.gasInfo.tr(),
       icon: Icons.gas_meter_rounded,
       color: AppColors.cF38744,
       child: Column(
         children: [
           _buildMetricCard(
-            label: 'Qoʻshimcha gaz',
+            label: Words.extraGasUsage.tr(),
             value: '${egxu.additionalGas?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.trending_up_rounded,
             color: AppColors.c17B26A,
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Qoidabuzarlik',
+            label: Words.violationGasUsage.tr(),
             value: '${egxu.violationGas?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.warning_amber_rounded,
             color: AppColors.cF04438,
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Qoʻshimcha balans',
+            label: Words.additionalResidue.tr(),
             value: '${egxu.additionalBalance?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.account_balance_wallet_rounded,
             color: AppColors.c17B26A,
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Oylik boshlangʻich oʻqish',
+            label: Words.monthStartIndicator.tr(),
             value: '${egxu.monthStartReading?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.timeline_rounded,
             color: AppColors.c667085,
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Oylik yakuniy oʻqish',
+            label: Words.monthEndIndicator.tr(),
             value: '${egxu.monthEndReading?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.timeline_rounded,
             color: AppColors.c667085,
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Oʻqish farqi',
+            label: Words.indicatorDifference.tr(),
             value: '${egxu.readingDifference?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.compare_arrows_rounded,
             color: AppColors.cF38744,
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Jami gaz',
+            label: Words.totalGasUsage.tr(),
             value: '${egxu.totalGas?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.local_gas_station_rounded,
             color: AppColors.c17B26A,
@@ -977,15 +982,15 @@ class _ConsumerRelationsDetailScreenState
           if (egxu.reasonsForViolations != null &&
               egxu.reasonsForViolations!.isNotEmpty)
             _buildMetricCard(
-              label: 'Qoidabuzarlik sabablari',
+              label: Words.violationReason.tr(),
               value: egxu.reasonsForViolations!,
               icon: Icons.error_outline_rounded,
               color: AppColors.cF04438,
             ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'GRP mavjudligi',
-            value: egxu.grpExists == true ? 'Ha' : 'Yoʻq',
+            label: Words.gtpExist.tr(),
+            value: egxu.grpExists == true ? Words.yes.tr() : Words.no.tr(),
             icon: Icons.check_circle_outline_rounded,
             color: egxu.grpExists == true
                 ? AppColors.c17B26A
@@ -993,15 +998,17 @@ class _ConsumerRelationsDetailScreenState
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'GRP yoʻqotish',
+            label: Words.gtpLoss.tr(),
             value: '${egxu.grpLoss?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.warning_amber_rounded,
             color: AppColors.cF38744,
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Status',
-            value: egxu.isActive == true ? 'Faol' : 'Nofaol',
+            label: Words.status.tr(),
+            value: egxu.isActive == true
+                ? Words.active.tr()
+                : Words.inactive.tr(),
             icon: Icons.toggle_on_rounded,
             color: egxu.isActive == true
                 ? AppColors.c17B26A
@@ -1009,8 +1016,8 @@ class _ConsumerRelationsDetailScreenState
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'Ish faoliyati',
-            value: egxu.workActivity == true ? 'Ha' : 'Yoʻq',
+            label: Words.activityType.tr(),
+            value: egxu.workActivity == true ? Words.yes.tr() : Words.no.tr(),
             icon: Icons.work_rounded,
             color: egxu.workActivity == true
                 ? AppColors.c17B26A
@@ -1019,7 +1026,7 @@ class _ConsumerRelationsDetailScreenState
           const SizedBox(height: 12),
           if (egxu.movGrpAfterEgxu != null)
             _buildMetricCard(
-              label: 'GRP harakat',
+              label: Words.moveGtpAfterEghu.tr(),
               value: egxu.movGrpAfterEgxu!,
               icon: Icons.swap_horiz_rounded,
               color: AppColors.c667085,
@@ -1027,7 +1034,7 @@ class _ConsumerRelationsDetailScreenState
           const SizedBox(height: 12),
           if (egxu.gaz != null)
             _buildMetricCard(
-              label: 'Gaz holati',
+              label: Words.gas.tr(),
               value: egxu.gaz!,
               icon: Icons.local_fire_department_rounded,
               color: AppColors.cF04438,
@@ -1035,7 +1042,7 @@ class _ConsumerRelationsDetailScreenState
           const SizedBox(height: 12),
           if (egxu.counterStatus != null)
             _buildMetricCard(
-              label: 'Hisoblagich holati',
+              label: Words.meterStatus.tr(),
               value: egxu.counterStatus!,
               icon: Icons.speed_rounded,
               color: AppColors.c667085,
@@ -1102,7 +1109,7 @@ class _ConsumerRelationsDetailScreenState
   // ==================== EQUIPMENT SECTION ====================
   Widget _buildEquipmentSection(List<ConsumersGasEquipmentItem> equipment) {
     return _buildDetailCard(
-      title: 'Gaz Jihozlari',
+      title: Words.gasEquipmentInfo.tr(),
       icon: Icons.build_rounded,
       color: AppColors.c7B3AEB,
       child: Container(
@@ -1151,7 +1158,7 @@ class _ConsumerRelationsDetailScreenState
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Miqdor: ${item.quantity} • Soatlik gaz: ${gas?.hourlyGasConsumption ?? '-'} m³',
+                            '${Words.quantity.tr()}: ${item.quantity} • ${Words.hourlyGasConsumption.tr()}: ${gas?.hourlyGasConsumption ?? '-'} m³',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppColors.c7B3AEB,
@@ -1174,71 +1181,79 @@ class _ConsumerRelationsDetailScreenState
     if (companyInfo == null) return const SizedBox();
 
     return _buildDetailCard(
-      title: 'Kompaniya Ma\'lumotlari',
+      title: Words.companyInfo.tr(),
       icon: Icons.business_rounded,
       color: AppColors.c535862,
       child: Column(
         children: [
           _buildCompanyInfoTile(
             Icons.numbers,
-            'Hisob raqami',
+            Words.accountNumber.tr(),
             companyInfo.accountNumber,
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.description,
-            'Shartnoma raqami',
+            Words.contractNumber.tr(),
             companyInfo.contractNumber,
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.person,
-            'Direktor',
+            Words.directorName.tr(),
             companyInfo.companyDirector,
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.apartment,
-            'Vazirlik',
+            Words.ministry.tr(),
             companyInfo.ministry?.name,
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.date_range,
-            'Shartnoma boshlanishi',
+            Words.contractStart.tr(),
             companyInfo.contractDate,
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.date_range,
-            'Shartnoma tugashi',
+            Words.contractEnd.tr(),
             companyInfo.contractEndDate,
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(Icons.badge, 'STIR', companyInfo.companyTin),
           const SizedBox(height: 12),
-          _buildCompanyInfoTile(Icons.phone, 'Telefon', companyInfo.phone),
+          _buildCompanyInfoTile(
+            Icons.phone,
+            Words.phone.tr(),
+            companyInfo.phone,
+          ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(Icons.email, 'Email', companyInfo.email),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.location_on,
-            'Manzil',
+            Words.address.tr(),
             companyInfo.address,
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.category,
-            'Turi',
+            Words.type.tr(),
             companyInfo.typeConsumers,
           ),
           const SizedBox(height: 12),
-          _buildCompanyInfoTile(Icons.wb_sunny, 'Mavsum', companyInfo.season),
+          _buildCompanyInfoTile(
+            Icons.wb_sunny,
+            Words.season.tr(),
+            companyInfo.season,
+          ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.check_circle,
-            'Faol',
-            companyInfo.isActive == true ? 'Ha' : 'Yo‘q',
+            Words.activeShort.tr(),
+            companyInfo.isActive == true ? Words.yes.tr() : Words.no.tr(),
           ),
         ],
       ),
@@ -1287,7 +1302,7 @@ class _ConsumerRelationsDetailScreenState
   // ==================== METERS SECTION ====================
   Widget _buildMetersSection(List<ConsumersRealItem> meters) {
     return _buildDetailCard(
-      title: 'Hisoblagichlar',
+      title: Words.counters.tr(),
       icon: Icons.speed_rounded,
       color: AppColors.c17B26A,
       child: ListView.separated(
@@ -1339,7 +1354,7 @@ class _ConsumerRelationsDetailScreenState
 
                       if (meter.employee?.fio != null)
                         Text(
-                          'Xodim: ${meter.employee!.fio}',
+                          '${Words.worker.tr()}: ${meter.employee!.fio}',
                           style: TextStyle(
                             color: AppColors.c667085,
                             fontSize: 12,
@@ -1347,7 +1362,7 @@ class _ConsumerRelationsDetailScreenState
                         ),
                       if (meter.connectionPoint?.name != null)
                         Text(
-                          'Ulanish nuqtasi: ${meter.connectionPoint!.name}',
+                          '${Words.connectionPoint.tr()}: ${meter.connectionPoint!.name}',
                           style: TextStyle(
                             color: AppColors.c667085,
                             fontSize: 12,
@@ -1355,7 +1370,7 @@ class _ConsumerRelationsDetailScreenState
                         ),
                       if (meter.installedDate != null)
                         Text(
-                          'O‘rnatilgan sana: ${_formatDate(meter.installedDate)}',
+                          '${Words.installedDateLabel.tr()}: ${_formatDate(meter.installedDate)}',
                           style: TextStyle(
                             color: AppColors.c667085,
                             fontSize: 12,
@@ -1395,7 +1410,7 @@ class _ConsumerRelationsDetailScreenState
   // ==================== IMAGES SECTION WITH ZOOM ====================
   Widget _buildImagesSection(List<ConsumersIndicatorImage> images) {
     return _buildDetailCard(
-      title: 'Ko\'rsatkich Rasmlari',
+      title: Words.indicatorImages.tr(),
       icon: Icons.image_rounded,
       color: AppColors.cF79009,
       child: SizedBox(
@@ -1444,7 +1459,7 @@ class _ConsumerRelationsDetailScreenState
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Rasm yuklanmadi',
+                                    Words.imageLoadFailed.tr(),
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: AppColors.cA1A8B0,
@@ -1525,7 +1540,7 @@ class _ConsumerRelationsDetailScreenState
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Rasm yuklanmadi',
+                            Words.imageLoadFailed.tr(),
                             style: TextStyle(
                               color: AppColors.c667085,
                               fontSize: 14,
@@ -1574,7 +1589,7 @@ class _ConsumerRelationsDetailScreenState
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Pinch to zoom • Tap to close',
+                    Words.zoomHint.tr(),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 12,
@@ -1592,14 +1607,14 @@ class _ConsumerRelationsDetailScreenState
   // ==================== DATE SECTION ====================
   Widget _buildDateSection(String? fromDate, String? toDate) {
     return _buildDetailCard(
-      title: 'Amal qilish muddati',
+      title: Words.validityPeriod.tr(),
       icon: Icons.date_range_rounded,
       color: AppColors.c00A6FB,
       child: Row(
         children: [
           Expanded(
             child: _buildDateCard(
-              'Boshlanish',
+              Words.start.tr(),
               fromDate,
               Icons.play_arrow_rounded,
               AppColors.c17B26A,
@@ -1620,7 +1635,7 @@ class _ConsumerRelationsDetailScreenState
           const SizedBox(width: 8),
           Expanded(
             child: _buildDateCard(
-              'Tugash',
+              Words.end.tr(),
               toDate,
               Icons.stop_rounded,
               AppColors.cF04438,

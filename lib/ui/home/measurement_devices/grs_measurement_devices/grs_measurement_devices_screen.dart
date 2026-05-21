@@ -59,7 +59,7 @@ class _GRSMeasurementDevicesScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cF5F5F5,
-      appBar: CustomGlobalAppBar(title: Words.grsMeasuringDevices.tr()),
+      appBar: CustomGlobalAppBar(title: Words.gtsMeasuringDevices.tr()),
       body: BlocBuilder<GrsMeasurementDevicesBloc, GrsMeasurementDevicesState>(
         builder: (context, state) {
           return AnimatedSwitcher(

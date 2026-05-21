@@ -39,7 +39,7 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 1,
         title: Text(
-          Words.grsDetails.tr(),
+          Words.gtsDetails.tr(),
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
@@ -200,13 +200,13 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(
-              child: _buildSectionTitle(Words.egxuDevices.tr(), Icons.sensors),
+              child: _buildSectionTitle(Words.eghuDevices.tr(), Icons.sensors),
             ),
           ),
           const SliverPadding(padding: EdgeInsets.only(top: 16)),
           if (model.egxuList?.isEmpty ?? true)
             SliverFillRemaining(
-              child: _buildEmptyState(Words.noEgxuData.tr()),
+              child: _buildEmptyState(Words.noEghuData.tr()),
             )
           else
             SliverToBoxAdapter(
@@ -614,7 +614,7 @@ class EgxuDetailScreen extends StatelessWidget {
             backgroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                item.egxuType?.name ?? Words.egxuDetailed.tr(),
+                item.egxuType?.name ?? Words.eghuDetailed.tr(),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -677,7 +677,7 @@ class EgxuDetailScreen extends StatelessWidget {
                   const SizedBox(height: 32),
 
                   // Timeline Section
-                  _buildSectionHeader(Words.egxuTimeRange.tr(), Icons.access_time),
+                  _buildSectionHeader(Words.eghuTimeRange.tr(), Icons.access_time),
                   const SizedBox(height: 16),
                   _buildTimelineCard(),
                   const SizedBox(height: 32),

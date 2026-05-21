@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:m_gaz/core/common/words.dart';
 import '../../widget/egxu_item.dart';
 
 class StampCardList extends StatelessWidget {
@@ -43,7 +44,7 @@ class StampCardList extends StatelessWidget {
             children: [
               /// Tamga raqami
               Text(
-                "Tamga raqami: ${s.stampNumber}",
+                "${Words.stampNumber.tr()}: ${s.stampNumber}",
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -53,14 +54,14 @@ class StampCardList extends StatelessWidget {
 
               /// Tamga joyi
               Text(
-                "Joylashuv: ${s.place}",
+                "${Words.location.tr()}: ${s.place}",
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(height: 4),
 
               /// Tamga holati
               Text(
-                "Holat: ${s.isActive ? "O'rnatilgan" : "O'rnatilmagan"}",
+                "${Words.status.tr()}: ${s.isActive ? Words.installed.tr() : Words.notInstalled.tr()}",
                 style: TextStyle(
                   color: s.isActive ? Colors.green : Colors.red,
                   fontWeight: FontWeight.w600,

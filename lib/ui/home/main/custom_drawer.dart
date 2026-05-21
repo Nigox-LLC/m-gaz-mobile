@@ -46,7 +46,7 @@ class CustomDrawer extends StatelessWidget {
                     _drawerItem(Icons.people_alt, "Hodimlar hisobot", false),
                     _drawerItem(Icons.bar_chart, "KPI hisobot", false),
                     _drawerItem(Icons.today, "Kunlik hisobot", false),
-                    _drawerItem(Icons.analytics, "EGXU tahlili hisobot", false),
+                    _drawerItem(Icons.analytics, "EGHU tahlili hisobot", false),
                     _drawerItem(
                       Icons.insert_drive_file,
                       "Universal hisobotlari",

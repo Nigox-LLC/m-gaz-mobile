@@ -140,8 +140,8 @@ class StepCompanyState extends State<StepCompany> {
             isEqual: (a, b) => a == b,
           ),
           GenericSelectableField<String>(
-            title: Words.grsMeasuringDevices.tr(),
-            items: const ["GRS 1", "GRS 2"],
+            title: Words.gtsMeasuringDevices.tr(),
+            items: const ["GTS 1", "GTS 2"],
             selectedItem: grsDevice,
             hintText: Words.select.tr(),
             onChanged: (v) => setState(() => grsDevice = v),
@@ -149,7 +149,7 @@ class StepCompanyState extends State<StepCompany> {
             isEqual: (a, b) => a == b,
           ),
           GenericSelectableField<String>(
-            title: Words.egxuIndustrial.tr(),
+            title: Words.eghuIndustrial.tr(),
             items: const ["Kol 1", "Kol 2"],
             selectedItem: egxuCollector,
             hintText: Words.select.tr(),
@@ -158,7 +158,7 @@ class StepCompanyState extends State<StepCompany> {
             isEqual: (a, b) => a == b,
           ),
           GenericSelectableField<String>(
-            title: Words.egxuTechnological.tr(),
+            title: Words.eghuTechnological.tr(),
             items: const ["Tech 1", "Tech 2"],
             selectedItem: egxuTechDevice,
             hintText: Words.select.tr(),
@@ -167,8 +167,8 @@ class StepCompanyState extends State<StepCompany> {
             isEqual: (a, b) => a == b,
           ),
           GenericSelectableField<String>(
-            title: Words.grpTypes.tr(),
-            items: const ["GRP 1", "GRP 2"],
+            title: Words.gtpTypes.tr(),
+            items: const ["GTP 1", "GTP 2"],
             selectedItem: grpType,
             hintText: Words.select.tr(),
             onChanged: (v) => setState(() => grpType = v),

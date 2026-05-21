@@ -40,7 +40,6 @@ class MainApp extends StatelessWidget {
         supportedLocales: const [
           Locale('uz', 'UZ'), // Uzbek Latin
           Locale('ru', 'RU'), // Russian
-          Locale('en', 'EN'), // English
           Locale('uz', 'Cyrl'), // Uzbek Cyrillic
         ],
         path: 'assets/tr',

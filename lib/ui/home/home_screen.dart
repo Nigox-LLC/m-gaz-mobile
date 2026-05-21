@@ -58,31 +58,30 @@ class _HomeScreenState extends State<HomeScreen>
 
   final List<BottomNavItemModel> _navItems = [
     BottomNavItemModel(
-      title: Words.email.tr(),
+      title: Words.main,
       icon: Icons.home_rounded,
       screen: const DashboardPage(),
     ),
     BottomNavItemModel(
-      title: Words.tasks.tr(),
+      title: Words.tasks,
       icon: Icons.task_outlined,
       screen: TaskListScreen(),
     ),
     BottomNavItemModel(
-      title: Words.consumer.tr(),
+      title: Words.consumer,
       icon: Icons.people,
       screen: const ConsumerRelationsScreen(),
     ),
     BottomNavItemModel(
-      title: Words.device.tr(),
+      title: Words.device,
       icon: Icons.devices,
       screen: const MeasurementDevicesScreen(),
     ),
     BottomNavItemModel(
-      title: Words.profile.tr(),
+      title: Words.profile,
       icon: Icons.person,
       screen: const ProfileScreen(),
     ),
-
   ];
 
   @override
@@ -218,13 +217,13 @@ class _HomeScreenState extends State<HomeScreen>
           );
         },
       ),
-      label: item.title,
+      label: item.title.tr(),
     );
   }
 }
 
 class BottomNavItemModel {
-  final String title;
+  final Words title;
   final IconData icon;
   final Widget screen;
   final int? badgeCount;

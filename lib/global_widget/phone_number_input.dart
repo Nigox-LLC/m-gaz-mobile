@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class PhoneNumberInput extends StatelessWidget {
@@ -15,7 +16,7 @@ class PhoneNumberInput extends StatelessWidget {
       cursorColor: Colors.black,
       style: const TextStyle(fontSize: 16, color: Colors.black),
       decoration: InputDecoration(
-        labelText: 'Telefon raqami',
+        labelText: Words.phoneNumber.tr(),
         labelStyle: const TextStyle(color: Colors.black),
         hintText: "(00) 000 00 00",
         hintStyle: const TextStyle(color: Colors.black),

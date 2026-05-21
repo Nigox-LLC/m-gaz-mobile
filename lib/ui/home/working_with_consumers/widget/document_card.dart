@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 
 class DocumentCard extends StatelessWidget {
@@ -85,14 +86,14 @@ class DocumentCard extends StatelessWidget {
                     children: [
                       _buildDetailRow(
                         icon: Icons.person_outline,
-                        label: 'Biriktirilgan Xodim',
+                        label: Words.attachedWorker.tr(),
                         value: document.employee,
                         color: AppColors.c1570EF,
                       ),
                       const SizedBox(height: 12),
                       _buildDetailRow(
                         icon: Icons.location_on_outlined,
-                        label: 'Hudud',
+                        label: Words.area.tr(),
                         value: '${document.region}, ${document.district}',
                         color: AppColors.c1570EF,
                       ),

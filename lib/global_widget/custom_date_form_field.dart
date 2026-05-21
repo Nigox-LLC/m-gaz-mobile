@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/extension/size_extension.dart';
 import '../core/utils/colors.dart';
 import '../core/utils/style.dart';
@@ -110,12 +111,12 @@ class _CustomDateFormFieldState extends State<CustomDateFormField> {
               ? null
               : (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return "Sanani kiriting";
+                    return Words.selectDate.tr();
                   }
 
                   final regex = RegExp(r'^\d{2}\.\d{2}\.\d{4}$');
                   if (!regex.hasMatch(value)) {
-                    return "Sana formati noto'g'ri";
+                    return Words.dateFormatInvalid.tr();
                   }
 
                   try {
@@ -127,10 +128,10 @@ class _CustomDateFormFieldState extends State<CustomDateFormField> {
                     );
 
                     if (date.isAfter(DateTime.now())) {
-                      return "Sana kelajakda bo‘lishi mumkin emas";
+                      return Words.dateFutureInvalid.tr();
                     }
                   } catch (_) {
-                    return "Sana formati noto'g'ri";
+                    return Words.dateFormatInvalid.tr();
                   }
 
                   return null;
