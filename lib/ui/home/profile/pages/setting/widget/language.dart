@@ -90,8 +90,6 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet> {
           16.getH(),
           _buildLanguageOption('ru', AppTools.ruFlag, Words.ru.tr()),
           16.getH(),
-          _buildLanguageOption('en', AppTools.enFlag, Words.en.tr()),
-          16.getH(),
           _buildLanguageOption('cyrl', AppTools.uzbFlag, "Ўзбекча"),
           16.getH(),
           CustomButton(
@@ -105,8 +103,6 @@ class _LanguageBottomSheetState extends State<LanguageBottomSheet> {
                 await context.setLocale(const Locale('uz', 'UZ'));
               } else if (selectedCardId == 'ru') {
                 await context.setLocale(const Locale('ru', 'RU'));
-              } else if (selectedCardId == 'en') {
-                await context.setLocale(const Locale('en', 'EN'));
               } else if (selectedCardId == 'cyrl') {
                 await context.setLocale(const Locale('uz', 'Cyrl'));
               }

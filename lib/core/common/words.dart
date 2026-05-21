@@ -199,7 +199,6 @@ enum Words {
   chooseLanguage,
   uz,
   ru,
-  en,
   save,
   settings,
   appLanguage,

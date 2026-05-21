@@ -66,8 +66,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return "O'zbek";
       case 'ru':
         return "Русский";
-      case 'en':
-        return "English";
       case 'uz_Cyrl':
       case 'Cyrl':
         return "Ўзбекча";
@@ -120,8 +118,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       late Locale newLocale;
                       if (result == 'ru') {
                         newLocale = const Locale('ru', 'RU');
-                      } else if (result == 'en') {
-                        newLocale = const Locale('en', 'EN');
                       } else if (result == 'cyrl') {
                          newLocale = const Locale('uz', 'Cyrl');
                       } else {
