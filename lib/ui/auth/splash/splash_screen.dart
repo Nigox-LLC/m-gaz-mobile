@@ -6,8 +6,8 @@ import '../../../core/utils/colors.dart';
 import '../../../core/utils/style.dart';
 import '../../../di.dart';
 import '../../../global_widget/app_tools.dart';
+import '../../../features/auth/presentation/pages/login_screen.dart';
 import '../attendance/agreement_screen.dart';
-import '../login/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

@@ -4,13 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/core/extension/navigator_extension.dart';
 import 'package:m_gaz/core/extension/size_extension.dart';
+import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/auth/attendance/agreement_screen.dart';
-import '../../../core/utils/colors.dart';
-import '../../../core/utils/style.dart';
-import '../../../global_widget/custom_textfield.dart';
-import '../../home/home_screen.dart';
-import 'bloc/login_bloc.dart';
+import '../../../../core/utils/colors.dart';
+import '../../../../core/utils/style.dart';
+import '../../../../global_widget/custom_textfield.dart';
+import '../../../../ui/home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: AppColors.c181D27,
         body: BlocListener<LoginBloc, LoginState>(
           listener: (context, state) {
-            if(state.status == LoginStatus.fail){
+            if (state.status == LoginStatus.fail) {
               showToast(context, state.errorMessage);
             }
             if (state.status == LoginStatus.success) {
@@ -140,7 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
 
-        // 🔹 Tagline
         Text(
           "Aniq hisob. Umumiy nazorat",
           style: AppTextStyles.style400.copyWith(
@@ -180,7 +179,6 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Sarlavha
           Text(
             "Tizimga kirish",
             style: AppTextStyles.style600.copyWith(
@@ -190,7 +188,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           32.getH(),
 
-          // 🔹 Login Input
           _buildModernTextField(
             controller: userNameController,
             hint: "Foydalanuvchi nomi",
@@ -198,7 +195,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           14.getH(),
 
-          // 🔹 Password Input
           _buildModernTextField(
             controller: passwordController,
             hint: "Parolingizni kiriting",
@@ -206,29 +202,8 @@ class _LoginScreenState extends State<LoginScreen> {
             isPassword: true,
           ),
           20.getH(),
-
-          // 🔹 Forgot Password
-          // Align(
-          //   alignment: Alignment.centerRight,
-          //   child: TextButton(
-          //     onPressed: () {
-          //       // TODO: Parolni tiklash
-          //     },
-          //     style: TextButton.styleFrom(
-          //       foregroundColor: AppColors.white.withValues(alpha: 0.7),
-          //     ),
-          //     child: Text(
-          //       "Parolni unutdingizmi?",
-          //       style: AppTextStyles.style500.copyWith(
-          //         fontSize: 12.w,
-          //         color: AppColors.white.withValues(alpha: 0.6),
-          //       ),
-          //     ),
-          //   ),
-          // ),
           10.getH(),
 
-          // 🔹 Login Button
           BlocBuilder<LoginBloc, LoginState>(
             builder: (context, state) {
               return _buildPremiumButton(context, state);
@@ -264,9 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: controller,
             label: hint,
             labelColor: AppColors.white,
-
             obscure: isPassword ? _obscurePassword : false,
-
             suffixIcon: isPassword
                 ? IconButton(
                     icon: Icon(

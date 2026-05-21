@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import '../../../../../../../core/models/user/user_model.dart';
 import '../../../../../../../core/models/global/global_model.dart';
+import '../../../../../../../features/auth/domain/entities/user.dart';
 import '../widget/egxu_item.dart';
 
 abstract class ConsumerCreateEvent extends Equatable {
@@ -11,7 +11,7 @@ abstract class ConsumerCreateEvent extends Equatable {
 }
 
 class ConsumerCreateStarted extends ConsumerCreateEvent {
-  final UserModel currentUser;
+  final User currentUser;
 
   const ConsumerCreateStarted(this.currentUser);
 }

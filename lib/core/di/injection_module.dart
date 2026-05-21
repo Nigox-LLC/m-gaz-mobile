@@ -8,6 +8,11 @@ const String apiBaseUrl = 'https://backend.m-gaz.uz/api/';
 
 /// Registers third-party singletons (Dio, etc.) with `get_it` via the
 /// `injectable` code generator.
+///
+/// `ApiHive` is intentionally **not** exposed here — it is registered by the
+/// legacy `lib/di.dart` `setup()` (which runs before `configureDependencies()`
+/// — see `lib/main.dart`). The auth data source resolves it via `GetIt`
+/// inside its constructor to avoid a duplicate `lazySingleton` registration.
 @module
 abstract class RegisterModule {
   @lazySingleton
@@ -20,3 +25,4 @@ abstract class RegisterModule {
         ),
       );
 }
+

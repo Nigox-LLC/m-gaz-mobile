@@ -7,8 +7,8 @@ import '../../../../../core/hive/api_hive.dart';
 import '../../../../../core/utils/colors.dart';
 import '../../../../../di.dart';
 import '../../../../../global_widget/app_tools.dart';
-import '../../../../auth/login/bloc/login_bloc.dart';
-import '../../../../auth/login/login_screen.dart';
+import '../../../../../features/auth/presentation/bloc/login_bloc.dart';
+import '../../../../../features/auth/presentation/pages/login_screen.dart';
 
 class ProfileInfoScreen extends StatefulWidget {
   const ProfileInfoScreen({super.key});

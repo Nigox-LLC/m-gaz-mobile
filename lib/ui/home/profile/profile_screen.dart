@@ -10,7 +10,7 @@ import '../../../core/extension/navigator_extension.dart';
 import '../../../core/extension/size_extension.dart';
 import '../../../core/utils/colors.dart';
 import '../../../global_widget/app_tools.dart';
-import '../../auth/login/bloc/login_bloc.dart';
+import '../../../features/auth/presentation/bloc/login_bloc.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});

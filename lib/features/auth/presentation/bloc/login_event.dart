@@ -17,5 +17,6 @@ class LoginSubmitted extends LoginEvent {
   List<Object?> get props => [userName, password];
 }
 
-class LoadUserProfile extends LoginEvent {}
-
+class LoadUserProfile extends LoginEvent {
+  const LoadUserProfile();
+}

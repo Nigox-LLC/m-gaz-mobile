@@ -6,8 +6,8 @@ import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/working-with-stamps/bloc/working_with_stamps_bloc.dart';
 import '../di.dart';
+import '../features/auth/presentation/bloc/login_bloc.dart';
 import '../global_bloc/global_bloc.dart';
-import '../ui/auth/login/bloc/login_bloc.dart';
 import '../ui/home/measurement_devices/grs_measurement_devices/bloc/grs_measurement_devices_bloc.dart';
 import '../ui/home/measurement_devices/technological-measuring/bloc/tech_measures_bloc.dart';
 import '../ui/home/working_with_consumers/bloc/consumer_relations_bloc.dart';
@@ -21,7 +21,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<LoginBloc>(create: (context) => LoginBloc()),
+        BlocProvider<LoginBloc>(create: (_) => di.get<LoginBloc>()),
         BlocProvider<ConsumerRelationsBloc>(
           create: (context) => ConsumerRelationsBloc(),
         ),
