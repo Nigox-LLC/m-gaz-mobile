@@ -164,7 +164,7 @@ class _ConsumerRelationsDetailScreenState
       baseColor: Colors.grey.shade300,
       highlightColor: Colors.grey.shade100,
       child: Container(
-        // height: height,
+        height: 180,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -1747,13 +1747,17 @@ class _ConsumerRelationsDetailScreenState
                 child: Icon(icon, size: 22, color: color),
               ),
               const SizedBox(width: 14),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.c101623,
-                  letterSpacing: -0.3,
+              Flexible(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.c101623,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
