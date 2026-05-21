@@ -41,10 +41,10 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
   User? profile;
 
   final _steps = [
-    StepperItem(title: Words.email.tr(), icon: Icons.location_on_outlined),
-    StepperItem(title: Words.eghu.tr(), icon: Icons.list_alt),
-    StepperItem(title: Words.company.tr(), icon: Icons.factory_outlined),
-    StepperItem(title: Words.certificates.tr(), icon: Icons.file_present),
+    StepperItem(title: Words.email, icon: Icons.location_on_outlined),
+    StepperItem(title: Words.eghu, icon: Icons.list_alt),
+    StepperItem(title: Words.company, icon: Icons.factory_outlined),
+    StepperItem(title: Words.certificates, icon: Icons.file_present),
   ];
 
   @override
@@ -82,23 +82,25 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
                 profile = state.user!;
               });
               context.read<GlobalBloc>().add(
-                    EgxuFormConsumersRequested(
-                      regionId: profile!.regionId ?? 0,
-                      districtId: profile!.districtId ?? 0,
-                    ),
-                  );
+                EgxuFormConsumersRequested(
+                  regionId: profile!.regionId ?? 0,
+                  districtId: profile!.districtId ?? 0,
+                ),
+              );
               if (profile!.regionId != null) {
-                context
-                    .read<GlobalBloc>()
-                    .add(EgxuFormRegionSelected(profile!.regionId!));
+                context.read<GlobalBloc>().add(
+                  EgxuFormRegionSelected(profile!.regionId!),
+                );
               }
               if (profile!.districtId != null) {
-                context
-                    .read<GlobalBloc>()
-                    .add(EgxuFormDistrictSelected(profile!.districtId!));
+                context.read<GlobalBloc>().add(
+                  EgxuFormDistrictSelected(profile!.districtId!),
+                );
               }
 
-              context.read<ConsumerCreateBloc>().add(ConsumerCreateStarted(profile!));
+              context.read<ConsumerCreateBloc>().add(
+                ConsumerCreateStarted(profile!),
+              );
             }
           },
         ),
@@ -129,9 +131,9 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
                             steps: _steps,
                             onStepTapped: (i) {
                               if (i < state.currentStep) {
-                                context
-                                    .read<ConsumerCreateBloc>()
-                                    .add(ConsumerCreatePreviousStep());
+                                context.read<ConsumerCreateBloc>().add(
+                                  ConsumerCreatePreviousStep(),
+                                );
                               }
                             },
                           ),
@@ -164,18 +166,18 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
         return StepEgxuList(
           key: _step2Key,
           onDataSaved: (data) {
-            context
-                .read<ConsumerCreateBloc>()
-                .add(ConsumerStep2DataSubmitted(data));
+            context.read<ConsumerCreateBloc>().add(
+              ConsumerStep2DataSubmitted(data),
+            );
           },
         );
       case 2:
         return StepCompany(
           key: _step3Key,
           onDataSaved: (data) {
-            context
-                .read<ConsumerCreateBloc>()
-                .add(ConsumerStep3DataSubmitted(data));
+            context.read<ConsumerCreateBloc>().add(
+              ConsumerStep3DataSubmitted(data),
+            );
           },
         );
       case 3:
@@ -218,11 +220,13 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
                     ),
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                   ),
-                  onPressed: () => context
-                      .read<ConsumerCreateBloc>()
-                      .add(ConsumerCreatePreviousStep()),
-                  child: Text(Words.back.tr(),
-                      style: const TextStyle(color: AppColors.c1570EF)),
+                  onPressed: () => context.read<ConsumerCreateBloc>().add(
+                    ConsumerCreatePreviousStep(),
+                  ),
+                  child: Text(
+                    Words.back.tr(),
+                    style: const TextStyle(color: AppColors.c1570EF),
+                  ),
                 ),
               ),
             if (state.currentStep > 0) 12.getW(),
@@ -238,23 +242,33 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
                 ),
                 onPressed: () {
                   if (state.currentStep == 0) {
-                      context.read<ConsumerCreateBloc>().add(ConsumerCreateNextStep());
+                    context.read<ConsumerCreateBloc>().add(
+                      ConsumerCreateNextStep(),
+                    );
                   } else if (state.currentStep == 1) {
                     if (_step2Key.currentState?.submit() ?? false) {
-                       context.read<ConsumerCreateBloc>().add(ConsumerCreateNextStep());
+                      context.read<ConsumerCreateBloc>().add(
+                        ConsumerCreateNextStep(),
+                      );
                     }
                   } else if (state.currentStep == 2) {
-                     if (_step3Key.currentState?.submit() ?? false) {
-                       context.read<ConsumerCreateBloc>().add(ConsumerCreateNextStep());
+                    if (_step3Key.currentState?.submit() ?? false) {
+                      context.read<ConsumerCreateBloc>().add(
+                        ConsumerCreateNextStep(),
+                      );
                     }
                   } else if (state.currentStep == 3) {
-                     context.read<ConsumerCreateBloc>().add(const ConsumerDataSubmitted());
+                    context.read<ConsumerCreateBloc>().add(
+                      const ConsumerDataSubmitted(),
+                    );
                   }
                 },
                 child: Text(
                   state.currentStep < 3 ? Words.next.tr() : Words.finish.tr(),
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -266,9 +280,8 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
 }
 
 class StepperItem {
-  final String title;
+  final Words title;
   final IconData icon;
 
   StepperItem({required this.title, required this.icon});
 }
-

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:m_gaz/core/extension/size_extension.dart';
 import 'package:m_gaz/ui/home/profile/pages/setting/widget/language.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../core/common/words.dart';
 import '../../../../../core/utils/colors.dart';
@@ -19,7 +18,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String selectedLangName = "";
   bool supportBiometric = false;
   bool availableBiometricEnter = false;
   bool hasBiometric = false;
@@ -27,26 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSelectedLanguage();
     _initBiometric();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _updateSelectedLanguage();
-  }
-
-  Future<void> _loadSelectedLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lang =
-        prefs.getString('selected_language') ?? context.locale.toString();
-    setState(() => selectedLangName = _getLangName(lang));
-  }
-
-  void _updateSelectedLanguage() {
-    final currentLang = context.locale.toString();
-    setState(() => selectedLangName = _getLangName(currentLang));
   }
 
   Future<void> _initBiometric() async {
@@ -54,82 +33,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isSupported = await localAuth.isDeviceSupported();
     final available = await localAuth.getAvailableBiometrics();
 
+    if (!mounted) return;
     setState(() {
       supportBiometric = isSupported;
       hasBiometric = available.isNotEmpty;
     });
   }
 
-  String _getLangName(String code) {
-    switch (code) {
-      case 'uz':
-        return "O'zbek";
-      case 'ru':
-        return "Русский";
-      case 'uz_Cyrl':
-      case 'Cyrl':
-        return "Ўзбекча";
-      default:
-        if (context.locale.scriptCode == 'Cyrl') {
-           return "Ўзбекча";
-        }
-        return context.locale.languageCode.tr();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Localizations.override(
-      context: context,
-      child: Scaffold(
-        backgroundColor: AppColors.cF5F5F5,
-        appBar: CustomGlobalAppBar(title: Words.settings.tr()),
-        body: Padding(
-          padding: EdgeInsets.all(16.w),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 16.h),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16.w),
-              color: AppColors.white,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _settingTile(
-                  icon: AppTools.language,
-                  title: Words.appLanguage.tr(),
-                  trailing: Text(
-                    selectedLangName,
-                    style: AppTextStyles.style600.copyWith(
-                      fontSize: 14.w,
-                      color: AppColors.c717680,
-                    ),
-                  ),
-                  onTap: () async {
-                    final result = await showModalBottomSheet<String>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => const LanguageBottomSheet(),
-                    );
+    final selectedLangName = languageNameFromId(
+      languageIdFromLocale(context.locale),
+    );
 
-                    if (result != null) {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('selected_language', result);
-                      late Locale newLocale;
-                      if (result == 'ru') {
-                        newLocale = const Locale('ru', 'RU');
-                      } else if (result == 'cyrl') {
-                         newLocale = const Locale('uz', 'Cyrl');
-                      } else {
-                        newLocale = const Locale('uz', 'UZ');
-                      }
-                      await context.setLocale(newLocale);
-                      _updateSelectedLanguage();
-                    }
-                  },
+    return Scaffold(
+      backgroundColor: AppColors.cF5F5F5,
+      appBar: CustomGlobalAppBar(title: Words.settings.tr()),
+      body: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 16.h),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16.w),
+            color: AppColors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _settingTile(
+                icon: AppTools.language,
+                title: Words.appLanguage.tr(),
+                trailing: Text(
+                  selectedLangName,
+                  style: AppTextStyles.style600.copyWith(
+                    fontSize: 14.w,
+                    color: AppColors.c717680,
+                  ),
                 ),
-              ],
-            ),
+                onTap: () async {
+                  final result = await showModalBottomSheet<String>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const LanguageBottomSheet(),
+                  );
+
+                  if (result != null && mounted) {
+                    await context.setLocale(localeFromLanguageId(result));
+                  }
+                },
+              ),
+            ],
           ),
         ),
       ),

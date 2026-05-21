@@ -174,7 +174,7 @@ class _ModernHeader extends StatelessWidget {
             ],
           ),
           16.getH(),
-           Text(
+          Text(
             Words.departmentTitle.tr(),
             style: TextStyle(
               color: Colors.white,
@@ -272,7 +272,7 @@ class _AIAnalyzingWidgetState extends State<_AIAnalyzingWidget>
     with TickerProviderStateMixin {
   late AnimationController _dotsController;
   late AnimationController _pulseController;
-  final List<String> _texts = [
+  List<String> get _texts => [
     Words.aiAnalyzing.tr(),
     Words.preparingReport.tr(),
     Words.processingData.tr(),
@@ -574,6 +574,7 @@ class _SectionCard extends StatelessWidget {
     );
   }
 }
+
 class _PieChartWidget extends StatelessWidget {
   final TaskAnalysisModel tasks;
 
