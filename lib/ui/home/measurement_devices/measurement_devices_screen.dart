@@ -32,8 +32,8 @@ class MeasurementDevicesScreen extends StatelessWidget {
                     ),
                     icon: Icons.satellite_alt_outlined,
                     iconColor: Colors.white,
-                    title: Words.grsMeasuringDevices.tr(),
-                    subtitle: Words.grsDesc.tr(),
+                    title: Words.gtsMeasuringDevices.tr(),
+                    subtitle: Words.gtsDesc.tr(),
                     onTap: () {
                       push(GRSMeasurementDevicesScreen());
                     },

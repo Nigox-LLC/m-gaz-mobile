@@ -59,14 +59,14 @@ class StepMainInfo extends StatelessWidget {
             /// ================= EGXU =================
             _buildSectionHeader(
               context,
-              title: Words.egxu.tr(),
-              buttonText: Words.addEgxu.tr(),
+              title: Words.eghu.tr(),
+              buttonText: Words.addEghu.tr(),
               onAdd: () => _addEgxu(context, state),
             ),
             12.getH(),
             state.egxuList.isNotEmpty
                 ? EgxuSliderCard(items: state.egxuList)
-                : _buildEmptyState(Words.noEgxuAdded.tr(), Icons.list_alt),
+                : _buildEmptyState(Words.noEghuAdded.tr(), Icons.list_alt),
 
             24.getH(),
 

@@ -52,7 +52,7 @@ class ConsumerCreateBloc extends Bloc<ConsumerCreateEvent, ConsumerCreateState> 
       if (state.egxuList.isEmpty) {
         emit(state.copyWith(
           step2Status: ConsumerStepStatus.failure,
-          errorMessage: "Kamida bitta EGXU qo'shing",
+          errorMessage: "Kamida bitta EGHU qo'shing",
         ));
         return;
       }

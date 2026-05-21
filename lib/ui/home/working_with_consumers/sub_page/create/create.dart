@@ -42,7 +42,7 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
 
   final _steps = [
     StepperItem(title: Words.email.tr(), icon: Icons.location_on_outlined),
-    StepperItem(title: Words.egxu.tr(), icon: Icons.list_alt),
+    StepperItem(title: Words.eghu.tr(), icon: Icons.list_alt),
     StepperItem(title: Words.company.tr(), icon: Icons.factory_outlined),
     StepperItem(title: Words.certificates.tr(), icon: Icons.file_present),
   ];
@@ -115,7 +115,7 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
       ],
       child: Scaffold(
         backgroundColor: AppColors.cF5F5F5,
-        appBar: CustomGlobalAppBar(title: Words.egxuEntry.tr()),
+        appBar: CustomGlobalAppBar(title: Words.eghuEntry.tr()),
         body: profile == null
             ? const Center(child: CircularProgressIndicator())
             : BlocBuilder<GlobalBloc, GlobalState>(

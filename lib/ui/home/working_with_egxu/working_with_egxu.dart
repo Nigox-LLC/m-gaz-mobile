@@ -54,7 +54,7 @@
 //       backgroundColor: AppColors.cF5F5F5,
 //       appBar: CustomGlobalAppBar(
 //         centerTitle: true,
-//         title: Words.workingWithEgxu.tr(),
+//         title: Words.workingWithEghu.tr(),
 //         showBack: false,
 //       ),
 //       body: BlocBuilder<WorkingWIthEgxuBloc, WorkingWithEgxuState>(

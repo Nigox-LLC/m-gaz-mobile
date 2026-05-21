@@ -43,7 +43,7 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
 
   void _submit() {
     setState(() {
-      selectedEgxuError = selectedEgxu == null ? "EGXU turi tanlanmagan" : null;
+      selectedEgxuError = selectedEgxu == null ? "EGHU turi tanlanmagan" : null;
     });
 
     if (!_formKey.currentState!.validate() || selectedEgxu == null) return;
@@ -60,7 +60,7 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cF5F5F5,
-      appBar: CustomGlobalAppBar(title: Words.addEgxu.tr()),
+      appBar: CustomGlobalAppBar(title: Words.addEghu.tr()),
       body: BlocConsumer<ConsumerRelationsBloc, ConsumerRelationsState>(
         listener: (context, state) {
           debugPrint("🎧 LISTENER TRIGGERED: factoryStatus=${state.factoryStatus}");
@@ -137,7 +137,7 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GenericSelectableField<EgxuListModel>(
-                        title: Words.egxuType.tr(),
+                        title: Words.eghuType.tr(),
                         items: state.egxuTypes,
                         selectedItem: selectedEgxu,
                         hintText: Words.select.tr(),

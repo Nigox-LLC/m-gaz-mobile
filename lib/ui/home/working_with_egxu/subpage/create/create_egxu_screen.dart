@@ -269,7 +269,7 @@
 //   Widget build(BuildContext context) {
 //     return Scaffold(
 //       backgroundColor: _kSurface,
-//       appBar: CustomGlobalAppBar(title: Words.createEgxu.tr()),
+//       appBar: CustomGlobalAppBar(title: Words.createEghu.tr()),
 //       body: BlocConsumer<GlobalBloc, GlobalState>(
 //         listener: (ctx, state) {
 //           if (state.status == GlobalStatus.fail && state.errorMessage != null) {
@@ -436,7 +436,7 @@
 //                           const Icon(Icons.save),
 //                           const SizedBox(width: 8),
 //                           Text(
-//                             Words.saveEgxu.tr(),
+//                             Words.saveEghu.tr(),
 //                             style: const TextStyle(fontWeight: FontWeight.bold),
 //                           ),
 //                         ],

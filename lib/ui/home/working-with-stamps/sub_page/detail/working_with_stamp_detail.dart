@@ -95,7 +95,7 @@ class _WorkingWithStampsDetailScreenState
         ),
       ),
       title: Text(
-        Words.egxuDetails.tr(),
+        Words.eghuDetails.tr(),
         style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.5),
       ),
       flexibleSpace: Container(
@@ -301,7 +301,7 @@ class _MainInfoCard extends StatelessWidget {
           const SizedBox(height: 16),
           _InfoRow(
             icon: Icons.category_outlined,
-            label: Words.egxuType.tr(),
+            label: Words.eghuType.tr(),
             value: model.egxuType,
           ),
           _InfoRow(

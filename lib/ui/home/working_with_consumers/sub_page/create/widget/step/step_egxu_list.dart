@@ -105,7 +105,7 @@ class StepEgxuListState extends State<StepEgxuList> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle(Words.egxuInfo.tr()),
+            _buildSectionTitle(Words.eghuInfo.tr()),
             _buildTextFields(),
             SizedBox(height: 24.w),
             _buildDropdowns(),
@@ -171,7 +171,7 @@ class StepEgxuListState extends State<StepEgxuList> {
         SizedBox(height: 12.w),
         CustomTextField(
           controller: grpLost,
-          label: Words.grpLoss.tr(),
+          label: Words.gtpLoss.tr(),
           keyboardType: TextInputType.number,
         ),
         SizedBox(height: 12.w),
@@ -190,7 +190,7 @@ class StepEgxuListState extends State<StepEgxuList> {
         return Column(
           children: [
             GenericSelectableField<SelectItem>(
-              title: Words.grpExist.tr(),
+              title: Words.gtpExist.tr(),
               items: grpExistsItems,
               selectedItem: grpExists,
               hintText: Words.select.tr(),
@@ -230,7 +230,7 @@ class StepEgxuListState extends State<StepEgxuList> {
             ),
             SizedBox(height: 12.w),
             GenericSelectableField<String>(
-              title: Words.egxuConnectionPoint.tr(),
+              title: Words.eghuConnectionPoint.tr(),
               items: state.connectionPoints
                   .map((e) => e.name)
                   .whereType<String>()
@@ -245,7 +245,7 @@ class StepEgxuListState extends State<StepEgxuList> {
             ),
             SizedBox(height: 12.w),
             GenericSelectableField<SelectItem>(
-              title: Words.moveGrpAfterEgxu.tr(),
+              title: Words.moveGtpAfterEghu.tr(),
               items: moveGrpAfterEgxuItems,
               selectedItem: afterEgxuGrp,
               hintText: Words.select.tr(),
@@ -294,7 +294,7 @@ class StepEgxuListState extends State<StepEgxuList> {
                 Icon(Icons.photo_library_outlined, size: 20),
                 SizedBox(width: 8.w),
                 Text(
-                  Words.egxuIndicatorImages.tr(),
+                  Words.eghuIndicatorImages.tr(),
                   style: AppTextStyles.style600.copyWith(fontSize: 14.w),
                 ),
               ],
@@ -329,7 +329,7 @@ class StepEgxuListState extends State<StepEgxuList> {
                 Icon(Icons.folder_open_outlined, size: 20),
                 SizedBox(width: 8.w),
                 Text(
-                  Words.egxuDailyFiles.tr(),
+                  Words.eghuDailyFiles.tr(),
                   style: AppTextStyles.style600.copyWith(fontSize: 14.w),
                 ),
               ],
@@ -517,8 +517,8 @@ final List<SelectItem> counterStatusItems = [
 ];
 
 final List<SelectItem> moveGrpAfterEgxuItems = [
-  SelectItem(code: "BEFORE_EGHU", label: Words.beforeEgxu.tr()),
-  SelectItem(code: "AFTER_EGHU", label: Words.afterEgxu.tr()),
+  SelectItem(code: "BEFORE_EGHU", label: Words.beforeEghu.tr()),
+  SelectItem(code: "AFTER_EGHU", label: Words.afterEghu.tr()),
 ];
 
 final List<SelectItem> grpExistsItems = [

@@ -174,7 +174,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
           children: [
             _buildMainInfoCard(doc),
             const SizedBox(height: 20),
-            _buildSectionHeader(Words.egxuElements.tr()),
+            _buildSectionHeader(Words.eghuElements.tr()),
             const SizedBox(height: 12),
             _buildEgxuList(doc.egxuList),
           ],
@@ -348,7 +348,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: _buildStatusIcon(item.isActive),
         title: Text(
-          'EGXU #${item.id}',
+          'EGHU #${item.id}',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         subtitle: Padding(
@@ -356,7 +356,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
           child: _buildStatusChip(item.isActive),
         ),
         children: [
-          _buildSubSection(Words.egxuType.tr(), Icons.build),
+          _buildSubSection(Words.eghuType.tr(), Icons.build),
           _buildEgxuTypeInfo(item.egxuType),
           const SizedBox(height: 16),
           if (item.oneFactory != null || item.twoFactory != null) ...[

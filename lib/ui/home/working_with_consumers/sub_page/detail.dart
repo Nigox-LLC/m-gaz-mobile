@@ -333,7 +333,7 @@ class _ConsumerRelationsDetailScreenState
         children: [
           _buildHeroCard(doc),
           const SizedBox(height: 24),
-          _buildSectionTitle('EGXU Elementlari', icon: Icons.devices_rounded),
+          _buildSectionTitle('EGHU Elementlari', icon: Icons.devices_rounded),
           const SizedBox(height: 16),
           _buildEgxuList(doc.egxuList ?? []),
           const SizedBox(height: 24),
@@ -730,7 +730,7 @@ class _ConsumerRelationsDetailScreenState
           ),
           const SizedBox(height: 4),
           Text(
-            'EGXU elementlari topilmadi',
+            'EGHU elementlari topilmadi',
             style: TextStyle(color: AppColors.cA1A8B0, fontSize: 13),
           ),
         ],
@@ -779,7 +779,7 @@ class _ConsumerRelationsDetailScreenState
               ),
               leading: _buildStatusAvatar(item.isActive ?? false),
               title: Text(
-                'EGXU #${item.id}',
+                'EGHU #${item.id}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -984,7 +984,7 @@ class _ConsumerRelationsDetailScreenState
             ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'GRP mavjudligi',
+            label: 'GTP mavjudligi',
             value: egxu.grpExists == true ? 'Ha' : 'Yoʻq',
             icon: Icons.check_circle_outline_rounded,
             color: egxu.grpExists == true
@@ -993,7 +993,7 @@ class _ConsumerRelationsDetailScreenState
           ),
           const SizedBox(height: 12),
           _buildMetricCard(
-            label: 'GRP yoʻqotish',
+            label: 'GTP yoʻqotishi',
             value: '${egxu.grpLoss?.toStringAsFixed(2) ?? '0.00'} m³',
             icon: Icons.warning_amber_rounded,
             color: AppColors.cF38744,
@@ -1019,7 +1019,7 @@ class _ConsumerRelationsDetailScreenState
           const SizedBox(height: 12),
           if (egxu.movGrpAfterEgxu != null)
             _buildMetricCard(
-              label: 'GRP harakat',
+              label: 'GTP harakat',
               value: egxu.movGrpAfterEgxu!,
               icon: Icons.swap_horiz_rounded,
               color: AppColors.c667085,
