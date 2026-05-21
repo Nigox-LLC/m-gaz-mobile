@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:m_gaz/core/api/global/global_api.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/models/global/global_model.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/di.dart';
@@ -86,7 +87,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     }
   }
 
-  Future<void> _loadDistricts(int regionId, {bool preselectInitial = false}) async {
+  Future<void> _loadDistricts(
+    int regionId, {
+    bool preselectInitial = false,
+  }) async {
     setState(() {
       _loadingDistricts = true;
     });
@@ -157,13 +161,13 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Filtrlar',
-                  style: TextStyle(
+                  Words.filters.tr(),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: AppColors.black,
@@ -188,7 +192,10 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline, color: AppColors.red),
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.red,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -198,18 +205,18 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                             ),
                             TextButton(
                               onPressed: _loadRegions,
-                              child: const Text('Qayta'),
+                              child: Text(Words.retry.tr()),
                             ),
                           ],
                         ),
                       ),
                     GenericSelectableField<GlobalModel>(
-                      title: 'Viloyat',
+                      title: Words.region.tr(),
                       items: _regions,
                       selectedItem: _selectedRegion,
                       hintText: _loadingRegions
-                          ? 'Yuklanmoqda...'
-                          : 'Tanlang',
+                          ? Words.loading.tr()
+                          : Words.select.tr(),
                       onChanged: (item) {
                         setState(() {
                           _selectedRegion = item;
@@ -225,20 +232,21 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       readOnly: _loadingRegions || _regions.isEmpty,
                     ),
                     GenericSelectableField<GlobalModel>(
-                      title: 'Tuman',
+                      title: Words.district.tr(),
                       items: _districts,
                       selectedItem: _selectedDistrict,
                       hintText: _selectedRegion == null
-                          ? 'Avval viloyat tanlang'
+                          ? Words.selectRegionFirst.tr()
                           : _loadingDistricts
-                              ? 'Yuklanmoqda...'
-                              : 'Tanlang',
+                          ? Words.loading.tr()
+                          : Words.select.tr(),
                       onChanged: (item) {
                         setState(() => _selectedDistrict = item);
                       },
                       getTitle: (m) => m.name ?? '',
                       isEqual: (a, b) => a.id == b.id,
-                      readOnly: _selectedRegion == null ||
+                      readOnly:
+                          _selectedRegion == null ||
                           _loadingDistricts ||
                           _districts.isEmpty,
                     ),
@@ -260,9 +268,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'Tozalash',
-                        style: TextStyle(
+                      child: Text(
+                        Words.clear.tr(),
+                        style: const TextStyle(
                           color: AppColors.c181D27,
                           fontWeight: FontWeight.w600,
                         ),
@@ -280,9 +288,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        "Qo'llash",
-                        style: TextStyle(
+                      child: Text(
+                        Words.apply.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),

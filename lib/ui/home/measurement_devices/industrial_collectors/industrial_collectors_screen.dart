@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/global_widget/global_app_bar.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/sub_page/teach_measure_detail_screen.dart';
+import '../../../../core/common/words.dart';
 import '../../../../core/extension/navigator_extension.dart';
 import '../technological-measuring/bloc/tech_measures_bloc.dart';
 import '../technological-measuring/bloc/tech_measures_event.dart';
@@ -13,10 +14,12 @@ class IndustrialCollectorsScreen extends StatefulWidget {
   const IndustrialCollectorsScreen({super.key});
 
   @override
-  State<IndustrialCollectorsScreen> createState() => _IndustrialCollectorsScreenState();
+  State<IndustrialCollectorsScreen> createState() =>
+      _IndustrialCollectorsScreenState();
 }
 
-class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen> {
+class _IndustrialCollectorsScreenState
+    extends State<IndustrialCollectorsScreen> {
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -51,7 +54,9 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cF5F5F5,
-      appBar: CustomGlobalAppBar(title: "Texnologik o'lchov qurilmalar"),
+      appBar: CustomGlobalAppBar(
+        title: Words.technologicalMeasuringDevices.tr(),
+      ),
       body: BlocBuilder<TechMeasuresBloc, TechMeasuresState>(
         builder: (context, state) {
           return AnimatedSwitcher(
@@ -80,7 +85,7 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
         return _buildDocumentList(state);
 
       case TechMeasuresStatus.fail:
-        return _buildErrorState(state.errorMessage ?? "Xatolik yuz berdi");
+        return _buildErrorState(state.errorMessage ?? Words.errorOccurred.tr());
 
       case TechMeasuresStatus.success:
         if (state.items.isEmpty) {
@@ -96,21 +101,21 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
 
     return isTablet
         ? GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.4,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: 6,
-      itemBuilder: (context, index) => _buildShimmerCard(),
-    )
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 1.4,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: 6,
+            itemBuilder: (context, index) => _buildShimmerCard(),
+          )
         : ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 6,
-      itemBuilder: (context, index) => _buildShimmerCard(),
-    );
+            padding: const EdgeInsets.all(16),
+            itemCount: 6,
+            itemBuilder: (context, index) => _buildShimmerCard(),
+          );
   }
 
   Widget _buildShimmerCard() {
@@ -144,7 +149,7 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
               child: Column(
                 children: List.generate(
                   4,
-                      (i) => Padding(
+                  (i) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Container(
                       height: 16,
@@ -176,7 +181,7 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
             ),
             const SizedBox(height: 24),
             Text(
-              'Xatolik yuz berdi',
+              Words.errorOccurred.tr(),
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -195,7 +200,7 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
                 context.read<TechMeasuresBloc>().add(TechMeasureLoad());
               },
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Qayta urinish'),
+              label: Text(Words.retry.tr()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.c181D27,
                 padding: const EdgeInsets.symmetric(
@@ -228,7 +233,7 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
             ),
             const SizedBox(height: 24),
             Text(
-              'Hujjatlar topilmadi',
+              Words.documentsNotFound.tr(),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -237,7 +242,7 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              'Sizda hozircha hech qanday hujjat mavjud emas',
+              Words.noDocumentsAvailable.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: AppColors.black),
             ),
@@ -256,54 +261,54 @@ class _IndustrialCollectorsScreenState extends State<IndustrialCollectorsScreen>
       color: AppColors.c181D27,
       child: isTablet
           ? GridView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 1.4,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        physics: const BouncingScrollPhysics(),
-        itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == state.items.length) {
-            return _buildLoadingMoreIndicator(true);
-          }
-          final item = state.items[index];
-          return TechMeasureCard(
-            item: item,
-            index: index,
-            onTap: () {
-              debugPrint("CARD BOSILDI");
-              push(
-                TechMeasureDetailScreen(
-                  documentId: state.items[index].id,
-                ),
-              );
-            },
-          );
-        },
-      )
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 1.4,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              physics: const BouncingScrollPhysics(),
+              itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == state.items.length) {
+                  return _buildLoadingMoreIndicator(true);
+                }
+                final item = state.items[index];
+                return TechMeasureCard(
+                  item: item,
+                  index: index,
+                  onTap: () {
+                    debugPrint("CARD BOSILDI");
+                    push(
+                      TechMeasureDetailScreen(
+                        documentId: state.items[index].id,
+                      ),
+                    );
+                  },
+                );
+              },
+            )
           : ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        physics: const BouncingScrollPhysics(),
-        itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == state.items.length) {
-            return _buildLoadingMoreIndicator(false);
-          }
-          final item = state.items[index];
-          return TechMeasureCard(
-            item: item,
-            index: index,
-            onTap: () {
-              push(TechMeasureDetailScreen(documentId: item.id));
-            },
-          );
-        },
-      ),
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              physics: const BouncingScrollPhysics(),
+              itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == state.items.length) {
+                  return _buildLoadingMoreIndicator(false);
+                }
+                final item = state.items[index];
+                return TechMeasureCard(
+                  item: item,
+                  index: index,
+                  onTap: () {
+                    push(TechMeasureDetailScreen(documentId: item.id));
+                  },
+                );
+              },
+            ),
     );
   }
 

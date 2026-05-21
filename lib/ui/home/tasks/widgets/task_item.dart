@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_event.dart';
+import '../../../../core/common/words.dart';
 import '../../../../core/models/task/tasks_model.dart';
 import '../bloc/task_state.dart';
 
@@ -11,11 +12,7 @@ class TaskItemWidget extends StatelessWidget {
   final TaskModel task;
   final VoidCallback? onTap;
 
-  const TaskItemWidget({
-    super.key,
-    required this.task,
-    this.onTap,
-  });
+  const TaskItemWidget({super.key, required this.task, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +22,7 @@ class TaskItemWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: InkWell(
-        onTap: task.isDone
-            ? null
-            : () => _showTaskActionDialog(context),
+        onTap: task.isDone ? null : () => _showTaskActionDialog(context),
         borderRadius: BorderRadius.circular(22),
         child: Container(
           padding: const EdgeInsets.all(18),
@@ -60,7 +55,10 @@ class TaskItemWidget extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: task.isDone
                             ? [Colors.grey, Colors.grey.shade400]
-                            : [AppColors.c1570EF, AppColors.c1570EF.withValues(alpha: 0.7)],
+                            : [
+                                AppColors.c1570EF,
+                                AppColors.c1570EF.withValues(alpha: 0.7),
+                              ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -103,21 +101,21 @@ class TaskItemWidget extends StatelessWidget {
               const SizedBox(height: 18),
               _InfoRowModern(
                 icon: Icons.info_outline,
-                label: "Status",
+                label: Words.status.tr(),
                 value: task.status,
                 colors: task.isDone ? Colors.grey : AppColors.c1570EF,
               ),
               const SizedBox(height: 12),
               _InfoRowModern(
                 icon: Icons.warning_amber_rounded,
-                label: "Vaziyat",
+                label: Words.situation.tr(),
                 value: task.situation,
                 colors: task.isDone ? Colors.grey : AppColors.c1570EF,
               ),
               const SizedBox(height: 12),
               _InfoRowModern(
                 icon: Icons.comment_outlined,
-                label: "Izoh",
+                label: Words.comment.tr(),
                 value: task.description,
                 colors: task.isDone ? Colors.grey : AppColors.c1570EF,
               ),
@@ -161,10 +159,7 @@ class TaskItemWidget extends StatelessWidget {
 class TaskActionModal extends StatefulWidget {
   final TaskModel task;
 
-  const TaskActionModal({
-    super.key,
-    required this.task,
-  });
+  const TaskActionModal({super.key, required this.task});
 
   @override
   State<TaskActionModal> createState() => _TaskActionModalState();
@@ -183,8 +178,8 @@ class _TaskActionModalState extends State<TaskActionModal> {
         if (!state.isCompletingTask && isLoadingComplete) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("✅ Vazifa bajarildi!"),
+            SnackBar(
+              content: Text(Words.taskCompleted.tr()),
               backgroundColor: Colors.green,
             ),
           );
@@ -224,7 +219,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
               // Title
               Text(
-                "Vazifa harakati",
+                Words.taskAction.tr(),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.c1570EF,
@@ -237,10 +232,14 @@ class _TaskActionModalState extends State<TaskActionModal> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _getSituationColor(widget.task.situation).withValues(alpha: 0.1),
+                  color: _getSituationColor(
+                    widget.task.situation,
+                  ).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: _getSituationColor(widget.task.situation).withValues(alpha: 0.3),
+                    color: _getSituationColor(
+                      widget.task.situation,
+                    ).withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -255,7 +254,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "Vazifa holati",
+                          Words.taskSituation.tr(),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -291,7 +290,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Izoh",
+                      Words.comment.tr(),
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey.shade600,
@@ -323,7 +322,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                   Expanded(
                     child: _buildActionButton(
                       icon: Icons.check_circle_outline,
-                      label: "Bajarildi",
+                      label: Words.done.tr(),
                       color: Colors.green,
                       isLoading: isLoadingComplete,
                       onTap: () => _handleAction(true),
@@ -333,7 +332,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                   Expanded(
                     child: _buildActionButton(
                       icon: Icons.cancel_outlined,
-                      label: "Bekor qilish",
+                      label: Words.cancelAction.tr(),
                       color: Colors.red,
                       isLoading: isLoadingCancel,
                       onTap: () => _handleAction(false),
@@ -349,7 +348,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
-                    "Yopish",
+                    Words.close.tr(),
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                 ),
@@ -363,11 +362,17 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
   Color _getSituationColor(String situation) {
     final lower = situation.toLowerCase();
-    if (lower.contains('muhim') || lower.contains('critical') || lower.contains('darhol')) {
+    if (lower.contains('muhim') ||
+        lower.contains('critical') ||
+        lower.contains('darhol')) {
       return Colors.red;
-    } else if (lower.contains('o\'rta') || lower.contains('medium') || lower.contains('normal')) {
+    } else if (lower.contains('o\'rta') ||
+        lower.contains('medium') ||
+        lower.contains('normal')) {
       return Colors.orange;
-    } else if (lower.contains('past') || lower.contains('low') || lower.contains('oddiy')) {
+    } else if (lower.contains('past') ||
+        lower.contains('low') ||
+        lower.contains('oddiy')) {
       return Colors.green;
     }
     return AppColors.c1570EF;
@@ -379,9 +384,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
       decoration: BoxDecoration(
         color: AppColors.c1570EF.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.c1570EF.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.c1570EF.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +394,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
               Icon(Icons.attach_file, color: AppColors.c1570EF),
               const SizedBox(width: 8),
               Text(
-                "Fayl biriktirish",
+                Words.attachFile.tr(),
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: AppColors.c1570EF,
@@ -423,7 +426,11 @@ class _TaskActionModalState extends State<TaskActionModal> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.green.shade700, size: 20),
+                    icon: Icon(
+                      Icons.close,
+                      color: Colors.green.shade700,
+                      size: 20,
+                    ),
                     onPressed: () => setState(() => selectedFilePath = null),
                   ),
                 ],
@@ -445,14 +452,10 @@ class _TaskActionModalState extends State<TaskActionModal> {
                 ),
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.upload_file,
-                      color: AppColors.c1570EF,
-                      size: 32,
-                    ),
+                    Icon(Icons.upload_file, color: AppColors.c1570EF, size: 32),
                     const SizedBox(height: 8),
                     Text(
-                      "Fayl tanlash",
+                      Words.chooseFile.tr(),
                       style: TextStyle(
                         color: AppColors.c1570EF,
                         fontWeight: FontWeight.w500,
@@ -494,22 +497,22 @@ class _TaskActionModalState extends State<TaskActionModal> {
         ),
         child: isLoading
             ? Center(
-          child: CircularProgressIndicator(color: color, strokeWidth: 2),
-        )
+                child: CircularProgressIndicator(color: color, strokeWidth: 2),
+              )
             : Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+                children: [
+                  Icon(icon, color: color, size: 28),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -523,10 +526,12 @@ class _TaskActionModalState extends State<TaskActionModal> {
   }
 
   void _handleAction(bool isCompleted) {
-    if (widget.task.isAnswerFile == true && selectedFilePath == null && isCompleted) {
+    if (widget.task.isAnswerFile == true &&
+        selectedFilePath == null &&
+        isCompleted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Iltimos, fayl biriktiring"),
+        SnackBar(
+          content: Text(Words.fileRequired.tr()),
           backgroundColor: Colors.orange,
         ),
       );
@@ -545,10 +550,9 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
     if (isCompleted) {
       // Task bajarildi - API chaqirish
-      bloc.add(TaskComplete(
-        taskId: widget.task.id,
-        filePath: selectedFilePath,
-      ));
+      bloc.add(
+        TaskComplete(taskId: widget.task.id, filePath: selectedFilePath),
+      );
     }
   }
 }
@@ -589,7 +593,7 @@ class _ModernStatusChip extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            isDone ? "Bajarilgan" : "Kutilmoqda",
+            isDone ? Words.completed.tr() : Words.pending.tr(),
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,

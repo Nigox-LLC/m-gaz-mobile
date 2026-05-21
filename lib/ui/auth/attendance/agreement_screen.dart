@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/core/utils/style.dart';
 import 'package:m_gaz/global_widget/custom_button.dart';
@@ -47,7 +48,7 @@ class _AgreementPdfScreenState extends State<AgreementPdfScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = "PDF faylni yuklashda xatolik: $e";
+        _error = "${Words.pdfLoadError.tr()}: $e";
         _isLoading = false;
       });
     }
@@ -62,87 +63,81 @@ class _AgreementPdfScreenState extends State<AgreementPdfScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomGlobalAppBar(
-        title: "Shartnoma",
-        showBack: false,
-      ),
+      appBar: CustomGlobalAppBar(title: Words.agreement.tr(), showBack: false),
       body: _error != null
           ? Center(
-        child: Text(
-          _error!,
-          style: const TextStyle(color: Colors.red),
-          textAlign: TextAlign.center,
-        ),
-      )
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            )
           : _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
-        children: [
-          /// PDF VIEW
-          Expanded(
-            child: PdfViewPinch(
-              controller: _controller,
-              onPageChanged: (page) {
-                if (page == _totalPages - 1 && !_reachedEnd) {
-                  setState(() {
-                    _reachedEnd = true;
-                  });
-                }
-              },
-            ),
-          ),
-
-          /// Hint
-          if (!_reachedEnd)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                "Davom etish uchun shartnomani oxirigacha o‘qing",
-                style: AppTextStyles.style400.copyWith(
-                  color: Colors.grey,
+              children: [
+                /// PDF VIEW
+                Expanded(
+                  child: PdfViewPinch(
+                    controller: _controller,
+                    onPageChanged: (page) {
+                      if (page == _totalPages - 1 && !_reachedEnd) {
+                        setState(() {
+                          _reachedEnd = true;
+                        });
+                      }
+                    },
+                  ),
                 ),
-              ),
-            ),
 
-          /// Checkbox
-          if (_reachedEnd)
-            CheckboxListTile(
-              value: _agreed,
-              onChanged: (value) {
-                setState(() {
-                  _agreed = value ?? false;
-                });
-              },
-              title: Text(
-                "PDF shartlariga roziman",
-                style: AppTextStyles.style500.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              activeColor: AppColors.c17B26A,
-              controlAffinity: ListTileControlAffinity.leading,
+                /// Hint
+                if (!_reachedEnd)
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      Words.readAgreementToEnd.tr(),
+                      style: AppTextStyles.style400.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+
+                /// Checkbox
+                if (_reachedEnd)
+                  CheckboxListTile(
+                    value: _agreed,
+                    onChanged: (value) {
+                      setState(() {
+                        _agreed = value ?? false;
+                      });
+                    },
+                    title: Text(
+                      Words.acceptPdfTerms.tr(),
+                      style: AppTextStyles.style500.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    activeColor: AppColors.c17B26A,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+              ],
             ),
-        ],
-      ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: SizedBox(
             height: 52,
             child: CustomButton(
-              title: "Roziman",
-              backgroundColor:
-              _agreed ? AppColors.c1570EF : AppColors.cA1A8B0,
+              title: Words.agree.tr(),
+              backgroundColor: _agreed ? AppColors.c1570EF : AppColors.cA1A8B0,
               onTap: _agreed
                   ? () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CameraScreen(),
-                  ),
-                );
-              }
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CameraScreen()),
+                      );
+                    }
                   : null,
             ),
           ),

@@ -6,12 +6,12 @@ import 'package:m_gaz/ui/auth/splash/splash_screen.dart';
 import 'package:m_gaz/ui/home/home_screen.dart';
 import 'app/app.dart';
 import 'app/injection.dart';
+import 'core/common/words.dart';
 import 'core/extension/size_extension.dart';
 import 'core/utils/themes.dart';
 import 'di.dart';
 
 Future<void> main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   // FlutterBackgroundService.initialize(onStart);
@@ -23,8 +23,8 @@ Future<void> main() async {
 void onStart(ServiceInstance service) {
   if (service is AndroidServiceInstance) {
     service.setForegroundNotificationInfo(
-      title: "Yo'l kuzatuvchisi",
-      content: "Ishlayapti",
+      title: Words.roadObserver.tr(),
+      content: Words.running.tr(),
     );
   }
 }

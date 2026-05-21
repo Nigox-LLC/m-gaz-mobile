@@ -43,7 +43,9 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
 
   void _submit() {
     setState(() {
-      selectedEgxuError = selectedEgxu == null ? "EGHU turi tanlanmagan" : null;
+      selectedEgxuError = selectedEgxu == null
+          ? Words.selectEghuType.tr()
+          : null;
     });
 
     if (!_formKey.currentState!.validate() || selectedEgxu == null) return;
@@ -63,7 +65,9 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
       appBar: CustomGlobalAppBar(title: Words.addEghu.tr()),
       body: BlocConsumer<ConsumerRelationsBloc, ConsumerRelationsState>(
         listener: (context, state) {
-          debugPrint("🎧 LISTENER TRIGGERED: factoryStatus=${state.factoryStatus}");
+          debugPrint(
+            "🎧 LISTENER TRIGGERED: factoryStatus=${state.factoryStatus}",
+          );
 
           // Factory check success - factory exists
           if (state.isFactoryExists) {
@@ -91,9 +95,9 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
           // Error handling
           if (state.generalStatus == ConsumerGeneralStatus.fail &&
               state.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage!)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
           }
         },
         builder: (context, state) {
@@ -169,12 +173,12 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
                 if (state.egxuTypesStatus == EgxuTypesStatus.fail) {
                   return Column(
                     children: [
-                      Text(state.errorMessage ?? "Xatolik yuz berdi"),
+                      Text(state.errorMessage ?? Words.errorOccurred.tr()),
                       ElevatedButton(
                         onPressed: () {
                           context.read<GlobalBloc>().add(EgxuTypesRequested());
                         },
-                        child: const Text("Qayta yuklash"),
+                        child: Text(Words.reload.tr()),
                       ),
                     ],
                   );
@@ -198,13 +202,13 @@ class _EgxuAddScreenState extends State<EgxuAddScreen> {
             loading
                 ? const CircularProgressIndicator()
                 : SizedBox(
-              width: double.infinity,
-              child: CustomButton(
-                title: Words.add.tr(),
-                icon: AppTools.add,
-                onTap: _submit,
-              ),
-            ),
+                    width: double.infinity,
+                    child: CustomButton(
+                      title: Words.add.tr(),
+                      icon: AppTools.add,
+                      onTap: _submit,
+                    ),
+                  ),
           ],
         ),
       ),

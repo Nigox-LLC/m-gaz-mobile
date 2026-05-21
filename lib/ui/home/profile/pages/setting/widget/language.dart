@@ -37,7 +37,7 @@ String languageNameFromId(String languageId) {
     case 'ru':
       return Words.ru.tr();
     case 'cyrl':
-      return 'Ўзбекча';
+      return Words.uzCyrl.tr();
     case 'uz':
     default:
       return Words.uz.tr();

@@ -242,21 +242,21 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
           _buildInfoRow(
             icon: Icons.location_on,
             label: Words.region.tr(),
-            value: doc.region.name??"",
+            value: doc.region.name ?? "",
             color: Colors.green.shade700,
           ),
           const SizedBox(height: 8),
           _buildInfoRow(
             icon: Icons.location_city,
             label: Words.district.tr(),
-            value: doc.district.name??"",
+            value: doc.district.name ?? "",
             color: Colors.blue.shade700,
           ),
           const SizedBox(height: 8),
           _buildInfoRow(
             icon: Icons.person,
             label: Words.employee.tr(),
-            value: doc.employee.fio??"",
+            value: doc.employee.fio ?? "",
             color: Colors.purple.shade700,
           ),
           const SizedBox(height: 8),
@@ -499,7 +499,9 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        isActive ? Words.active.tr().toUpperCase() : Words.inactive.tr().toUpperCase(),
+        isActive
+            ? Words.active.tr().toUpperCase()
+            : Words.inactive.tr().toUpperCase(),
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
@@ -706,7 +708,9 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
     );
   }
 
-  Widget _buildHourlyIndicatorsList(List<TeachMeasureHourlyListIndicator> indicators) {
+  Widget _buildHourlyIndicatorsList(
+    List<TeachMeasureHourlyListIndicator> indicators,
+  ) {
     return SizedBox(
       height: 160,
       child: ListView.builder(
@@ -886,9 +890,9 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
                         if (context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('QR kod nusxalandi'),
-                              duration: Duration(seconds: 2),
+                            SnackBar(
+                              content: Text(Words.qrCodeCopied.tr()),
+                              duration: const Duration(seconds: 2),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );

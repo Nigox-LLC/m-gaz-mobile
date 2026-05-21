@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../../core/common/words.dart';
 
 class EgxuNavigation extends StatelessWidget {
   final int step;
@@ -20,14 +21,14 @@ class EgxuNavigation extends StatelessWidget {
           Expanded(
             child: OutlinedButton(
               onPressed: onBack,
-              child: const Text("⬅ Orqaga"),
+              child: Text(Words.back.tr()),
             ),
           ),
         if (step > 0) const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton(
             onPressed: onNext,
-            child: Text(step < 3 ? "Keyingi ➡" : "Yakunlash"),
+            child: Text(step < 3 ? Words.next.tr() : Words.finish.tr()),
           ),
         ),
       ],

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import '../../../core/utils/services/in_app_camera_service.dart';
@@ -37,7 +38,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   bool _faceDetected = false;
   bool _eyesOpen = false;
-  String _statusMessage = "Yuzni kameraga qarating";
+  String _statusMessage = Words.facePrompt.tr();
 
   @override
   void initState() {
@@ -67,16 +68,17 @@ class _CameraScreenState extends State<CameraScreen> {
     });
   }
 
-  final List<String> successMessages = [
-    "Zo‘r! Juda aniq ko‘rinyapsiz 😎",
-    "Ajoyib! Surat olinmoqda 📸",
-    "Perfect! Joydan qimirlamang 👍",
-    "Zo‘r chiqyapsiz! Bir zum kuting 😉",
+  List<String> get successMessages => [
+    Words.faceSuccessClear.tr(),
+    Words.faceSuccessTakingPhoto.tr(),
+    Words.faceSuccessDoNotMove.tr(),
+    Words.faceSuccessWait.tr(),
   ];
 
   String randomSuccessMessage() {
-    successMessages.shuffle();
-    return successMessages.first;
+    final messages = successMessages;
+    messages.shuffle();
+    return messages.first;
   }
 
   Future<void> _processCameraImage(CameraImage image) async {
@@ -109,7 +111,7 @@ class _CameraScreenState extends State<CameraScreen> {
       setState(() {
         _faceDetected = false;
         _eyesOpen = false;
-        _statusMessage = "📌 Iltimos, yuzingizni kameraga qarating";
+        _statusMessage = Words.lookAtCamera.tr();
       });
       return;
     }
@@ -127,7 +129,7 @@ class _CameraScreenState extends State<CameraScreen> {
     });
 
     if (!eyesOpen) {
-      setState(() => _statusMessage = "👀 Ko‘zlaringizni kattaroq oching");
+      setState(() => _statusMessage = Words.openEyes.tr());
       return;
     }
 
@@ -153,7 +155,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
     final xFile = await InAppCameraService.takePicture();
     if (xFile == null) {
-      showToast(context, "Selfie olinmadi");
+      showToast(context, Words.selfieFailed.tr());
       _startImageStream(); // Xato bo'lsa, streamni qayta boshlash
       return;
     }
@@ -183,7 +185,7 @@ class _CameraScreenState extends State<CameraScreen> {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      showToast(context, "Ilova GPS ruxsatiga muhtoj");
+      showToast(context, Words.gpsPermissionRequired.tr());
       return false;
     }
 
@@ -211,11 +213,11 @@ class _CameraScreenState extends State<CameraScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text("Kamera ishga tushmadi"),
+              Text(Words.cameraFailed.tr()),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _initializeCamera,
-                child: const Text("Qayta urinib ko'rish"),
+                child: Text(Words.tryAgain.tr()),
               ),
             ],
           ),
@@ -296,7 +298,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 if (state.status == AttendanceStatus.success) {
                   showToast(
                     context,
-                    "Foydalanish uchun ruxsat berildi",
+                    Words.attendanceAllowed.tr(),
                     backgroundColor: AppColors.c17B26A,
                   );
                   setState(() => _sending = false);
@@ -310,7 +312,9 @@ class _CameraScreenState extends State<CameraScreen> {
 
                 if (state.status == AttendanceStatus.fail) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(state.error ?? "Xatolik")),
+                    SnackBar(
+                      content: Text(state.error ?? Words.errorOccurred.tr()),
+                    ),
                   );
                   setState(() => _sending = false);
                   _startImageStream();
@@ -330,7 +334,9 @@ class _CameraScreenState extends State<CameraScreen> {
                       ),
                     ),
                     child: Text(
-                      _sending ? "Yuborilmoqda..." : "Qo'lda olish",
+                      _sending
+                          ? Words.submitting.tr()
+                          : Words.manualCapture.tr(),
                       style: const TextStyle(fontSize: 16),
                     ),
                   ),

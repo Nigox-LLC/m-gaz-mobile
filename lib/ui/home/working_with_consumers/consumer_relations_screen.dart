@@ -107,48 +107,48 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
 
   Widget _buildSearchTextField(BuildContext context, bool hasQuery) {
     return TextField(
-        controller: _searchController,
-        onChanged: (value) {
-          context.read<ConsumerRelationsBloc>().add(
-            ConsumerRelationsSearchChanged(value),
-          );
-        },
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: 'Qidirish...',
-          hintStyle: const TextStyle(color: Colors.black45),
-          prefixIcon: const Icon(Icons.search, color: Colors.black54),
-          suffixIcon: hasQuery
-              ? IconButton(
-                  icon: const Icon(Icons.close, color: Colors.black54),
-                  onPressed: () {
-                    _searchController.clear();
-                    context.read<ConsumerRelationsBloc>().add(
-                      const ConsumerRelationsSearchChanged(''),
-                    );
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(color: AppColors.c181D27, width: 1.5),
-          ),
+      controller: _searchController,
+      onChanged: (value) {
+        context.read<ConsumerRelationsBloc>().add(
+          ConsumerRelationsSearchChanged(value),
+        );
+      },
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: Words.search.tr(),
+        hintStyle: const TextStyle(color: Colors.black45),
+        prefixIcon: const Icon(Icons.search, color: Colors.black54),
+        suffixIcon: hasQuery
+            ? IconButton(
+                icon: const Icon(Icons.close, color: Colors.black54),
+                onPressed: () {
+                  _searchController.clear();
+                  context.read<ConsumerRelationsBloc>().add(
+                    const ConsumerRelationsSearchChanged(''),
+                  );
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
         ),
-      );
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(color: AppColors.c181D27, width: 1.5),
+        ),
+      ),
+    );
   }
 
   Widget _buildFilterButton(
@@ -242,13 +242,14 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
   PreferredSizeWidget _buildModernAppBar() {
     return CustomGlobalAppBar(
       centerTitle: true,
-      title: 'Istemolchilar bilan ishlash',
+      title: Words.consumerRelations.tr(),
       showBack: false,
     );
   }
 
   Widget _buildBody(ConsumerRelationsState state, bool isTablet) {
-    switch (state.documentsStatus) {  // ✅ legacyStatus emas, documentsStatus
+    switch (state.documentsStatus) {
+      // ✅ legacyStatus emas, documentsStatus
       case DocumentsStatus.initial:
         return const SizedBox.shrink();
 
@@ -265,7 +266,8 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
         return _buildDocumentList(state, isTablet);
 
       case DocumentsStatus.loadingMore:
-        return _buildDocumentList(state, isTablet); }
+        return _buildDocumentList(state, isTablet);
+    }
   }
 
   // ==================== SHIMMER LOADING ====================
@@ -352,7 +354,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Xatolik yuz berdi',
+              Words.errorOccurred.tr(),
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -406,7 +408,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Hujjatlar topilmadi',
+              Words.documentsNotFound.tr(),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -415,7 +417,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Sizda hozircha hech qanday hujjat mavjud emas',
+              Words.noDocumentsAvailable.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: AppColors.black),
             ),
@@ -453,7 +455,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
                   index: index,
                   onTap: () => push(
                     ConsumerRelationsDetailScreen(
-                      documentId: state.documents[index].id ,
+                      documentId: state.documents[index].id,
                     ),
                   ),
                 );
@@ -476,7 +478,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
                     index: index,
                     onTap: () => push(
                       ConsumerRelationsDetailScreen(
-                        documentId: state.documents[index].id ,
+                        documentId: state.documents[index].id,
                       ),
                     ),
                   );
@@ -503,7 +505,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
@@ -516,7 +518,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
             ),
             SizedBox(width: 12),
             Text(
-              'Yuklanmoqda...',
+              Words.loading.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
