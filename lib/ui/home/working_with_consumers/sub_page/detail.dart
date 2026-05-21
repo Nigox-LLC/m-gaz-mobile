@@ -505,7 +505,7 @@ class _ConsumerRelationsDetailScreenState
                         const SizedBox(height: 12),
                         _buildInfoRow(
                           icon: Icons.table_view_rounded,
-                          label: 'Excel ID',
+                          label: Words.excelId.tr(),
                           value: doc.excelId.toString(),
                           color: AppColors.c00A6FB,
                         ),

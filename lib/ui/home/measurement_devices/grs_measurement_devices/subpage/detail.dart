@@ -588,7 +588,7 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return 'Nomaʼlum';
+    if (date == null) return Words.unknown.tr();
     return DateFormat('dd.MM.yyyy HH:mm').format(date);
   }
 }
@@ -800,14 +800,14 @@ class EgxuDetailScreen extends StatelessWidget {
         children: [
           _buildTimelineItem(
             Icons.play_circle_outline,
-            'Boshlanish',
+            Words.start.tr(),
             _formatDate(item.fromDate),
             Colors.green,
           ),
           const SizedBox(height: 16),
           _buildTimelineItem(
             Icons.stop_circle_outlined,
-            'Tugash',
+            Words.end.tr(),
             _formatDate(item.toDate),
             Colors.red,
           ),
@@ -822,11 +822,11 @@ class EgxuDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (item.oneFactory != null)
-            _buildInfoRow(Icons.confirmation_number, '1-Zavod', item.oneFactory!),
+            _buildInfoRow(Icons.confirmation_number, Words.factoryOne.tr(), item.oneFactory!),
           if (item.oneFactory != null && item.twoFactory != null)
             const SizedBox(height: 12),
           if (item.twoFactory != null)
-            _buildInfoRow(Icons.confirmation_number, '2-Zavod', item.twoFactory!),
+            _buildInfoRow(Icons.confirmation_number, Words.factoryTwo.tr(), item.twoFactory!),
         ],
       ),
     );
@@ -862,7 +862,7 @@ class EgxuDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      eq.gasEquipment?.name ?? 'Nomaʼlum jihoz',
+                      eq.gasEquipment?.name ?? Words.unknownEquipment.tr(),
                       style: const TextStyle(
                         color: Colors.black87,
                         fontWeight: FontWeight.bold,
@@ -871,7 +871,7 @@ class EgxuDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Sarfi: ${eq.hourlyGasConsumption ?? 0} m³/soat',
+                      '${Words.hourlyGasConsumption.tr()}: ${eq.hourlyGasConsumption ?? 0} m³',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,

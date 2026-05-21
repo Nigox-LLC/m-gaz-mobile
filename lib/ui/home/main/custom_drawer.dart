@@ -1,5 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/common/words.dart';
 import '../../../core/utils/colors.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -19,7 +21,7 @@ class CustomDrawer extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  "Hududiy Gaz Olchov Metrologiyasi Bo'limi",
+                  Words.drawerHeader.tr(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -36,36 +38,36 @@ class CustomDrawer extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   children: [
                     const SizedBox(height: 20),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
-                        "Hisobotlar",
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                        Words.reports.tr(),
+                        style: const TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                     ),
-                    _drawerItem(Icons.people_alt, "Hodimlar hisobot", false),
-                    _drawerItem(Icons.bar_chart, "KPI hisobot", false),
-                    _drawerItem(Icons.today, "Kunlik hisobot", false),
-                    _drawerItem(Icons.analytics, "EGHU tahlili hisobot", false),
+                    _drawerItem(Icons.people_alt, Words.employeesReport.tr(), false),
+                    _drawerItem(Icons.bar_chart, Words.kpiReport.tr(), false),
+                    _drawerItem(Icons.today, Words.dailyReport.tr(), false),
+                    _drawerItem(Icons.analytics, Words.eghuAnalyticsReport.tr(), false),
                     _drawerItem(
                       Icons.insert_drive_file,
-                      "Universal hisobotlari",
+                      Words.universalReports.tr(),
                       false,
                     ),
 
                     // 📄 Umumiy hisobotlar uchun
                     const SizedBox(height: 20),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
-                        "Boshqa",
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                        Words.other.tr(),
+                        style: const TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                     ),
-                    _drawerItem(Icons.settings, "Sotamalar", false),
+                    _drawerItem(Icons.settings, Words.settings.tr(), false),
                     _drawerItem(
                       Icons.exit_to_app,
-                      "Chiqish",
+                      Words.logout.tr(),
                       false,
                       color: Colors.redAccent,
                     ),
