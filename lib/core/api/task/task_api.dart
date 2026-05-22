@@ -132,9 +132,13 @@ class TaskApi {
   Future<TaskModel> completeTask({
     required int taskId,
     String? filePath,
+    double? latitude,
+    double? longitude,
   }) async {
     try {
       debugPrint("🔹 Task bajarildi deb belgilanmoqda... ID: $taskId");
+
+      debugPrint("Task location: lat=$latitude, long=$longitude");
 
       FormData formData;
 
