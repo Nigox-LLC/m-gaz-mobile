@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/core/extension/navigator_extension.dart';
 import 'package:m_gaz/core/extension/size_extension.dart';
+import 'package:m_gaz/core/utils/locationService/location_service.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/auth/attendance/agreement_screen.dart';
@@ -62,6 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
               showToast(context, state.errorMessage);
             }
             if (state.status == LoginStatus.success) {
+              unawaited(DailyRouteLocationService().ensureStarted());
               if (state.requiresAgreement) {
                 pushAndRemoveUntil(AgreementPdfScreen());
               } else {

@@ -36,9 +36,11 @@
 	</array>
 
 	<key>NSLocationWhenInUseUsageDescription</key>
-    <string>Yo'lingizni kuzatish uchun lokatsiya zarur</string>
+    <string>Lokatsiyani backendga yuborish uchun ruxsat zarur</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Ilova backgroundda turganda ham lokatsiyani yuborish uchun ruxsat zarur</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Dastur yopilganda ham yo'lingizni saqlash uchun lokatsiya zarur</string>
+    <string>Ilova backgroundda turganda ham lokatsiyani yuborish uchun ruxsat zarur</string>
     <key>UIBackgroundModes</key>
     <array>
         <string>location</string>

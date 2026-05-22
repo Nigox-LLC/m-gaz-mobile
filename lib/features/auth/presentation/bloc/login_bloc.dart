@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/check_daily_agreement_usecase.dart';
@@ -18,7 +19,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final CheckDailyAgreementUseCase _checkAgreement;
 
   LoginBloc(this._login, this._loadProfile, this._checkAgreement)
-      : super(const LoginState()) {
+    : super(const LoginState()) {
     on<LoginSubmitted>(_onSubmitted);
     on<LoadUserProfile>(_onLoadProfile);
   }
@@ -35,18 +36,42 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     await result.fold(
       (failure) async {
-        emit(state.copyWith(
-          status: LoginStatus.fail,
-          errorMessage: failure.message,
-        ));
+        emit(
+          state.copyWith(
+            status: LoginStatus.fail,
+            errorMessage: failure.message,
+          ),
+        );
       },
       (_) async {
+        final profileResult = await _loadProfile(const NoParams());
+        User? loadedUser;
+        Failure? profileFailure;
+        profileResult.fold(
+          (failure) => profileFailure = failure,
+          (user) => loadedUser = user,
+        );
+
+        final failure = profileFailure;
+        if (failure != null) {
+          emit(
+            state.copyWith(
+              status: LoginStatus.fail,
+              errorMessage: failure.message,
+            ),
+          );
+          return;
+        }
+
         final agreementResult = await _checkAgreement(const NoParams());
         final requiresAgreement = agreementResult.getOrElse(() => false);
-        emit(state.copyWith(
-          status: LoginStatus.success,
-          requiresAgreement: requiresAgreement,
-        ));
+        emit(
+          state.copyWith(
+            status: LoginStatus.success,
+            requiresAgreement: requiresAgreement,
+            user: loadedUser,
+          ),
+        );
       },
     );
   }
@@ -59,14 +84,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     final result = await _loadProfile(const NoParams());
     result.fold(
-      (failure) => emit(state.copyWith(
-        status: LoginStatus.fail,
-        errorMessage: failure.message,
-      )),
-      (user) => emit(state.copyWith(
-        status: LoginStatus.success,
-        user: user,
-      )),
+      (failure) => emit(
+        state.copyWith(status: LoginStatus.fail, errorMessage: failure.message),
+      ),
+      (user) => emit(state.copyWith(status: LoginStatus.success, user: user)),
     );
   }
 }

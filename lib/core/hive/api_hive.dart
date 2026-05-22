@@ -25,6 +25,17 @@ class ApiHive {
   String get accessToken =>
       _base.apiBox.get("access_token", defaultValue: "") ?? "";
 
+  int? get employeeId {
+    final raw = _base.apiBox.get("employee_id");
+    if (raw is int) return raw;
+    if (raw is String) return int.tryParse(raw);
+    return null;
+  }
+
+  Future<void> putEmployeeId(int value) async {
+    await _base.apiBox.put("employee_id", value);
+  }
+
   Future<void> putToken(TokenModel value) async {
     debugPrint("Token saqlanmoqda: ${value.access} / ${value.refresh}");
 
@@ -40,7 +51,6 @@ class ApiHive {
   }
 
   Future<void> clear() async => await _base.apiBox.clear();
-
 
   // ⭐⭐⭐ YANGI QO‘SHILGAN QISM ⭐⭐⭐
 
