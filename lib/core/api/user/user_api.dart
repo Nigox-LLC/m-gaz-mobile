@@ -3,14 +3,13 @@ import 'package:flutter/cupertino.dart';
 import '../../hive/api_hive.dart';
 import '../../models/user/token_model.dart';
 import '../../models/user/user_model.dart';
-import '../../utils/locationService/location_service.dart';
 import '../base/base_api.dart';
 
 class UserApi {
   final ApiBase _base;
 
   const UserApi(this._base);
-  ApiHive get hive => _base.hive; // ⭐ Qo'shildi
+  ApiHive get hive => _base.hive;  // ⭐ Qo'shildi
 
   Future<void> loginUser({
     required String userName,
@@ -66,17 +65,11 @@ class UserApi {
         throw Exception("Server noto‘g‘ri formatda data qaytardi");
       }
 
-      final profile = UserModel.fromJson(response.data);
-      final employeeId = profile.employeeId;
-      if (employeeId != null) {
-        await _base.hive.putEmployeeId(employeeId);
-      }
+      return UserModel.fromJson(response.data);
 
-      return profile;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         /// TOKEN ESKIRGAN → HIVE CLEAR
-        await DailyRouteLocationService().stop();
         await _base.hive.clear();
         return null;
       }
@@ -109,7 +102,6 @@ class UserApi {
       return true;
     } on DioException catch (e) {
       debugPrint("Token refresh error: ${e.response?.data}");
-      await DailyRouteLocationService().stop();
       await _base.hive.clear();
       return false;
     } catch (e) {
@@ -118,10 +110,7 @@ class UserApi {
     }
   }
 
-  Future<void> logout() async {
-    await DailyRouteLocationService().stop();
-    await _base.hive.clear();
-  }
+  Future<void> logout() async => _base.hive.clear();
 
   Future<void> deleteByOtp({
     required String phone,
