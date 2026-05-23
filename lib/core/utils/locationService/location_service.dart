@@ -86,11 +86,12 @@ class DailyRouteLocationService {
       'permission=$permission',
     );
 
-    final canStart = DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-      credentials: credentials,
-      serviceEnabled: serviceEnabled,
-      permission: permission,
-    );
+    final canStart =
+        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+          credentials: credentials,
+          serviceEnabled: serviceEnabled,
+          permission: permission,
+        );
     if (!canStart) {
       _log('ensureStarted: gate failed, service not started');
       return false;
@@ -145,13 +146,16 @@ class DailyRouteLocationService {
 
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     final permission = await Geolocator.checkPermission();
-    final canTrack = DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-      credentials: credentials,
-      serviceEnabled: serviceEnabled,
-      permission: permission,
-    );
+    final canTrack =
+        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+          credentials: credentials,
+          serviceEnabled: serviceEnabled,
+          permission: permission,
+        );
     if (!canTrack) {
-      _log('tick: gate failed (serviceEnabled=$serviceEnabled, permission=$permission)');
+      _log(
+        'tick: gate failed (serviceEnabled=$serviceEnabled, permission=$permission)',
+      );
       return false;
     }
 
@@ -159,7 +163,9 @@ class DailyRouteLocationService {
     if (kDailyRouteDebugBypassWorkingHours) {
       _log('tick: working-hours gate BYPASSED (debug toggle)');
     } else if (!DailyRouteWorkingHoursPolicy.isWithinWorkingHours(now)) {
-      _log('tick: outside working hours (${now.hour}:${now.minute}), skipping GPS read');
+      _log(
+        'tick: outside working hours (${now.hour}:${now.minute}), skipping GPS read',
+      );
       return true;
     }
 
@@ -356,43 +362,44 @@ class DailyRouteSyncEngine {
       var credentials = await _localStore.readCredentials();
       if (!credentials.canSend) return 0;
 
-      var sentCount = 0;
       final records = await _localStore.readPendingRecords();
-      for (final record in records) {
-        if (record.employeeId != credentials.employeeId) continue;
+      final batch = records
+          .where((record) => record.employeeId == credentials.employeeId)
+          .toList();
+      batch.sort((a, b) => a.capturedAt.compareTo(b.capturedAt));
+      if (batch.isEmpty) return 0;
 
-        var result = await _remoteClient.sendDailyRoute(
-          credentials: credentials,
-          record: record,
+      var result = await _remoteClient.sendDailyRoute(
+        credentials: credentials,
+        records: batch,
+      );
+
+      if (result == DailyRouteSendResult.unauthorized &&
+          credentials.refreshToken.isNotEmpty) {
+        final refreshed = await _remoteClient.refreshToken(
+          credentials.refreshToken,
         );
-
-        if (result == DailyRouteSendResult.unauthorized &&
-            credentials.refreshToken.isNotEmpty) {
-          final refreshed = await _remoteClient.refreshToken(
-            credentials.refreshToken,
+        if (refreshed != null) {
+          await _localStore.saveTokens(refreshed);
+          credentials = credentials.copyWith(
+            accessToken: refreshed.accessToken,
+            refreshToken: refreshed.refreshToken,
           );
-          if (refreshed != null) {
-            await _localStore.saveTokens(refreshed);
-            credentials = credentials.copyWith(
-              accessToken: refreshed.accessToken,
-              refreshToken: refreshed.refreshToken,
-            );
-            result = await _remoteClient.sendDailyRoute(
-              credentials: credentials,
-              record: record,
-            );
-          }
-        }
-
-        if (result == DailyRouteSendResult.success) {
-          await _localStore.deletePendingRecord(record.id);
-          sentCount++;
-        } else {
-          break;
+          result = await _remoteClient.sendDailyRoute(
+            credentials: credentials,
+            records: batch,
+          );
         }
       }
 
-      return sentCount;
+      if (result != DailyRouteSendResult.success) {
+        return 0;
+      }
+
+      for (final record in batch) {
+        await _localStore.deletePendingRecord(record.id);
+      }
+      return batch.length;
     } finally {
       _isFlushing = false;
     }
@@ -500,7 +507,7 @@ class DailyRouteHiveLocalStore implements DailyRouteLocalStore {
 abstract class DailyRouteRemoteClient {
   Future<DailyRouteSendResult> sendDailyRoute({
     required DailyRouteCredentials credentials,
-    required DailyRouteLocationRecord record,
+    required List<DailyRouteLocationRecord> records,
   });
 
   Future<DailyRouteTokenPair?> refreshToken(String refreshToken);
@@ -524,21 +531,17 @@ class DailyRouteDioRemoteClient implements DailyRouteRemoteClient {
   @override
   Future<DailyRouteSendResult> sendDailyRoute({
     required DailyRouteCredentials credentials,
-    required DailyRouteLocationRecord record,
+    required List<DailyRouteLocationRecord> records,
   }) async {
-    final url = '${_dio.options.baseUrl}directory/daily-route/';
+    final url = '${_dio.options.baseUrl}directory/save-location/';
     _log(
-      'sendDailyRoute: GET $url?date=${record.routeDate}&employee=${record.employeeId} '
-      'body=${record.toRequestBody()}',
+      'sendDailyRoute: POST $url count=${records.length} '
+      'body=${records.map((record) => record.toRequestBody()).toList()}',
     );
     try {
-      final response = await _dio.get<dynamic>(
-        'directory/daily-route/',
-        queryParameters: {
-          'date': record.routeDate,
-          'employee': record.employeeId,
-        },
-        data: record.toRequestBody(),
+      final response = await _dio.post<dynamic>(
+        'directory/save-location/',
+        data: records.map((record) => record.toRequestBody()).toList(),
         options: Options(
           contentType: Headers.jsonContentType,
           headers: {'Authorization': 'Bearer ${credentials.accessToken}'},
@@ -556,7 +559,9 @@ class DailyRouteDioRemoteClient implements DailyRouteRemoteClient {
       }
       return DailyRouteSendResult.retryableFailure;
     } on DioException catch (e) {
-      _log('sendDailyRoute: DioException ${e.type} ${e.response?.statusCode} ${e.message}');
+      _log(
+        'sendDailyRoute: DioException ${e.type} ${e.response?.statusCode} ${e.message}',
+      );
       if (e.response?.statusCode == 401) {
         return DailyRouteSendResult.unauthorized;
       }
@@ -719,8 +724,7 @@ class DailyRouteLocationRecord {
   Map<String, dynamic> toRequestBody() => {
     'latitude': latitude,
     'longitude': longitude,
-    'speed': speed,
-    'accuracy': accuracy,
+    'timestamp': _formatDateTime(capturedAt.toLocal()),
   };
 
   static int? _parseInt(Object? value) {
@@ -741,4 +745,13 @@ String _formatDate(DateTime date) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '$year-$month-$day';
+}
+
+String _formatDateTime(DateTime date) {
+  final year = date.year.toString().padLeft(4, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  final hour = date.hour.toString().padLeft(2, '0');
+  final minute = date.minute.toString().padLeft(2, '0');
+  return '$year-$month-$day $hour:$minute';
 }

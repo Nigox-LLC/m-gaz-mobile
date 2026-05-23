@@ -9,12 +9,12 @@ import 'package:m_gaz/core/utils/locationService/location_service.dart';
 
 void main() {
   group('DailyRouteDioRemoteClient', () {
-    test('sends GET with token, query parameters, and JSON body', () async {
+    test('sends POST with token and JSON array body', () async {
       final adapter = _RecordingAdapter(statusCode: 200);
       final dio = Dio(BaseOptions(baseUrl: 'https://backend.m-gaz.uz/api/'))
         ..httpClientAdapter = adapter;
       final client = DailyRouteDioRemoteClient(dio: dio);
-      final record = _record();
+      final record = _record(capturedAt: DateTime(2026, 10, 10, 12));
 
       final result = await client.sendDailyRoute(
         credentials: const DailyRouteCredentials(
@@ -22,26 +22,24 @@ void main() {
           refreshToken: 'refresh-token',
           employeeId: 1,
         ),
-        record: record,
+        records: [record],
       );
 
       expect(result, DailyRouteSendResult.success);
-      expect(adapter.lastOptions.method, 'GET');
-      expect(adapter.lastOptions.path, 'directory/daily-route/');
-      expect(adapter.lastOptions.queryParameters, {
-        'date': '2025-11-15',
-        'employee': 1,
-      });
+      expect(adapter.lastOptions.method, 'POST');
+      expect(adapter.lastOptions.path, 'directory/save-location/');
+      expect(adapter.lastOptions.queryParameters, isEmpty);
       expect(
         adapter.lastOptions.headers['Authorization'],
         'Bearer access-token',
       );
-      expect(adapter.lastOptions.data, {
-        'latitude': 41.3265,
-        'longitude': 69.2288,
-        'speed': 12.5,
-        'accuracy': 5.0,
-      });
+      expect(adapter.lastOptions.data, [
+        {
+          'latitude': 41.3265,
+          'longitude': 69.2288,
+          'timestamp': '2026-10-10 12:00',
+        },
+      ]);
     });
 
     test('refreshes token from refresh endpoint response', () async {
@@ -64,10 +62,13 @@ void main() {
   });
 
   group('DailyRouteSyncEngine', () {
-    test('deletes queued record after successful send', () async {
+    test('deletes queued records after successful batch send', () async {
       final store = _FakeLocalStore(
         credentials: _credentials(),
-        records: [_record()],
+        records: [
+          _record(id: 'record-2', capturedAt: DateTime(2025, 11, 15, 10, 1)),
+          _record(id: 'record-1', capturedAt: DateTime(2025, 11, 15, 10)),
+        ],
       );
       final remote = _FakeRemoteClient(
         sendResults: [DailyRouteSendResult.success],
@@ -79,15 +80,22 @@ void main() {
 
       final sentCount = await engine.flushPending();
 
-      expect(sentCount, 1);
+      expect(sentCount, 2);
       expect(store.records, isEmpty);
-      expect(remote.sentRecords, hasLength(1));
+      expect(remote.sentBatches, hasLength(1));
+      expect(remote.sentBatches.single.map((record) => record.id), [
+        'record-1',
+        'record-2',
+      ]);
     });
 
-    test('keeps queued record when send fails', () async {
+    test('keeps queued records when batch send fails', () async {
       final store = _FakeLocalStore(
         credentials: _credentials(),
-        records: [_record()],
+        records: [
+          _record(),
+          _record(id: 'record-2'),
+        ],
       );
       final remote = _FakeRemoteClient(
         sendResults: [DailyRouteSendResult.retryableFailure],
@@ -100,13 +108,17 @@ void main() {
       final sentCount = await engine.flushPending();
 
       expect(sentCount, 0);
-      expect(store.records, hasLength(1));
+      expect(store.records, hasLength(2));
+      expect(remote.sentBatches, hasLength(1));
     });
 
-    test('refreshes once on 401 and retries original record', () async {
+    test('refreshes once on 401 and retries original batch', () async {
       final store = _FakeLocalStore(
         credentials: _credentials(),
-        records: [_record()],
+        records: [
+          _record(),
+          _record(id: 'record-2'),
+        ],
       );
       final remote = _FakeRemoteClient(
         sendResults: [
@@ -125,12 +137,20 @@ void main() {
 
       final sentCount = await engine.flushPending();
 
-      expect(sentCount, 1);
+      expect(sentCount, 2);
       expect(store.records, isEmpty);
       expect(store.credentials.accessToken, 'new-access');
       expect(store.credentials.refreshToken, 'new-refresh');
       expect(remote.refreshCalls, 1);
-      expect(remote.sentRecords, hasLength(2));
+      expect(remote.sentBatches, hasLength(2));
+      expect(remote.sentBatches.first.map((record) => record.id), [
+        'record-1',
+        'record-2',
+      ]);
+      expect(remote.sentBatches.last.map((record) => record.id), [
+        'record-1',
+        'record-2',
+      ]);
     });
 
     test('does not send when token or employee id is missing', () async {
@@ -154,7 +174,7 @@ void main() {
 
       expect(sentCount, 0);
       expect(store.records, hasLength(1));
-      expect(remote.sentRecords, isEmpty);
+      expect(remote.sentBatches, isEmpty);
     });
 
     test('queues position with route date and normalized speed', () async {
@@ -207,44 +227,47 @@ void main() {
       );
     });
 
-    test('rejects denied / deniedForever / disabled service / no credentials', () {
-      expect(
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-          credentials: _credentials(),
-          serviceEnabled: true,
-          permission: LocationPermission.denied,
-        ),
-        isFalse,
-      );
-      expect(
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-          credentials: _credentials(),
-          serviceEnabled: true,
-          permission: LocationPermission.deniedForever,
-        ),
-        isFalse,
-      );
-      expect(
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-          credentials: _credentials(),
-          serviceEnabled: false,
-          permission: LocationPermission.always,
-        ),
-        isFalse,
-      );
-      expect(
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-          credentials: const DailyRouteCredentials(
-            accessToken: 'access-token',
-            refreshToken: 'refresh-token',
-            employeeId: null,
+    test(
+      'rejects denied / deniedForever / disabled service / no credentials',
+      () {
+        expect(
+          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+            credentials: _credentials(),
+            serviceEnabled: true,
+            permission: LocationPermission.denied,
           ),
-          serviceEnabled: true,
-          permission: LocationPermission.always,
-        ),
-        isFalse,
-      );
-    });
+          isFalse,
+        );
+        expect(
+          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+            credentials: _credentials(),
+            serviceEnabled: true,
+            permission: LocationPermission.deniedForever,
+          ),
+          isFalse,
+        );
+        expect(
+          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+            credentials: _credentials(),
+            serviceEnabled: false,
+            permission: LocationPermission.always,
+          ),
+          isFalse,
+        );
+        expect(
+          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+            credentials: const DailyRouteCredentials(
+              accessToken: 'access-token',
+              refreshToken: 'refresh-token',
+              employeeId: null,
+            ),
+            serviceEnabled: true,
+            permission: LocationPermission.always,
+          ),
+          isFalse,
+        );
+      },
+    );
   });
 
   group('DailyRouteWorkingHoursPolicy', () {
@@ -303,17 +326,29 @@ DailyRouteCredentials _credentials() {
   );
 }
 
-DailyRouteLocationRecord _record() {
+DailyRouteLocationRecord _record({
+  String id = 'record-1',
+  int employeeId = 1,
+  DateTime? capturedAt,
+}) {
+  final date = capturedAt ?? DateTime(2025, 11, 15, 10);
   return DailyRouteLocationRecord(
-    id: 'record-1',
-    employeeId: 1,
-    routeDate: '2025-11-15',
-    capturedAt: DateTime(2025, 11, 15, 10),
+    id: id,
+    employeeId: employeeId,
+    routeDate: _testFormatDate(date),
+    capturedAt: date,
     latitude: 41.3265,
     longitude: 69.2288,
     speed: 12.5,
     accuracy: 5,
   );
+}
+
+String _testFormatDate(DateTime date) {
+  final year = date.year.toString().padLeft(4, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
 }
 
 class _FakeLocalStore implements DailyRouteLocalStore {
@@ -360,7 +395,7 @@ class _FakeRemoteClient implements DailyRouteRemoteClient {
 
   final List<DailyRouteSendResult> _sendResults;
   final DailyRouteTokenPair? refreshResponse;
-  final List<DailyRouteLocationRecord> sentRecords = [];
+  final List<List<DailyRouteLocationRecord>> sentBatches = [];
   int refreshCalls = 0;
 
   @override
@@ -372,9 +407,9 @@ class _FakeRemoteClient implements DailyRouteRemoteClient {
   @override
   Future<DailyRouteSendResult> sendDailyRoute({
     required DailyRouteCredentials credentials,
-    required DailyRouteLocationRecord record,
+    required List<DailyRouteLocationRecord> records,
   }) async {
-    sentRecords.add(record);
+    sentBatches.add([...records]);
     if (_sendResults.isEmpty) return DailyRouteSendResult.success;
     return _sendResults.removeAt(0);
   }
