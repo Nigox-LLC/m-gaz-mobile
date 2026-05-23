@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:intl/intl.dart';
+import 'package:m_gaz/core/utils/app_date_formatter.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/core/utils/services/location_service.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
@@ -19,7 +19,7 @@ class TaskItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final formattedDate = DateFormat('dd MMM, HH:mm').format(task.created);
+    final formattedDate = AppDateFormatter.dateTime(task.created);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -231,155 +231,155 @@ class _TaskActionModalState extends State<TaskActionModal> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // Title
-              Text(
-                Words.taskAction.tr(),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.c1570EF,
+                // Title
+                Text(
+                  Words.taskAction.tr(),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.c1570EF,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // VAZIFA HOLATI (SITUATION)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _getSituationColor(
-                    widget.task.situation,
-                  ).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
+                // VAZIFA HOLATI (SITUATION)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
                     color: _getSituationColor(
                       widget.task.situation,
-                    ).withValues(alpha: 0.3),
+                    ).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _getSituationColor(
+                        widget.task.situation,
+                      ).withValues(alpha: 0.3),
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: _getSituationColor(widget.task.situation),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          Words.taskSituation.tr(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: _getSituationColor(widget.task.situation),
+                            size: 20,
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            Words.taskSituation.tr(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.task.situation,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: _getSituationColor(widget.task.situation),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.task.situation,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: _getSituationColor(widget.task.situation),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Izoh
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      Words.comment.tr(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                // Izoh
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        Words.comment.tr(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.task.description,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.task.description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              // File attachment (only if isAnswerFile is true)
-              if (widget.task.isAnswerFile == true) ...[
-                _buildFileSection(),
                 const SizedBox(height: 24),
-              ],
 
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.check_circle_outline,
-                      label: Words.done.tr(),
-                      color: Colors.green,
-                      isLoading: isLoadingComplete,
-                      onTap: () => _handleAction(true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.cancel_outlined,
-                      label: Words.cancelAction.tr(),
-                      color: Colors.red,
-                      isLoading: isLoadingCancel,
-                      onTap: () => _handleAction(false),
-                    ),
-                  ),
+                // File attachment (only if isAnswerFile is true)
+                if (widget.task.isAnswerFile == true) ...[
+                  _buildFileSection(),
+                  const SizedBox(height: 24),
                 ],
-              ),
-              const SizedBox(height: 16),
 
-              // Cancel button
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    Words.close.tr(),
-                    style: TextStyle(color: Colors.grey.shade600),
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.check_circle_outline,
+                        label: Words.done.tr(),
+                        color: Colors.green,
+                        isLoading: isLoadingComplete,
+                        onTap: () => _handleAction(true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.cancel_outlined,
+                        label: Words.cancelAction.tr(),
+                        color: Colors.red,
+                        isLoading: isLoadingCancel,
+                        onTap: () => _handleAction(false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Cancel button
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      Words.close.tr(),
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
                   ),
                 ),
-              ),
               ],
             ),
           ),

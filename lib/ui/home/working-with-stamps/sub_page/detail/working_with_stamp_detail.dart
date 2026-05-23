@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:m_gaz/core/utils/app_date_formatter.dart';
 import 'package:m_gaz/ui/home/working-with-stamps/bloc/working_with_stamps_bloc.dart';
 import 'package:m_gaz/ui/home/working-with-stamps/bloc/working_with_stamps_event.dart';
 import '../../../../../core/models/working-with-stamps/detail/workign_with_stamp_detail.dart';
@@ -96,7 +97,10 @@ class _WorkingWithStampsDetailScreenState
       ),
       title: Text(
         Words.eghuDetails.tr(),
-        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.5),
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          letterSpacing: -0.5,
+        ),
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -399,7 +403,9 @@ class _RealItem extends StatelessWidget {
           Row(
             children: [
               _StatusChip(
-                label: isSealRemoved ? Words.sealRemoved.tr() : Words.active.tr(),
+                label: isSealRemoved
+                    ? Words.sealRemoved.tr()
+                    : Words.active.tr(),
                 isActive: !isSealRemoved,
               ),
               const Spacer(),
@@ -505,23 +511,15 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? value;
-  final bool isInteractive;
-  final VoidCallback? onTap;
 
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    this.value,
-    this.isInteractive = false,
-    this.onTap,
-  });
+  const _InfoRow({required this.icon, required this.label, this.value});
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isInteractive ? onTap : null,
+        onTap: null,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -755,28 +753,10 @@ class _QRCodeTile extends StatelessWidget {
 
 extension DateFormatting on String? {
   String formatDate() {
-    if (this == null || this!.isEmpty) return "-";
-    try {
-      final date = DateTime.parse(this!);
-      return "${date.day.toString().padLeft(2, '0')}"
-          ".${date.month.toString().padLeft(2, '0')}"
-          ".${date.year}";
-    } catch (_) {
-      return this!;
-    }
+    return AppDateFormatter.dateFromString(this);
   }
 
   String formatDateTime() {
-    if (this == null || this!.isEmpty) return "-";
-    try {
-      final date = DateTime.parse(this!);
-      return "${date.day.toString().padLeft(2, '0')}"
-          ".${date.month.toString().padLeft(2, '0')}"
-          ".${date.year} "
-          "${date.hour.toString().padLeft(2, '0')}:"
-          "${date.minute.toString().padLeft(2, '0')}";
-    } catch (_) {
-      return this!;
-    }
+    return AppDateFormatter.dateTimeFromString(this);
   }
 }

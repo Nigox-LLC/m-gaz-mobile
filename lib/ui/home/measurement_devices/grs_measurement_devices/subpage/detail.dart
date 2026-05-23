@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../../core/models/grs/grs_detail_model/grs_detail_model.dart';
 import '../../../../../core/models/grs/grs_detail_model/grs_egxu_item.dart';
+import '../../../../../core/utils/app_date_formatter.dart';
 import '../bloc/grs_measurement_devices_bloc.dart';
 import '../bloc/grs_measurement_devices_event.dart';
 import '../bloc/grs_measurement_devices_state.dart';
 import '../../../../../core/common/words.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 class GrsDetailScreen extends StatefulWidget {
   final int grsId;
@@ -95,7 +94,9 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
       case GrsMeasurementDevicesStatus.loading:
         return _buildModernSkeleton();
       case GrsMeasurementDevicesStatus.fail:
-        return _buildFuturisticError(state.errorMessage ?? Words.unknownError.tr());
+        return _buildFuturisticError(
+          state.errorMessage ?? Words.unknownError.tr(),
+        );
       case GrsMeasurementDevicesStatus.success:
         return _buildModernBody(state.grsDetail);
       default:
@@ -205,9 +206,7 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
           ),
           const SliverPadding(padding: EdgeInsets.only(top: 16)),
           if (model.egxuList?.isEmpty ?? true)
-            SliverFillRemaining(
-              child: _buildEmptyState(Words.noEghuData.tr()),
-            )
+            SliverFillRemaining(child: _buildEmptyState(Words.noEghuData.tr()))
           else
             SliverToBoxAdapter(
               child: _buildHorizontalEgxuCarousel(model.egxuList!),
@@ -225,10 +224,7 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Colors.grey[100]!,
-          ],
+          colors: [Colors.white, Colors.grey[100]!],
         ),
         boxShadow: [
           BoxShadow(
@@ -246,11 +242,31 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
           children: [
             _buildCardHeader(Words.generalInfo.tr(), Icons.info_outline),
             const SizedBox(height: 24),
-            _buildDataRow(Icons.location_on, Words.region.tr(), model.region?.name ?? '-'),
-            _buildDataRow(Icons.map, Words.district.tr(), model.district?.name ?? '-'),
-            _buildDataRow(Icons.person, Words.employee.tr(), model.employee?.fio ?? '-'),
-            _buildDataRow(Icons.factory, Words.gtsh.tr(), model.gtsh?.name ?? '-'),
-            _buildDataRow(Icons.calendar_today, Words.date.tr(), _formatDate(model.dateTime)),
+            _buildDataRow(
+              Icons.location_on,
+              Words.region.tr(),
+              model.region?.name ?? '-',
+            ),
+            _buildDataRow(
+              Icons.map,
+              Words.district.tr(),
+              model.district?.name ?? '-',
+            ),
+            _buildDataRow(
+              Icons.person,
+              Words.employee.tr(),
+              model.employee?.fio ?? '-',
+            ),
+            _buildDataRow(
+              Icons.factory,
+              Words.gtsh.tr(),
+              model.gtsh?.name ?? '-',
+            ),
+            _buildDataRow(
+              Icons.calendar_today,
+              Words.date.tr(),
+              _formatDate(model.dateTime),
+            ),
           ],
         ),
       ),
@@ -373,13 +389,10 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
             end: Alignment.bottomRight,
             colors: isActive
                 ? [
-              Colors.green.withValues(alpha: 0.1),
-              Colors.green.withValues(alpha: 0.05),
-            ]
-                : [
-              Colors.white,
-              Colors.grey[100]!,
-            ],
+                    Colors.green.withValues(alpha: 0.1),
+                    Colors.green.withValues(alpha: 0.05),
+                  ]
+                : [Colors.white, Colors.grey[100]!],
           ),
           boxShadow: [
             BoxShadow(
@@ -429,12 +442,12 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
             ),
             boxShadow: isActive
                 ? [
-              BoxShadow(
-                color: Colors.green.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ]
+                    BoxShadow(
+                      color: Colors.green.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
                 : null,
           ),
           child: Icon(
@@ -470,9 +483,17 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTimelineItem(Icons.play_circle, Words.startTime.tr(), _formatDate(item.fromDate)),
+        _buildTimelineItem(
+          Icons.play_circle,
+          Words.startTime.tr(),
+          _formatDate(item.fromDate),
+        ),
         const SizedBox(height: 10),
-        _buildTimelineItem(Icons.stop_circle, Words.endTime.tr(), _formatDate(item.toDate)),
+        _buildTimelineItem(
+          Icons.stop_circle,
+          Words.endTime.tr(),
+          _formatDate(item.toDate),
+        ),
       ],
     );
   }
@@ -523,11 +544,20 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
       runSpacing: 8,
       children: [
         if (item.real?.isNotEmpty == true)
-          _buildCountChip('${Words.real.tr()}: ${item.real!.length}', Colors.cyan),
+          _buildCountChip(
+            '${Words.real.tr()}: ${item.real!.length}',
+            Colors.cyan,
+          ),
         if (item.gasEquipmentList?.isNotEmpty == true)
-          _buildCountChip('${Words.gas.tr()}: ${item.gasEquipmentList!.length}', Colors.orange),
+          _buildCountChip(
+            '${Words.gas.tr()}: ${item.gasEquipmentList!.length}',
+            Colors.orange,
+          ),
         if (item.certificates?.isNotEmpty == true)
-          _buildCountChip('${Words.cert.tr()}: ${item.certificates!.length}', Colors.purple),
+          _buildCountChip(
+            '${Words.cert.tr()}: ${item.certificates!.length}',
+            Colors.purple,
+          ),
       ],
     );
   }
@@ -561,7 +591,10 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
           const curve = Curves.easeOutCubic;
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
           return SlideTransition(
             position: animation.drive(tween),
             child: FadeTransition(opacity: animation, child: child),
@@ -588,8 +621,7 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return Words.unknown.tr();
-    return DateFormat('dd.MM.yyyy HH:mm').format(date);
+    return AppDateFormatter.dateTime(date, fallback: Words.unknown.tr());
   }
 }
 
@@ -677,14 +709,20 @@ class EgxuDetailScreen extends StatelessWidget {
                   const SizedBox(height: 32),
 
                   // Timeline Section
-                  _buildSectionHeader(Words.eghuTimeRange.tr(), Icons.access_time),
+                  _buildSectionHeader(
+                    Words.eghuTimeRange.tr(),
+                    Icons.access_time,
+                  ),
                   const SizedBox(height: 16),
                   _buildTimelineCard(),
                   const SizedBox(height: 32),
 
                   // Factory Numbers Section
                   if (item.oneFactory != null || item.twoFactory != null) ...[
-                    _buildSectionHeader(Words.factoryNumbers.tr(), Icons.numbers),
+                    _buildSectionHeader(
+                      Words.factoryNumbers.tr(),
+                      Icons.numbers,
+                    ),
                     const SizedBox(height: 16),
                     _buildFactoryNumbersCard(),
                     const SizedBox(height: 32),
@@ -692,7 +730,10 @@ class EgxuDetailScreen extends StatelessWidget {
 
                   // Gas Consumption Section
                   if (item.gasEquipmentList?.isNotEmpty == true) ...[
-                    _buildSectionHeader(Words.gasConsumption.tr(), Icons.local_fire_department),
+                    _buildSectionHeader(
+                      Words.gasConsumption.tr(),
+                      Icons.local_fire_department,
+                    ),
                     const SizedBox(height: 16),
                     _buildGasConsumptionCard(),
                     const SizedBox(height: 32),
@@ -700,7 +741,10 @@ class EgxuDetailScreen extends StatelessWidget {
 
                   // Real Devices Section (Tamg'alar)
                   if (item.real?.isNotEmpty == true) ...[
-                    _buildSectionHeader(Words.activeDevicesStamps.tr(), Icons.router),
+                    _buildSectionHeader(
+                      Words.activeDevicesStamps.tr(),
+                      Icons.router,
+                    ),
                     const SizedBox(height: 16),
                     _buildRealDevicesCard(),
                     const SizedBox(height: 32),
@@ -716,7 +760,10 @@ class EgxuDetailScreen extends StatelessWidget {
 
                   // Certificates Section
                   if (item.certificates?.isNotEmpty == true) ...[
-                    _buildSectionHeader(Words.certificates.tr(), Icons.verified),
+                    _buildSectionHeader(
+                      Words.certificates.tr(),
+                      Icons.verified,
+                    ),
                     const SizedBox(height: 16),
                     _buildCertificatesCard(),
                   ],
@@ -822,11 +869,19 @@ class EgxuDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (item.oneFactory != null)
-            _buildInfoRow(Icons.confirmation_number, Words.factoryOne.tr(), item.oneFactory!),
+            _buildInfoRow(
+              Icons.confirmation_number,
+              Words.factoryOne.tr(),
+              item.oneFactory!,
+            ),
           if (item.oneFactory != null && item.twoFactory != null)
             const SizedBox(height: 12),
           if (item.twoFactory != null)
-            _buildInfoRow(Icons.confirmation_number, Words.factoryTwo.tr(), item.twoFactory!),
+            _buildInfoRow(
+              Icons.confirmation_number,
+              Words.factoryTwo.tr(),
+              item.twoFactory!,
+            ),
         ],
       ),
     );
@@ -839,11 +894,8 @@ class EgxuDetailScreen extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: equipment.length,
-        separatorBuilder: (context, index) => const Divider(
-          color: Colors.black12,
-          height: 20,
-          thickness: 1,
-        ),
+        separatorBuilder: (context, index) =>
+            const Divider(color: Colors.black12, height: 20, thickness: 1),
         itemBuilder: (context, index) {
           final eq = equipment[index];
           return Row(
@@ -854,7 +906,11 @@ class EgxuDetailScreen extends StatelessWidget {
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.fireplace, size: 20, color: Colors.orange[700]),
+                child: Icon(
+                  Icons.fireplace,
+                  size: 20,
+                  color: Colors.orange[700],
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -872,16 +928,16 @@ class EgxuDetailScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${Words.hourlyGasConsumption.tr()}: ${eq.hourlyGasConsumption ?? 0} m³',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -921,10 +977,7 @@ class EgxuDetailScreen extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
-                colors: [
-                  Colors.white,
-                  Colors.grey[100]!,
-                ],
+                colors: [Colors.white, Colors.grey[100]!],
               ),
               border: Border.all(color: Colors.grey[300]!),
               boxShadow: [
@@ -954,7 +1007,7 @@ class EgxuDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
-                    Text(
+                  Text(
                     device.realNumber ?? Words.unknown.tr(),
                     style: const TextStyle(
                       color: Colors.black87,
@@ -967,20 +1020,14 @@ class EgxuDetailScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     device.connectionPoint?.name ?? '-',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     device.qrCode ?? '-',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 10),
                   ),
                 ],
               ),
@@ -1080,11 +1127,23 @@ class EgxuDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _buildCertDetail(Icons.badge, Words.number.tr(), cert.certificateNumber ?? '-'),
+                  _buildCertDetail(
+                    Icons.badge,
+                    Words.number.tr(),
+                    cert.certificateNumber ?? '-',
+                  ),
                   const SizedBox(height: 8),
-                  _buildCertDetail(Icons.calendar_today, Words.givenDate.tr(), cert.issuedDate ?? '-'),
+                  _buildCertDetail(
+                    Icons.calendar_today,
+                    Words.givenDate.tr(),
+                    AppDateFormatter.dateFromString(cert.issuedDate),
+                  ),
                   const SizedBox(height: 8),
-                  _buildCertDetail(Icons.hourglass_empty, Words.validityPeriod.tr(), _formatDate(cert.expiryDate)),
+                  _buildCertDetail(
+                    Icons.hourglass_empty,
+                    Words.validityPeriod.tr(),
+                    _formatDate(cert.expiryDate),
+                  ),
                   if (cert.egxuImage?.isNotEmpty == true) ...[
                     const SizedBox(height: 12),
                     ClipRRect(
@@ -1122,10 +1181,7 @@ class EgxuDetailScreen extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Colors.grey[100]!,
-          ],
+          colors: [Colors.white, Colors.grey[100]!],
         ),
         border: Border.all(color: Colors.grey[300]!),
         boxShadow: [
@@ -1136,14 +1192,16 @@ class EgxuDetailScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(20), child: child),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {Color? valueColor}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
     return Row(
       children: [
         Container(
@@ -1183,7 +1241,12 @@ class EgxuDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimelineItem(IconData icon, String label, String value, Color color) {
+  Widget _buildTimelineItem(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Row(
       children: [
         Container(
@@ -1234,10 +1297,7 @@ class EgxuDetailScreen extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 10),
               ),
               Text(
                 value,
@@ -1263,12 +1323,12 @@ class EgxuDetailScreen extends StatelessWidget {
         color: isActive ? Colors.green : Colors.grey,
         boxShadow: isActive
             ? [
-          BoxShadow(
-            color: Colors.green.withValues(alpha: 0.4),
-            blurRadius: 8,
-            spreadRadius: 2,
-          ),
-        ]
+                BoxShadow(
+                  color: Colors.green.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ]
             : null,
       ),
     );
@@ -1283,7 +1343,6 @@ class EgxuDetailScreen extends StatelessWidget {
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return Words.unknown.tr();
-    return DateFormat('dd.MM.yyyy HH:mm').format(date);
+    return AppDateFormatter.dateTime(date, fallback: Words.unknown.tr());
   }
 }

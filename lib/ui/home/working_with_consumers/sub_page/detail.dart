@@ -1,10 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:m_gaz/core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
+import 'package:m_gaz/core/utils/app_date_formatter.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/common/words.dart';
@@ -1228,13 +1227,13 @@ class _ConsumerRelationsDetailScreenState
           _buildCompanyInfoTile(
             Icons.date_range,
             Words.contractStart.tr(),
-            companyInfo.contractDate,
+            AppDateFormatter.dateFromString(companyInfo.contractDate),
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(
             Icons.date_range,
             Words.contractEnd.tr(),
-            companyInfo.contractEndDate,
+            AppDateFormatter.dateFromString(companyInfo.contractEndDate),
           ),
           const SizedBox(height: 12),
           _buildCompanyInfoTile(Icons.badge, 'STIR', companyInfo.companyTin),
@@ -1770,10 +1769,7 @@ class _ConsumerRelationsDetailScreenState
   }
 
   String _formatDate(String? date) {
-    if (date == null || date.isEmpty) return "-";
-    final parsedDate = DateTime.tryParse(date);
-    if (parsedDate == null) return "-";
-    return DateFormat('dd.MM.yyyy').format(parsedDate);
+    return AppDateFormatter.dateFromString(date);
   }
 }
 
