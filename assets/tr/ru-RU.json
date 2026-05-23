@@ -261,6 +261,7 @@
   "chooseFile": "Выбрать файл",
   "filters": "Фильтры",
   "taskCompleted": "Задача выполнена!",
+  "taskExpired": "Срок истёк",
   "faceSuccessTakingPhoto": "Отлично! Выполняется снимок",
   "documentNotFound": "Документ не найден",
   "roadObserver": "Дорожный наблюдатель",

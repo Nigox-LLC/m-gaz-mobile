@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/core/utils/services/location_service.dart';
+import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_event.dart';
 import '../../../../core/common/words.dart';
 import '../../../../core/models/task/tasks_model.dart';
 import '../bloc/task_state.dart';
+import 'task_display_status.dart';
 
 class TaskItemWidget extends StatelessWidget {
   final TaskModel task;
@@ -18,133 +21,149 @@ class TaskItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final formattedDate = DateFormat('dd MMM, HH:mm').format(task.created);
+    final displayStatus = TaskDisplayStatus.fromTask(task);
+    final formattedDate = DateFormat(
+      'd MMM, HH:mm',
+    ).format(displayStatus.displayDateFor(task));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: InkWell(
-        onTap: task.isDone ? null : () => _showTaskActionDialog(context),
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            color: AppColors.white,
-            border: Border.all(
-              color: task.isDone ? Colors.grey.shade300 : AppColors.c1570EF,
-              width: 1.2,
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: displayStatus == TaskDisplayStatus.pending
+              ? () => _showTaskActionDialog(context)
+              : null,
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFFF0F0F0),
+              border: Border.all(color: const Color(0xFFEEF1F7)),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ... (qolgan UI o'zgarishsiz)
-              Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        colors: task.isDone
-                            ? [Colors.grey, Colors.grey.shade400]
-                            : [
-                                AppColors.c1570EF,
-                                AppColors.c1570EF.withValues(alpha: 0.7),
-                              ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: task.isDone
-                              ? Colors.grey.withValues(alpha: 0.4)
-                              : AppColors.c1570EF.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final statusMaxWidth = constraints.maxWidth < 320
+                        ? 112.0
+                        : 130.0;
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _TaskAvatar(initials: _buildInitials(task.employee)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              _readable(task.employee),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.manrope(
+                                fontSize: 15,
+                                height: 24 / 15,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1A1D2E),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: statusMaxWidth),
+                          child: _ModernStatusChip(status: displayStatus),
                         ),
                       ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        task.employee.characters.first.toUpperCase(),
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _TaskInfoBlock(
+                  label: Words.status.tr(),
+                  value: _readable(task.status),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+                _TaskInfoBlock(
+                  label: Words.situation.tr(),
+                  value: _readable(task.situation),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+                _TaskInfoBlock(
+                  label: Words.comment.tr(),
+                  value: _readable(task.description),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(21),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.access_time,
+                            size: 16,
+                            color: Color(0xFF202020),
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              formattedDate,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                height: 20 / 13,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF202020),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      task.employee,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: task.isDone ? Colors.grey.shade600 : null,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  _ModernStatusChip(isDone: task.isDone),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _InfoRowModern(
-                icon: Icons.info_outline,
-                label: Words.status.tr(),
-                value: task.status,
-                colors: task.isDone ? Colors.grey : AppColors.c1570EF,
-              ),
-              const SizedBox(height: 12),
-              _InfoRowModern(
-                icon: Icons.warning_amber_rounded,
-                label: Words.situation.tr(),
-                value: task.situation,
-                colors: task.isDone ? Colors.grey : AppColors.c1570EF,
-              ),
-              const SizedBox(height: 12),
-              _InfoRowModern(
-                icon: Icons.comment_outlined,
-                label: Words.comment.tr(),
-                value: task.description,
-                colors: task.isDone ? Colors.grey : AppColors.c1570EF,
-              ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.schedule,
-                    size: 16,
-                    color: task.isDone ? Colors.grey : AppColors.c1570EF,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    formattedDate,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: task.isDone ? Colors.grey : AppColors.c1570EF,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String _buildInitials(String value) {
+    final parts = value.trim().split(RegExp(r'\s+'));
+    final initials = parts
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part.characters.first)
+        .join()
+        .toUpperCase();
+
+    return initials.isEmpty ? '?' : initials;
+  }
+
+  String _readable(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? Words.noData.tr() : trimmed;
   }
 
   void _showTaskActionDialog(BuildContext context) {
@@ -231,155 +250,155 @@ class _TaskActionModalState extends State<TaskActionModal> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // Title
-              Text(
-                Words.taskAction.tr(),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.c1570EF,
+                // Title
+                Text(
+                  Words.taskAction.tr(),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.c1570EF,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // VAZIFA HOLATI (SITUATION)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _getSituationColor(
-                    widget.task.situation,
-                  ).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
+                // VAZIFA HOLATI (SITUATION)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
                     color: _getSituationColor(
                       widget.task.situation,
-                    ).withValues(alpha: 0.3),
+                    ).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _getSituationColor(
+                        widget.task.situation,
+                      ).withValues(alpha: 0.3),
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: _getSituationColor(widget.task.situation),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          Words.taskSituation.tr(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: _getSituationColor(widget.task.situation),
+                            size: 20,
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            Words.taskSituation.tr(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.task.situation,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: _getSituationColor(widget.task.situation),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.task.situation,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: _getSituationColor(widget.task.situation),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Izoh
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      Words.comment.tr(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                // Izoh
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        Words.comment.tr(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.task.description,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.task.description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              // File attachment (only if isAnswerFile is true)
-              if (widget.task.isAnswerFile == true) ...[
-                _buildFileSection(),
                 const SizedBox(height: 24),
-              ],
 
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.check_circle_outline,
-                      label: Words.done.tr(),
-                      color: Colors.green,
-                      isLoading: isLoadingComplete,
-                      onTap: () => _handleAction(true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.cancel_outlined,
-                      label: Words.cancelAction.tr(),
-                      color: Colors.red,
-                      isLoading: isLoadingCancel,
-                      onTap: () => _handleAction(false),
-                    ),
-                  ),
+                // File attachment (only if isAnswerFile is true)
+                if (widget.task.isAnswerFile == true) ...[
+                  _buildFileSection(),
+                  const SizedBox(height: 24),
                 ],
-              ),
-              const SizedBox(height: 16),
 
-              // Cancel button
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    Words.close.tr(),
-                    style: TextStyle(color: Colors.grey.shade600),
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.check_circle_outline,
+                        label: Words.done.tr(),
+                        color: Colors.green,
+                        isLoading: isLoadingComplete,
+                        onTap: () => _handleAction(true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.cancel_outlined,
+                        label: Words.cancelAction.tr(),
+                        color: Colors.red,
+                        isLoading: isLoadingCancel,
+                        onTap: () => _handleAction(false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Cancel button
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      Words.close.tr(),
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
                   ),
                 ),
-              ),
               ],
             ),
           ),
@@ -640,46 +659,69 @@ class _TaskActionModalState extends State<TaskActionModal> {
 }
 
 // ================= HELPER WIDGETS =================
-class _ModernStatusChip extends StatelessWidget {
-  final bool isDone;
+class _TaskAvatar extends StatelessWidget {
+  final String initials;
 
-  const _ModernStatusChip({required this.isDone});
+  const _TaskAvatar({required this.initials});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        color: (isDone ? Colors.green : Colors.orange).withValues(alpha: 0.15),
-        border: Border.all(
-          color: isDone ? Colors.green : Colors.orange,
-          width: 1.4,
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: Color(0xFF9AA1B5),
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        initials,
+        maxLines: 1,
+        overflow: TextOverflow.clip,
+        style: GoogleFonts.manrope(
+          fontSize: initials.characters.length > 1 ? 11 : 13,
+          height: 20 / 13,
+          fontWeight: FontWeight.w800,
+          color: AppColors.white,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: (isDone ? Colors.green : Colors.orange).withValues(
-              alpha: 0.25,
-            ),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
+      ),
+    );
+  }
+}
+
+class _ModernStatusChip extends StatelessWidget {
+  final TaskDisplayStatus status;
+
+  const _ModernStatusChip({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        color: status.color,
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isDone ? Icons.check_circle : Icons.timelapse,
-            color: isDone ? Colors.green : Colors.orange,
-            size: 18,
+          AppTools.svg(
+            status.iconAsset,
+            colorFilter: ColorFilter.mode(AppColors.white, BlendMode.srcIn),
           ),
-          const SizedBox(width: 6),
-          Text(
-            isDone ? Words.completed.tr() : Words.pending.tr(),
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: isDone ? Colors.green : Colors.orange,
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              status.label.tr(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.manrope(
+                fontWeight: FontWeight.w800,
+                fontSize: 11,
+                height: 16 / 11,
+                letterSpacing: 0.4,
+                color: AppColors.white,
+              ),
             ),
           ),
         ],
@@ -688,51 +730,42 @@ class _ModernStatusChip extends StatelessWidget {
   }
 }
 
-class _InfoRowModern extends StatelessWidget {
-  final IconData icon;
+class _TaskInfoBlock extends StatelessWidget {
   final String label;
   final String value;
-  final Color colors;
+  final int maxLines;
 
-  const _InfoRowModern({
-    required this.icon,
+  const _TaskInfoBlock({
     required this.label,
     required this.value,
-    required this.colors,
+    required this.maxLines,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: AppColors.transparent,
-            border: Border.all(color: colors, width: 1),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.manrope(
+            fontSize: 13,
+            height: 20 / 13,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFFBBBBBB),
           ),
-          child: Icon(icon, size: 20, color: colors),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(color: colors, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  color: colors,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-            ],
+        Text(
+          value,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
+          style: GoogleFonts.manrope(
+            fontSize: 13,
+            height: 20 / 13,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF202020),
           ),
         ),
       ],

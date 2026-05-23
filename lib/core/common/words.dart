@@ -225,6 +225,7 @@ enum Words {
   done,
   cancelAction,
   taskCompleted,
+  taskExpired,
   pending,
   attachFile,
   chooseFile,

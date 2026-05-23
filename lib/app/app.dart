@@ -1,7 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:keyboard_dismisser/keyboard_dismisser.dart';
+import 'package:thunder/thunder.dart';
 import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/working-with-stamps/bloc/working_with_stamps_bloc.dart';
@@ -49,6 +50,10 @@ class MainApp extends StatelessWidget {
         fallbackLocale: Locale('uz', 'UZ'),
         child: KeyboardDismisser(
           gestures: const [GestureType.onTap],
+          // child: Thunder(
+          //   color: const Color(0xFF17B26A),
+          //   child: child,
+          // ),
           child: child,
         ),
       ),

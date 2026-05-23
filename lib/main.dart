@@ -4,6 +4,7 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:m_gaz/features/auth/presentation/pages/login_screen.dart';
 import 'package:m_gaz/ui/auth/splash/splash_screen.dart';
 import 'package:m_gaz/ui/home/home_screen.dart';
+import 'package:thunder/thunder.dart';
 import 'app/app.dart';
 import 'app/injection.dart';
 import 'core/common/words.dart';
@@ -48,6 +49,12 @@ class MyApp extends StatelessWidget {
           themeMode: ThemeMode.light,
           theme: AppThemes.theme(isDark: false),
           darkTheme: AppThemes.theme(isDark: true),
+          builder: (context, child) {
+            return Thunder(
+              color: const Color(0xFF17B26A),
+              child: child!,
+            );
+          },
           initialRoute: '/splash',
           routes: {
             '/login': (context) => LoginScreen(),
