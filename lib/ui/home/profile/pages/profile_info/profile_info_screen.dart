@@ -4,7 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 import '../../../../../core/common/words.dart';
 import '../../../../../core/hive/api_hive.dart';
-import '../../../../../core/utils/locationService/location_service.dart';
 import '../../../../../core/utils/colors.dart';
 import '../../../../../di.dart';
 import '../../../../../global_widget/app_tools.dart';
@@ -57,14 +56,11 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen>
 
   void _logout() async {
     final apiHive = di.get<ApiHive>();
-    await DailyRouteLocationService().stop();
     await apiHive.clear();
 
     if (!mounted) return;
 
     await _animationController.reverse();
-
-    if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(
       context,

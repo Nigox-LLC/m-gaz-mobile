@@ -127,14 +127,6 @@ class DocumentCard extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      Text(
-                        'EGHU: ${document.facial}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.black,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
                     ],
                   ),
                 ),

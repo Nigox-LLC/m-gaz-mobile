@@ -6,7 +6,6 @@ class WorkingWithConsumersList extends Equatable {
   final String district;
   final String employee;
   final String consumers;
-  final String facial;
   final DateTime datetime;
   final String excelId;
 
@@ -16,7 +15,6 @@ class WorkingWithConsumersList extends Equatable {
     required this.district,
     required this.employee,
     required this.consumers,
-    required this.facial,
     required this.datetime,
     required this.excelId,
   });
@@ -28,7 +26,6 @@ class WorkingWithConsumersList extends Equatable {
       district: json['district']?.toString() ?? '',
       employee: json['employee']?.toString() ?? '',
       consumers: json['consumers']?.toString() ?? '',
-      facial: json['facial']?.toString() ?? '',
       datetime: json['datetime'] != null
           ? DateTime.tryParse(json['datetime'].toString()) ?? DateTime.now()
           : DateTime.now(),
@@ -43,7 +40,6 @@ class WorkingWithConsumersList extends Equatable {
     district,
     employee,
     consumers,
-    facial,
     datetime,
     excelId,
   ];
