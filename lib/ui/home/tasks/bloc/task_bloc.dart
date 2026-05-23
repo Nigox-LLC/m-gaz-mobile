@@ -117,30 +117,23 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   ) async {
     emit(state.copyWith(isCompletingTask: true));
     try {
-      final updatedTask = await api.completeTask(
+      await api.completeTask(
         taskId: event.taskId,
         filePath: event.filePath,
         latitude: event.latitude,
         longitude: event.longitude,
       );
 
-      // Task list yangilash
-      final updatedTasks = state.tasks.map((task) {
-        if (task.id == event.taskId) {
-          return updatedTask;
-        }
-        return task;
-      }).toList();
-
       emit(
         state.copyWith(
           status: TaskStatus.success,
-          tasks: updatedTasks,
           isCompletingTask: false,
         ),
       );
 
       debugPrint("✅ Task bajarildi: ${event.taskId}");
+
+      add(TaskLoad());
     } catch (e) {
       emit(
         state.copyWith(

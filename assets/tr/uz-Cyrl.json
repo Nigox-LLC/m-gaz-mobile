@@ -215,6 +215,8 @@
     "zoomHint": "Катталаштириш учун қисиб ёйинг • Ёпиш учун босинг",
     "cancelAction": "Бекор қилиш",
     "fileRequired": "Илтимос, файл бириктиринг",
+    "fileTooLarge": "Файл ҳажми 10MB дан ошмаслиги керак",
+    "fileLimitHint": "PDF, JPG, PNG (макс 10MB)",
     "agreement": "Шартнома",
     "selectEghuType": "EGHU турини танланг",
     "noDocumentsAvailable": "Сизда ҳозирча ҳеч қандай ҳужжат мавжуд эмас",

@@ -202,7 +202,12 @@ class _TaskActionModalState extends State<TaskActionModal> {
         }
       },
       child: Container(
-        margin: const EdgeInsets.all(16),
+        margin: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(24),
@@ -214,12 +219,18 @@ class _TaskActionModalState extends State<TaskActionModal> {
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight:
+                MediaQuery.of(context).size.height * 0.85 -
+                MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Handle bar
               Center(
                 child: Container(
@@ -369,7 +380,8 @@ class _TaskActionModalState extends State<TaskActionModal> {
                   ),
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -479,7 +491,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "PDF, JPG, PNG (max 10MB)",
+                      Words.fileLimitHint.tr(),
                       style: TextStyle(
                         color: Colors.grey.shade500,
                         fontSize: 12,
@@ -537,11 +549,26 @@ class _TaskActionModalState extends State<TaskActionModal> {
     try {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: false,
-        type: FileType.any,
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+        withData: false,
       );
 
-      final path = result?.files.single.path;
-      if (path == null) return;
+      final file = result?.files.single;
+      final path = file?.path;
+      if (file == null || path == null) return;
+
+      const maxBytes = 10 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(Words.fileTooLarge.tr()),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
 
       setState(() => selectedFilePath = path);
     } catch (e) {
