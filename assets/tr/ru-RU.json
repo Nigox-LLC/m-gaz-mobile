@@ -215,6 +215,8 @@
   "zoomHint": "Сведите или разведите пальцы для масштаба • Нажмите, чтобы закрыть",
   "cancelAction": "Отменить",
   "fileRequired": "Пожалуйста, прикрепите файл",
+  "fileTooLarge": "Размер файла не должен превышать 10МБ",
+  "fileLimitHint": "PDF, JPG, PNG (макс. 10МБ)",
   "agreement": "Договор",
   "selectEghuType": "Выберите тип EGHU",
   "noDocumentsAvailable": "У вас пока нет документов",

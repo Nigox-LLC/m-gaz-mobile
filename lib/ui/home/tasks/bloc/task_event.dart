@@ -25,12 +25,16 @@ class TaskDetailFetched extends TaskEvent {
 class TaskComplete extends TaskEvent {
   final int taskId;
   final String? filePath;
+  final double? latitude;
+  final double? longitude;
 
   const TaskComplete({
     required this.taskId,
     this.filePath,
+    this.latitude,
+    this.longitude,
   });
 
   @override
-  List<Object?> get props => [taskId, filePath];
+  List<Object?> get props => [taskId, filePath, latitude, longitude];
 }

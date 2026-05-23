@@ -129,29 +129,35 @@ class TaskApi {
     }
   }
 
-  Future<TaskModel> completeTask({
+  Future<void> completeTask({
     required int taskId,
     String? filePath,
+    double? latitude,
+    double? longitude,
   }) async {
     try {
       debugPrint("🔹 Task bajarildi deb belgilanmoqda... ID: $taskId");
 
-      FormData formData;
+      debugPrint("Task location: lat=$latitude, long=$longitude");
+
+      final Map<String, dynamic> bodyMap = {};
+
+      if (latitude != null && longitude != null) {
+        bodyMap['location'] =
+            'https://www.google.com/maps?q=$latitude,$longitude';
+      }
 
       if (filePath != null) {
-        // Fayl bilan birga yuborish
         final fileName = filePath.split('/').last;
-        formData = FormData.fromMap({
-          'answer_file': await MultipartFile.fromFile(
-            filePath,
-            filename: fileName,
-          ),
-        });
+        bodyMap['answer_file'] = await MultipartFile.fromFile(
+          filePath,
+          filename: fileName,
+        );
         debugPrint("📎 Fayl biriktirildi: $fileName");
-      } else {
-        // Faylsiz yuborish (agar kerak bo'lsa)
-        formData = FormData.fromMap({});
       }
+
+      final formData = FormData.fromMap(bodyMap);
+      debugPrint("📎 Fayl biriktirildi: $formData");
 
       final response = await _base.dio.patch(
         'task/done/$taskId/',
@@ -159,10 +165,9 @@ class TaskApi {
       );
 
       debugPrint("🔹 Javob status code: ${response.statusCode}");
+      debugPrint("🔹 Javob: ${response.data}");
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return TaskModel.fromJson(response.data);
-      } else {
+      if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {

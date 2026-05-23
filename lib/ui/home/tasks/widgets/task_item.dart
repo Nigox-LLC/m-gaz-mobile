@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:m_gaz/core/utils/colors.dart';
+import 'package:m_gaz/core/utils/services/location_service.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_event.dart';
 import '../../../../core/common/words.dart';
@@ -174,8 +176,9 @@ class _TaskActionModalState extends State<TaskActionModal> {
   Widget build(BuildContext context) {
     return BlocListener<TaskBloc, TaskState>(
       listener: (context, state) {
-        // Loading tugagach dialog yopish
-        if (!state.isCompletingTask && isLoadingComplete) {
+        if (!isLoadingComplete || state.isCompletingTask) return;
+
+        if (state.status == TaskStatus.success) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -183,10 +186,28 @@ class _TaskActionModalState extends State<TaskActionModal> {
               backgroundColor: Colors.green,
             ),
           );
+          return;
+        }
+
+        if (state.status == TaskStatus.fail) {
+          setState(() => isLoadingComplete = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.errorMessage ?? "Vazifani bajarishda xatolik yuz berdi",
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       },
       child: Container(
-        margin: const EdgeInsets.all(16),
+        margin: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(24),
@@ -198,12 +219,18 @@ class _TaskActionModalState extends State<TaskActionModal> {
             ),
           ],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight:
+                MediaQuery.of(context).size.height * 0.85 -
+                MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Handle bar
               Center(
                 child: Container(
@@ -353,7 +380,8 @@ class _TaskActionModalState extends State<TaskActionModal> {
                   ),
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -463,7 +491,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "PDF, JPG, PNG (max 10MB)",
+                      Words.fileLimitHint.tr(),
                       style: TextStyle(
                         color: Colors.grey.shade500,
                         fontSize: 12,
@@ -518,14 +546,43 @@ class _TaskActionModalState extends State<TaskActionModal> {
   }
 
   Future<void> _pickFile() async {
-    // TODO: Haqiqiy file picker implementatsiyasi (file_picker package)
-    // Hozircha test uchun:
-    setState(() {
-      selectedFilePath = "/storage/emulated/0/Download/document.pdf";
-    });
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+        withData: false,
+      );
+
+      final file = result?.files.single;
+      final path = file?.path;
+      if (file == null || path == null) return;
+
+      const maxBytes = 10 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(Words.fileTooLarge.tr()),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      setState(() => selectedFilePath = path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Faylni tanlab bo'lmadi: ${_cleanError(e)}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  void _handleAction(bool isCompleted) {
+  Future<void> _handleAction(bool isCompleted) async {
     if (widget.task.isAnswerFile == true &&
         selectedFilePath == null &&
         isCompleted) {
@@ -538,22 +595,47 @@ class _TaskActionModalState extends State<TaskActionModal> {
       return;
     }
 
+    if (!isCompleted) {
+      return;
+    }
+
     setState(() {
-      if (isCompleted) {
-        isLoadingComplete = true;
-      } else {
-        isLoadingCancel = true;
-      }
+      isLoadingComplete = true;
     });
 
-    final bloc = context.read<TaskBloc>();
+    try {
+      final position = await LocationService.getCurrentLocation().timeout(
+        const Duration(seconds: 20),
+      );
+      if (position == null) {
+        throw Exception("Joylashuv topilmadi");
+      }
+      if (!mounted) return;
 
-    if (isCompleted) {
-      // Task bajarildi - API chaqirish
-      bloc.add(
-        TaskComplete(taskId: widget.task.id, filePath: selectedFilePath),
+      context.read<TaskBloc>().add(
+        TaskComplete(
+          taskId: widget.task.id,
+          filePath: selectedFilePath,
+          latitude: position.latitude,
+          longitude: position.longitude,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoadingComplete = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Lokatsiyani olib bo'lmadi. Qayta urinib ko'ring: ${_cleanError(e)}",
+          ),
+          backgroundColor: Colors.orange,
+        ),
       );
     }
+  }
+
+  String _cleanError(Object error) {
+    return error.toString().replaceAll('Exception: ', '');
   }
 }
 
