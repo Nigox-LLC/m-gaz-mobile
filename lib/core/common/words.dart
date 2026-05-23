@@ -229,6 +229,8 @@ enum Words {
   attachFile,
   chooseFile,
   fileRequired,
+  fileTooLarge,
+  fileLimitHint,
   phoneNumber,
   dateFormatInvalid,
   agreement,

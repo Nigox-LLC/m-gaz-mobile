@@ -218,6 +218,8 @@
   "zoomHint": "Kattalashtirish uchun qisib yoying • Yopish uchun bosing",
   "cancelAction": "Bekor qilish",
   "fileRequired": "Iltimos, fayl biriktiring",
+  "fileTooLarge": "Fayl hajmi 10MB dan oshmasligi kerak",
+  "fileLimitHint": "PDF, JPG, PNG (max 10MB)",
   "agreement": "Shartnoma",
   "selectEghuType": "EGHU turini tanlang",
   "noDocumentsAvailable": "Sizda hozircha hech qanday hujjat mavjud emas",
