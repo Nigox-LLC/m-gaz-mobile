@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:m_gaz/global_widget/global_app_bar.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_certificate.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_detail.dart';
-import 'package:easy_localization/easy_localization.dart';
 import '../../../../../core/common/words.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_egxu_type.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_hourly_indicator_image.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_item.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_real_item.dart';
+import '../../../../../core/utils/app_date_formatter.dart';
 import '../bloc/tech_measures_bloc.dart';
 import '../bloc/tech_measures_event.dart';
 import '../bloc/tech_measures_state.dart';
@@ -923,8 +922,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
     );
   }
 
-  String _formatDate(DateTime date) => DateFormat('dd.MM.yyyy').format(date);
+  String _formatDate(DateTime date) => AppDateFormatter.date(date);
 
-  String _formatDateTime(DateTime date) =>
-      DateFormat('dd.MM.yyyy HH:mm').format(date);
+  String _formatDateTime(DateTime date) => AppDateFormatter.dateTime(date);
 }
