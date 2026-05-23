@@ -7,6 +7,9 @@ abstract class AuthLocalDataSource {
 
   String get accessToken;
   String get refreshToken;
+  int? get employeeId;
+
+  Future<void> saveEmployeeId(int employeeId);
 
   Future<void> clear();
 

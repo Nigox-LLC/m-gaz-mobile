@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/api/user/user_api.dart';
 import '../../../core/extension/size_extension.dart';
+import '../../../core/utils/locationService/location_service.dart';
 import '../../../core/utils/colors.dart';
 import '../../../core/utils/style.dart';
 import '../../../di.dart';
@@ -19,7 +22,6 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   final _api = di.get<UserApi>();
   String lastAgreementDate = "";
-
 
   @override
   void initState() {
@@ -43,7 +45,8 @@ class _SplashScreenState extends State<SplashScreen> {
       final refreshed = await _api.refreshToken();
 
       if (!refreshed) {
-        _api.hive.clear();
+        await DailyRouteLocationService().stop();
+        await _api.hive.clear();
         _goLogin();
         return;
       }
@@ -51,13 +54,16 @@ class _SplashScreenState extends State<SplashScreen> {
       profile = await _api.loadUserProfile();
 
       if (profile == null) {
-        _api.hive.clear();
+        await DailyRouteLocationService().stop();
+        await _api.hive.clear();
         _goLogin();
         return;
       }
     }
 
     if (!mounted) return;
+
+    unawaited(DailyRouteLocationService().ensureStarted());
 
     // ⭐ CHECK AGREEMENT LOGIC
     final today = DateTime.now();
@@ -78,7 +84,6 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.pushReplacementNamed(context, "/home");
     }
   }
-
 
   void _goLogin() {
     Navigator.pushReplacement(

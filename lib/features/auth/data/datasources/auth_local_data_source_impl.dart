@@ -35,6 +35,14 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   String get refreshToken => _hive.refreshToken;
 
   @override
+  int? get employeeId => _hive.employeeId;
+
+  @override
+  Future<void> saveEmployeeId(int employeeId) {
+    return _hive.putEmployeeId(employeeId);
+  }
+
+  @override
   Future<void> clear() => _hive.clear();
 
   @override
