@@ -144,18 +144,24 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _autoTakePicture() async {
     if (_sending) return;
 
+    setState(() => _sending = true);
+
     // Streamni to'xtatish (kamroq resurs ishlatish uchun)
     await InAppCameraService.controller?.stopImageStream();
 
     bool hasPermission = await _checkLocationPermission();
+    if (!mounted) return;
     if (!hasPermission) {
+      setState(() => _sending = false);
       _startImageStream(); // Ruxsat yo'q bo'lsa, streamni qayta boshlash
       return;
     }
 
     final xFile = await InAppCameraService.takePicture();
+    if (!mounted) return;
     if (xFile == null) {
       showToast(context, Words.selfieFailed.tr());
+      setState(() => _sending = false);
       _startImageStream(); // Xato bo'lsa, streamni qayta boshlash
       return;
     }
@@ -173,7 +179,6 @@ class _CameraScreenState extends State<CameraScreen> {
           },
         ),
       );
-      setState(() => _sending = true);
     }
   }
 
@@ -183,6 +188,8 @@ class _CameraScreenState extends State<CameraScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
+
+    if (!mounted) return false;
 
     if (permission == LocationPermission.deniedForever) {
       showToast(context, Words.gpsPermissionRequired.tr());
@@ -321,23 +328,63 @@ class _CameraScreenState extends State<CameraScreen> {
                 }
               },
               builder: (context, state) {
+                final isSubmitting =
+                    _sending || state.status == AttendanceStatus.uploading;
+
                 return Center(
                   child: ElevatedButton(
-                    onPressed: _sending ? null : _autoTakePicture,
+                    onPressed: isSubmitting ? null : _autoTakePicture,
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                      backgroundColor: AppColors.c1570EF,
+                      disabledBackgroundColor: AppColors.c1570EF.withValues(
+                        alpha: 0.88,
                       ),
+                      foregroundColor: Colors.white,
+                      disabledForegroundColor: Colors.white,
+                      elevation: 4,
+                      minimumSize: const Size(220, 56),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: Text(
-                      _sending
-                          ? Words.submitting.tr()
-                          : Words.manualCapture.tr(),
-                      style: const TextStyle(fontSize: 16),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 150),
+                      child: isSubmitting
+                          ? Row(
+                              key: const ValueKey('attendance_submitting'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  Words.submitting.tr(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              Words.manualCapture.tr(),
+                              key: const ValueKey('attendance_manual_capture'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                 );

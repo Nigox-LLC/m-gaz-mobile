@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:m_gaz/core/extension/navigator_extension.dart';
 import 'package:m_gaz/core/extension/size_extension.dart';
+import 'package:m_gaz/core/utils/app_date_formatter.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/home/profile/profile_screen.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -67,7 +68,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 duration: const Duration(milliseconds: 350),
                 curve: Curves.easeInOut,
                 transform: Matrix4.translationValues(xOffset, yOffset, 0)
-                  ..scale(scaleFactor),
+                  ..scaleByDouble(scaleFactor, scaleFactor, scaleFactor, 1),
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: isDrawerOpen
@@ -409,7 +410,7 @@ class _AISummaryWidget extends StatelessWidget {
             ),
             SizedBox(height: 8.h),
             Text(
-              '⏱️ ${Words.analysisTime.tr()}: ${DateTime.now().toString().substring(10, 16)}',
+              '⏱️ ${Words.analysisTime.tr()}: ${AppDateFormatter.time(DateTime.now())}',
               style: TextStyle(
                 fontSize: 12.w,
                 color: AppColors.c181D27.withValues(alpha: 0.6),

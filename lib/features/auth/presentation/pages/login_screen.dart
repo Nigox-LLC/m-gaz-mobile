@@ -1,15 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/core/extension/navigator_extension.dart';
-import 'package:m_gaz/core/extension/size_extension.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
+import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
+import 'package:m_gaz/features/auth/presentation/widgets/login_text_field.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/auth/attendance/agreement_screen.dart';
-import '../../../../core/utils/colors.dart';
-import '../../../../core/utils/style.dart';
-import '../../../../global_widget/custom_textfield.dart';
+
 import '../../../../ui/home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,21 +23,60 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const _backgroundColor = Color(0xFFFCFCFC);
+  static const _headingColor = Color(0xFF1A1D2E);
+  static const _formHorizontalPadding = 20.0;
+  static const _formMaxWidth = 350.0;
+
   final userNameController = TextEditingController();
   final passwordController = TextEditingController();
+
   bool _obscurePassword = true;
+  String? _authErrorMessage;
+
+  bool get _hasInput =>
+      userNameController.text.trim().isNotEmpty &&
+      passwordController.text.trim().isNotEmpty;
+
+  bool get _hasAuthError => _authErrorMessage != null;
+
+  @override
+  void initState() {
+    super.initState();
+    userNameController.addListener(_handleInputChanged);
+    passwordController.addListener(_handleInputChanged);
+  }
 
   @override
   void dispose() {
+    userNameController.removeListener(_handleInputChanged);
+    passwordController.removeListener(_handleInputChanged);
     userNameController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
+  void _handleInputChanged() {
+    if (_authErrorMessage != null) {
+      _authErrorMessage = null;
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _clearController(TextEditingController controller) {
+    controller.clear();
+    _handleInputChanged();
+  }
+
   void _login(BuildContext context) {
-    if (userNameController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty) {
-      showToast(context, "Iltimos, barcha maydonlarni to'ldiring");
+    if (!_hasInput) {
+      showToast(context, Words.loginRequiredFields.tr());
+      return;
+    }
+
+    if (_hasAuthError) {
       return;
     }
 
@@ -52,14 +94,20 @@ class _LoginScreenState extends State<LoginScreen> {
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.c181D27,
+        resizeToAvoidBottomInset: true,
+        backgroundColor: _backgroundColor,
         body: BlocListener<LoginBloc, LoginState>(
           listener: (context, state) {
             if (state.status == LoginStatus.fail) {
-              showToast(context, state.errorMessage);
+              setState(() {
+                _authErrorMessage = Words.loginInvalidCredentials.tr();
+              });
+              if (state.errorMessage.isNotEmpty) {
+                showToast(context, state.errorMessage);
+              }
             }
             if (state.status == LoginStatus.success) {
               if (state.requiresAgreement) {
@@ -69,281 +117,168 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             }
           },
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final viewInsets = MediaQuery.viewInsetsOf(context);
+                final formWidth = math.min(
+                  _formMaxWidth,
+                  math.max(
+                    0.0,
+                    constraints.maxWidth - (_formHorizontalPadding * 2),
+                  ),
+                );
+                final isShortHeight = constraints.maxHeight < 700;
+                final logoTopSpacing = isShortHeight ? 24.0 : 68.0;
+                final logoFormSpacing = isShortHeight ? 32.0 : 58.0;
 
-          child: Stack(
-            children: [
-              SafeArea(
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildLogoSection(),
-                        40.getH(),
-                        _buildModernLoginCard(),
-                        32.getH(),
-                        _buildVersionInfo(),
-                      ],
+                return SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.fromLTRB(
+                    _formHorizontalPadding,
+                    0,
+                    _formHorizontalPadding,
+                    24 + viewInsets.bottom,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: math.max(
+                        0.0,
+                        constraints.maxHeight - viewInsets.bottom,
+                      ),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: formWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(height: logoTopSpacing),
+                            AppTools.img(
+                              AppTools.splashLogo,
+                              width: 104,
+                              height: 104,
+                            ),
+                            SizedBox(height: logoFormSpacing),
+                            _LoginForm(
+                              userNameController: userNameController,
+                              passwordController: passwordController,
+                              obscurePassword: _obscurePassword,
+                              authErrorMessage: _authErrorMessage,
+                              onClearUserName: () =>
+                                  _clearController(userNameController),
+                              onClearPassword: () =>
+                                  _clearController(passwordController),
+                              onTogglePassword: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              onSubmit: () => _login(context),
+                              hasInput: _hasInput,
+                              hasAuthError: _hasAuthError,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildLogoSection() {
-    return Column(
-      children: [
-        24.getH(),
-        Container(
-          width: 120.w,
-          height: 120.w,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.white, AppColors.white],
-            ),
-            border: Border.all(
-              color: AppColors.white.withValues(alpha: 0.1),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.4),
-                blurRadius: 30,
-                offset: Offset(0, 10.h),
+class _LoginForm extends StatelessWidget {
+  const _LoginForm({
+    required this.userNameController,
+    required this.passwordController,
+    required this.obscurePassword,
+    required this.authErrorMessage,
+    required this.onClearUserName,
+    required this.onClearPassword,
+    required this.onTogglePassword,
+    required this.onSubmit,
+    required this.hasInput,
+    required this.hasAuthError,
+  });
+
+  final TextEditingController userNameController;
+  final TextEditingController passwordController;
+  final bool obscurePassword;
+  final String? authErrorMessage;
+  final VoidCallback onClearUserName;
+  final VoidCallback onClearPassword;
+  final VoidCallback onTogglePassword;
+  final VoidCallback onSubmit;
+  final bool hasInput;
+  final bool hasAuthError;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<LoginBloc, LoginState>(
+      builder: (context, state) {
+        final isLoading = state.status == LoginStatus.loading;
+        final isEnabled = hasInput && !hasAuthError && !isLoading;
+        final hasError = authErrorMessage != null;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              Words.loginTitle.tr(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.manrope(
+                color: _LoginScreenState._headingColor,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                height: 32 / 28,
               ),
-            ],
-          ),
-          child: AppTools.img(AppTools.splashLogo),
-        ),
-        20.getH(),
-
-        ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
-            colors: [AppColors.white, AppColors.white.withValues(alpha: 0.7)],
-          ).createShader(bounds),
-          child: Text(
-            "M-GAZ",
-            style: AppTextStyles.style700.copyWith(
-              fontSize: 32.w,
-              letterSpacing: 3,
-              color: AppColors.white,
             ),
-          ),
-        ),
-
-        Text(
-          "Aniq hisob. Umumiy nazorat",
-          style: AppTextStyles.style400.copyWith(
-            fontSize: 14.w,
-            color: AppColors.white.withValues(alpha: 0.6),
-            letterSpacing: 1.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildModernLoginCard() {
-    return Container(
-      padding: EdgeInsets.all(28.w),
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(32.w),
-        border: Border.all(
-          color: AppColors.white.withValues(alpha: 0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: Offset(0, 20.h),
-            spreadRadius: -10,
-          ),
-          BoxShadow(
-            color: AppColors.c181D27.withValues(alpha: 0.3),
-            blurRadius: 30,
-            offset: Offset(0, 10.h),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Tizimga kirish",
-            style: AppTextStyles.style600.copyWith(
-              fontSize: 24.w,
-              color: AppColors.white,
+            const SizedBox(height: 16),
+            LoginTextField(
+              key: const ValueKey('login_username_field'),
+              controller: userNameController,
+              label: Words.loginUsernameLabel.tr(),
+              hintText: Words.loginUsernameHint.tr(),
+              enabled: !isLoading,
+              hasError: hasError,
+              textInputAction: TextInputAction.next,
+              onClear: onClearUserName,
             ),
-          ),
-          32.getH(),
-
-          _buildModernTextField(
-            controller: userNameController,
-            hint: "Foydalanuvchi nomi",
-            icon: Icons.person_outline,
-          ),
-          14.getH(),
-
-          _buildModernTextField(
-            controller: passwordController,
-            hint: "Parolingizni kiriting",
-            icon: Icons.lock_outline,
-            isPassword: true,
-          ),
-          20.getH(),
-          10.getH(),
-
-          BlocBuilder<LoginBloc, LoginState>(
-            builder: (context, state) {
-              return _buildPremiumButton(context, state);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModernTextField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool isPassword = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        8.getH(),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.w),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.2),
-                blurRadius: 10,
-                offset: Offset(0, 5.h),
-              ),
-            ],
-          ),
-          child: CustomTextField(
-            controller: controller,
-            label: hint,
-            labelColor: AppColors.white,
-            obscure: isPassword ? _obscurePassword : false,
-            suffixIcon: isPassword
-                ? IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      color: AppColors.white.withValues(alpha: 0.5),
-                      size: 20.w,
-                    ),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
-                  )
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPremiumButton(BuildContext context, LoginState state) {
-    return Container(
-      width: double.infinity,
-      height: 56.h,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.white.withValues(alpha: 0.95),
-            AppColors.white.withValues(alpha: 0.7),
+            const SizedBox(height: 12),
+            LoginTextField(
+              key: const ValueKey('login_password_field'),
+              controller: passwordController,
+              label: Words.loginPasswordLabel.tr(),
+              hintText: Words.loginPasswordHint.tr(),
+              enabled: !isLoading,
+              hasError: hasError,
+              errorText: authErrorMessage,
+              obscureText: obscurePassword,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => onSubmit(),
+              onClear: onClearPassword,
+              onToggleObscure: onTogglePassword,
+            ),
+            const SizedBox(height: 20),
+            LoginButton(
+              key: const ValueKey('login_submit_button'),
+              title: Words.loginSubmit.tr(),
+              isEnabled: isEnabled,
+              isLoading: isLoading,
+              onPressed: onSubmit,
+            ),
           ],
-        ),
-        borderRadius: BorderRadius.circular(16.w),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.white.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: Offset(0, 10.h),
-          ),
-          BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: Offset(0, 5.h),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: state.status == LoginStatus.loading
-            ? null
-            : () => _login(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.w),
-          ),
-          disabledBackgroundColor: Colors.transparent,
-        ),
-        child: state.status == LoginStatus.loading
-            ? SizedBox(
-                width: 24.w,
-                height: 24.w,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.w,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.c181D27),
-                ),
-              )
-            : Text(
-                "Kirish",
-                style: AppTextStyles.style600.copyWith(
-                  fontSize: 16.w,
-                  color: AppColors.c181D27,
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildVersionInfo() {
-    return Column(
-      children: [
-        Container(
-          width: 40.w,
-          height: 2.h,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.white.withValues(alpha: 0.1),
-                AppColors.white.withValues(alpha: 0.3),
-                AppColors.white.withValues(alpha: 0.1),
-              ],
-            ),
-          ),
-        ),
-        12.getH(),
-        Text(
-          "v1.0.0",
-          style: AppTextStyles.style400.copyWith(
-            fontSize: 11.w,
-            color: AppColors.white.withValues(alpha: 0.3),
-            letterSpacing: 1,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/extension/size_extension.dart';
+import 'package:m_gaz/core/utils/app_date_formatter.dart';
 import '../core/utils/colors.dart';
 import '../core/utils/style.dart';
 
@@ -64,10 +65,7 @@ class _CustomDateFormFieldState extends State<CustomDateFormField> {
     );
 
     if (pickedDate != null) {
-      widget.controller.text =
-          "${pickedDate.day.toString().padLeft(2, '0')}."
-          "${pickedDate.month.toString().padLeft(2, '0')}."
-          "${pickedDate.year}";
+      widget.controller.text = AppDateFormatter.date(pickedDate);
     }
   }
 
