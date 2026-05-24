@@ -105,6 +105,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('task-upload-basis-tile')));
     await tester.pumpAndSettle();
+    expect(find.text('Telefondan yuklash'), findsOneWidget);
+    expect(find.text('fayl nomi'), findsNothing);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
     await tester.tap(find.text('Telefondan yuklash'));
     await tester.pumpAndSettle();
 

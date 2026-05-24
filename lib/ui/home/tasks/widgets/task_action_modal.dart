@@ -64,7 +64,6 @@ class _TaskActionModalState extends State<TaskActionModal> {
   String? _locationAddress;
   bool _isCompleting = false;
   bool _isCanceling = false;
-  bool _isPreparingAttachment = false;
 
   bool get _requiresAnswerFile => widget.task.isAnswerFile == true;
 
@@ -288,7 +287,6 @@ class _TaskActionModalState extends State<TaskActionModal> {
       builder: (dialogContext) {
         return _AttachmentRequiredDialog(
           initialAttachment: _attachment,
-          isPreparing: _isPreparingAttachment,
           onPick: _pickAttachmentViaSource,
           onRemove: () {
             setState(() => _attachment = null);
@@ -320,7 +318,6 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
     if (source == null) return null;
 
-    setState(() => _isPreparingAttachment = true);
     try {
       final picked = source == _AttachmentSource.camera
           ? await _pickFromCamera()
@@ -342,10 +339,6 @@ class _TaskActionModalState extends State<TaskActionModal> {
         _TaskActionColors.error,
       );
       return null;
-    } finally {
-      if (mounted) {
-        setState(() => _isPreparingAttachment = false);
-      }
     }
   }
 
@@ -865,7 +858,6 @@ class _PrimaryActionButton extends StatelessWidget {
 
 class _AttachmentRequiredDialog extends StatefulWidget {
   final _TaskAttachment? initialAttachment;
-  final bool isPreparing;
   final Future<_TaskAttachment?> Function() onPick;
   final VoidCallback onRemove;
   final VoidCallback onBack;
@@ -873,7 +865,6 @@ class _AttachmentRequiredDialog extends StatefulWidget {
 
   const _AttachmentRequiredDialog({
     required this.initialAttachment,
-    required this.isPreparing,
     required this.onPick,
     required this.onRemove,
     required this.onBack,
@@ -887,7 +878,6 @@ class _AttachmentRequiredDialog extends StatefulWidget {
 
 class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
   _TaskAttachment? _attachment;
-  bool _isPicking = false;
 
   @override
   void initState() {
@@ -924,9 +914,7 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
               const SizedBox(height: 16),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 180),
-                child: _isPicking || widget.isPreparing
-                    ? const _AttachmentProgressTile()
-                    : _attachment == null
+                child: _attachment == null
                     ? _UploadBasisTile(onTap: _pick)
                     : _AttachmentPreviewGrid(
                         attachment: _attachment!,
@@ -964,12 +952,10 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
   }
 
   Future<void> _pick() async {
-    setState(() => _isPicking = true);
     final picked = await widget.onPick();
     if (!mounted) return;
     setState(() {
       _attachment = picked ?? _attachment;
-      _isPicking = false;
     });
   }
 }
@@ -995,7 +981,6 @@ class _CancelTaskDialog extends StatefulWidget {
 class _CancelTaskDialogState extends State<_CancelTaskDialog> {
   final TextEditingController _reasonController = TextEditingController();
   _TaskAttachment? _attachment;
-  bool _isPicking = false;
   bool _hasReason = false;
 
   @override
@@ -1052,9 +1037,7 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
                 const SizedBox(height: 16),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),
-                  child: _isPicking
-                      ? const _AttachmentProgressTile()
-                      : _attachment == null
+                  child: _attachment == null
                       ? _UploadBasisTile(dashed: true, onTap: _pick)
                       : _AttachmentPreviewGrid(
                           attachment: _attachment!,
@@ -1109,12 +1092,10 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
   }
 
   Future<void> _pick() async {
-    setState(() => _isPicking = true);
     final picked = await widget.onPick();
     if (!mounted) return;
     setState(() {
       _attachment = picked ?? _attachment;
-      _isPicking = false;
     });
   }
 
@@ -1175,7 +1156,11 @@ class _UploadBasisTile extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.attach_file, size: 18, color: Colors.black),
+          // const Icon(Icons.attach_file, size: 18, color: Colors.black),
+          AppTools.svg(
+            AppTools.icPaperclip,
+            colorFilter: ColorFilter.mode(AppColors.c717680, BlendMode.srcIn),
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
@@ -1251,62 +1236,6 @@ class _DashedRoundedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _DashedRoundedBorderPainter oldDelegate) {
     return oldDelegate.color != color || oldDelegate.radius != radius;
-  }
-}
-
-class _AttachmentProgressTile extends StatelessWidget {
-  const _AttachmentProgressTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: _TaskActionColors.soft,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.insert_drive_file_outlined,
-            size: 18,
-            color: Colors.black54,
-          ),
-        ),
-        const SizedBox(width: 13),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("fayl nomi", style: _TaskTextStyles.bodySBold),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      Words.fileSize.tr(),
-                      style: _TaskTextStyles.bodyXSSub,
-                    ),
-                  ),
-                  Text("26%", style: _TaskTextStyles.bodyXSSub),
-                ],
-              ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  minHeight: 4,
-                  value: 0.26,
-                  color: _TaskActionColors.strong,
-                  backgroundColor: const Color(0xFFDBDBD9),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }
 
