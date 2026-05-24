@@ -118,6 +118,7 @@ class AppTools {
   static const String icLoader = "assets/icons/ic_loader.svg";
   static const String icChervonLeft = "assets/icons/ic_chervon_left.svg";
   static const String icPaperclip = "assets/icons/ic_paperclip.svg";
+  static const String icPinForm = "assets/icons/ic_pin_form.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";
@@ -158,10 +159,7 @@ class AppTools {
     double? width,
     double? height,
     BoxFit fit = BoxFit.contain,
-    ColorFilter colorFilter = const ColorFilter.mode(
-      Colors.white,
-      BlendMode.srcIn,
-    ),
+    ColorFilter? colorFilter,
   }) => SvgPicture.asset(
     path,
     width: width,

@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../../core/common/words.dart';
 import '../../../../core/utils/services/location_service.dart';
+import '../../../../global_widget/app_tools.dart';
 
 typedef LocationProvider = Future<Position?> Function();
 typedef LocationAddressResolver = Future<String?> Function(Position position);
@@ -526,14 +527,7 @@ class _MapPin extends StatelessWidget {
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
-          const Positioned(
-            top: 0,
-            child: Icon(
-              Icons.location_on,
-              color: _TaskLocationPickerScreenState._info,
-              size: 50,
-            ),
-          ),
+          Positioned(top: 0, child: AppTools.svg(AppTools.icPinForm)),
           Positioned(
             top: 13,
             child: Container(
