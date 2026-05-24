@@ -297,5 +297,6 @@
   "unknownEquipment": "Неизвестное оборудование",
   "excelId": "Excel ID",
   "qrCode": "QR-код",
-  "workCompleted": "Работа завершена"
+  "workCompleted": "Работа завершена",
+  "yourLocation": "Ваше местоположение"
 }

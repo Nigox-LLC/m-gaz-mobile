@@ -89,6 +89,10 @@ dependencies:
   geolocator: ^14.0.2
   location: ^8.0.1
 
+  # Xarita
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # Orqa fon rejimida ishlash
   flutter_background_service: ^5.1.0
   camera: 0.10.5+9

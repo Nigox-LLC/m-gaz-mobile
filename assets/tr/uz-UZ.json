@@ -297,5 +297,6 @@
   "unknownEquipment": "Noma'lum jihoz",
   "excelId": "Excel ID",
   "qrCode": "QR kod",
-  "workCompleted": "Ish tugatilgan"
+  "workCompleted": "Ish tugatilgan",
+  "yourLocation": "Sizning joylashuvingiz"
 }

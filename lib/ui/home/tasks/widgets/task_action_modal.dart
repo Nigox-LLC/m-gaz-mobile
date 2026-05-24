@@ -9,13 +9,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
-import 'package:m_gaz/core/utils/services/location_service.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_event.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_state.dart';
 
 import '../../../../core/utils/colors.dart';
 import '../../../../global_widget/app_tools.dart';
+import 'task_location_picker_screen.dart';
 
 typedef TaskCompletionCallback =
     void Function({
@@ -64,7 +64,6 @@ class _TaskActionModalState extends State<TaskActionModal> {
   String? _locationAddress;
   bool _isCompleting = false;
   bool _isCanceling = false;
-  bool _isLoadingLocation = false;
   bool _isPreparingAttachment = false;
 
   bool get _requiresAnswerFile => widget.task.isAnswerFile == true;
@@ -134,8 +133,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                               _LocationSection(
                                 position: _position,
                                 address: _locationAddress,
-                                isLoading: _isLoadingLocation,
-                                onTap: _captureLocation,
+                                onTap: _openLocationPicker,
                               ),
                               if (_attachment != null) ...[
                                 const SizedBox(height: 12),
@@ -386,38 +384,24 @@ class _TaskActionModalState extends State<TaskActionModal> {
     );
   }
 
-  Future<void> _captureLocation() async {
-    setState(() => _isLoadingLocation = true);
-    try {
-      final provider =
-          widget.locationProvider ?? LocationService.getCurrentLocation;
-      final position = await provider().timeout(const Duration(seconds: 20));
-      if (position == null) {
-        throw Exception(Words.locationUnavailable.tr());
-      }
-      final resolver =
-          widget.locationAddressResolver ??
-          (Position position) => LocationService.getAddressFromCoordinates(
-            latitude: position.latitude,
-            longitude: position.longitude,
-          );
-      final address = await resolver(position);
-      if (!mounted) return;
-      setState(() {
-        _position = position;
-        _locationAddress = _normalizeLocationAddress(address);
-      });
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(
-        "Lokatsiyani olib bo'lmadi. Qayta urinib ko'ring: ${_cleanError(e)}",
-        Colors.orange,
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoadingLocation = false);
-      }
-    }
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.of(context).push<TaskLocationPickerResult?>(
+      MaterialPageRoute(
+        builder: (_) => TaskLocationPickerScreen(
+          initialPosition: _position,
+          initialAddress: _locationAddress,
+          locationProvider: widget.locationProvider,
+          locationAddressResolver: widget.locationAddressResolver,
+        ),
+      ),
+    );
+
+    if (!mounted || result == null) return;
+
+    setState(() {
+      _position = result.position;
+      _locationAddress = _normalizeLocationAddress(result.address);
+    });
   }
 
   Future<void> _handleCancelTodo() async {
@@ -617,13 +601,11 @@ class _ReadOnlyComment extends StatelessWidget {
 class _LocationSection extends StatelessWidget {
   final Position? position;
   final String? address;
-  final bool isLoading;
   final VoidCallback onTap;
 
   const _LocationSection({
     required this.position,
     required this.address,
-    required this.isLoading,
     required this.onTap,
   });
 
@@ -642,47 +624,47 @@ class _LocationSection extends StatelessWidget {
       children: [
         Text(Words.addLocation.tr(), style: _TaskTextStyles.fieldLabel),
         const SizedBox(height: 8),
-        Container(
-          constraints: const BoxConstraints(minHeight: 56),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: _TaskActionColors.field,
-            border: Border.all(color: _TaskActionColors.stroke),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  isLoading ? Words.locationLoading.tr() : locationText,
-                  maxLines: hasLocation ? 2 : 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: hasLocation
-                      ? _TaskTextStyles.bodyM
-                      : _TaskTextStyles.bodyS,
+        InkWell(
+          key: const Key('task-location-pick-button'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 56),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _TaskActionColors.field,
+              border: Border.all(color: _TaskActionColors.stroke),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    locationText,
+                    maxLines: hasLocation ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: hasLocation
+                        ? _TaskTextStyles.bodyM
+                        : _TaskTextStyles.bodyS,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              if (hasLocation)
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _TaskActionColors.infoLighter,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.navigation,
-                    size: 18,
-                    color: _TaskActionColors.info,
-                  ),
-                )
-              else
-                InkWell(
-                  key: const Key('task-location-pick-button'),
-                  onTap: isLoading ? null : onTap,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
+                const SizedBox(width: 8),
+                if (hasLocation)
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _TaskActionColors.infoLighter,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.navigation,
+                      size: 18,
+                      color: _TaskActionColors.info,
+                    ),
+                  )
+                else
+                  Container(
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
@@ -692,21 +674,11 @@ class _LocationSection extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (isLoading)
-                          const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        else
-                          const Icon(
-                            Icons.navigation,
-                            size: 16,
-                            color: Colors.white,
-                          ),
+                        const Icon(
+                          Icons.navigation,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           Words.chooseFromMap.tr(),
@@ -715,8 +687,8 @@ class _LocationSection extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -1042,83 +1014,86 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final availableHeight =
+        mediaQuery.size.height -
+        mediaQuery.viewInsets.bottom -
+        mediaQuery.padding.top -
+        mediaQuery.padding.bottom -
+        48;
+    final maxDialogHeight = availableHeight < 280 ? 280.0 : availableHeight;
+
     return Dialog(
       key: const Key('task-cancel-dialog'),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       backgroundColor: Colors.transparent,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 350),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _SheetHandle(width: 24),
-                  const SizedBox(height: 24),
-                  Text(
-                    Words.cancelBeforeBasis.tr(),
-                    textAlign: TextAlign.center,
-                    style: _TaskTextStyles.heading.copyWith(
-                      color: _TaskActionColors.textPrimary,
-                    ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 350, maxHeight: maxDialogHeight),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _SheetHandle(width: 24),
+                const SizedBox(height: 24),
+                Text(
+                  Words.cancelBeforeBasis.tr(),
+                  textAlign: TextAlign.center,
+                  style: _TaskTextStyles.heading.copyWith(
+                    color: _TaskActionColors.textPrimary,
                   ),
-                  const SizedBox(height: 16),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    child: _isPicking
-                        ? const _AttachmentProgressTile()
-                        : _attachment == null
-                        ? _UploadBasisTile(dashed: true, onTap: _pick)
-                        : _AttachmentPreviewGrid(
-                            attachment: _attachment!,
-                            onAdd: _pick,
-                            onRemove: () {
-                              setState(() => _attachment = null);
-                            },
+                ),
+                const SizedBox(height: 16),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  child: _isPicking
+                      ? const _AttachmentProgressTile()
+                      : _attachment == null
+                      ? _UploadBasisTile(dashed: true, onTap: _pick)
+                      : _AttachmentPreviewGrid(
+                          attachment: _attachment!,
+                          onAdd: _pick,
+                          onRemove: () {
+                            setState(() => _attachment = null);
+                          },
+                        ),
+                ),
+                const SizedBox(height: 16),
+                _CancelReasonField(controller: _reasonController),
+                const SizedBox(height: 24),
+                ValueListenableBuilder<bool>(
+                  valueListenable: widget.isSubmittingListenable,
+                  builder: (context, isSubmitting, _) {
+                    final canSubmit =
+                        _attachment != null && _hasReason && !isSubmitting;
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: _SecondaryDialogButton(
+                            key: const Key('task-cancel-dialog-back-button'),
+                            label: Words.back.tr(),
+                            onTap: isSubmitting ? () {} : widget.onBack,
                           ),
-                  ),
-                  const SizedBox(height: 16),
-                  _CancelReasonField(controller: _reasonController),
-                  const SizedBox(height: 24),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: widget.isSubmittingListenable,
-                    builder: (context, isSubmitting, _) {
-                      final canSubmit =
-                          _attachment != null && _hasReason && !isSubmitting;
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: _SecondaryDialogButton(
-                              key: const Key('task-cancel-dialog-back-button'),
-                              label: Words.back.tr(),
-                              onTap: isSubmitting ? () {} : widget.onBack,
-                            ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _CancelConfirmButton(
+                            enabled: canSubmit,
+                            isLoading: isSubmitting,
+                            onTap: () => _submit(canSubmit),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _CancelConfirmButton(
-                              enabled: canSubmit,
-                              isLoading: isSubmitting,
-                              onTap: () => _submit(canSubmit),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -1446,10 +1421,7 @@ class _AddMoreBasisTile extends StatelessWidget {
           children: [
             AppTools.svg(
               AppTools.icPaperclip,
-              colorFilter: ColorFilter.mode(
-                AppColors.c717680,
-                BlendMode.srcIn,
-              ),
+              colorFilter: ColorFilter.mode(AppColors.c717680, BlendMode.srcIn),
             ),
             const SizedBox(height: 8),
             Text(

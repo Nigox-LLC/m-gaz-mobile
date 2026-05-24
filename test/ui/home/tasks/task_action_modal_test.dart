@@ -58,6 +58,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
+      find.byKey(const Key('task-location-address-field')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('task-location-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(
       find.text("Farg'ona viloyati, Qo'shtepa tumani, Qizilariq"),
       findsOneWidget,
     );

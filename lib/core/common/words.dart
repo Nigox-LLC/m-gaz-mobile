@@ -307,4 +307,5 @@ enum Words {
   excelId,
   qrCode,
   workCompleted,
+  yourLocation,
 }

@@ -48,7 +48,7 @@ class TaskItemWidget extends StatelessWidget {
                         : 130.0;
 
                     return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         _TaskAvatar(initials: _buildInitials(task.employee)),
                         const SizedBox(width: 8),
