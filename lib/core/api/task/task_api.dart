@@ -181,4 +181,44 @@ class TaskApi {
       throw Exception("Kutilmagan xatolik: $e");
     }
   }
+
+  Future<void> cancelTask({
+    required int taskId,
+    required String description,
+    required String filePath,
+  }) async {
+    try {
+      debugPrint("рџ”№ Task bekor qilinmoqda... ID: $taskId");
+
+      final fileName = filePath.replaceAll('\\', '/').split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+        'description': description,
+      });
+      debugPrint("рџ“Ћ Bekor qilish body tayyorlandi: $formData");
+
+      final response = await _base.dio.patch(
+        'task/update-status/$taskId/',
+        queryParameters: {'action': 'cancel'},
+      );
+
+      debugPrint("рџ”№ Javob status code: ${response.statusCode}");
+      debugPrint("рџ”№ Javob: ${response.data}");
+
+      if (response.statusCode != 200 &&
+          response.statusCode != 201 &&
+          response.statusCode != 204) {
+        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      final error = e.response?.data;
+      String errorMessage =
+          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      debugPrint("вќЊ DioException: $errorMessage");
+      throw Exception(errorMessage);
+    } catch (e) {
+      debugPrint("вќЊ UNKNOWN ERROR: $e");
+      throw Exception("Kutilmagan xatolik: $e");
+    }
+  }
 }

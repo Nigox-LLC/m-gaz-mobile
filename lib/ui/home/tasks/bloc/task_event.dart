@@ -38,3 +38,18 @@ class TaskComplete extends TaskEvent {
   @override
   List<Object?> get props => [taskId, filePath, latitude, longitude];
 }
+
+class TaskCancel extends TaskEvent {
+  final int taskId;
+  final String description;
+  final String filePath;
+
+  const TaskCancel({
+    required this.taskId,
+    required this.description,
+    required this.filePath,
+  });
+
+  @override
+  List<Object?> get props => [taskId, description, filePath];
+}

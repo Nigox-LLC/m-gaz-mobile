@@ -2,8 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:m_gaz/core/models/task/task_analysis.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
 
-
-enum TaskStatus { initial, loading, success, fail,taskAnalysis }
+enum TaskStatus { initial, loading, success, fail, taskAnalysis }
 
 class TaskState extends Equatable {
   final TaskStatus status;
@@ -17,8 +16,8 @@ class TaskState extends Equatable {
   final TaskModel? selectedTask;
   final TaskModel? taskDetail;
 
-  final bool isCompletingTask;      // ✅ YANGI
-
+  final bool isCompletingTask;
+  final bool isCancelingTask;
 
   const TaskState({
     this.status = TaskStatus.initial,
@@ -30,7 +29,8 @@ class TaskState extends Equatable {
     this.errorMessage,
     this.selectedTask,
     this.taskDetail,
-    this.isCompletingTask = false,   // ✅ YANGI
+    this.isCompletingTask = false,
+    this.isCancelingTask = false,
   });
 
   TaskState copyWith({
@@ -43,8 +43,8 @@ class TaskState extends Equatable {
     String? errorMessage,
     TaskModel? selectedTask,
     TaskModel? taskDetail,
-    bool? isCompletingTask,           // ✅ YANGI
-
+    bool? isCompletingTask,
+    bool? isCancelingTask,
   }) {
     return TaskState(
       status: status ?? this.status,
@@ -57,22 +57,22 @@ class TaskState extends Equatable {
       taskDetail: taskDetail ?? this.taskDetail,
       selectedTask: selectedTask ?? this.selectedTask,
       isCompletingTask: isCompletingTask ?? this.isCompletingTask,
-
+      isCancelingTask: isCancelingTask ?? this.isCancelingTask,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [
-        status,
-        tasks,
-        taskAnalysis,
-        nextUrl,
-        hasReachedMax,
-        isLoadingMore,
-        errorMessage,
-        selectedTask,
-        taskDetail,
-        isCompletingTask
-      ];
+  List<Object?> get props => [
+    status,
+    tasks,
+    taskAnalysis,
+    nextUrl,
+    hasReachedMax,
+    isLoadingMore,
+    errorMessage,
+    selectedTask,
+    taskDetail,
+    isCompletingTask,
+    isCancelingTask,
+  ];
 }
