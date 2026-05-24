@@ -12,7 +12,6 @@
 import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
-import 'package:thunder/thunder.dart';
 
 import '../core/di/injection_module.dart' as _i491;
 import '../core/network/api_client.dart' as _i510;
@@ -79,7 +78,6 @@ _i174.GetIt init(
       gh<_i339.CheckDailyAgreementUseCase>(),
     ),
   );
-  Thunder.addDio(gh<_i361.Dio>());
   return getIt;
 }
 
