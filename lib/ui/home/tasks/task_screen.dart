@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/utils/colors.dart';
-import 'package:m_gaz/global_widget/global_app_bar.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_item.dart';
 import 'bloc/task_bloc.dart';
 import 'bloc/task_event.dart';
@@ -41,79 +41,86 @@ class _TaskListScreenState extends State<TaskListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.cF5F5F5,
-      appBar: CustomGlobalAppBar(
-        title: Words.tasks.tr(),
-        centerTitle: true,
-        showBack: false,
-      ),
-      body: BlocBuilder<TaskBloc, TaskState>(
-        builder: (context, state) {
-          if (state.status == TaskStatus.loading) {
-            return _buildShimmerLoading();
-          }
-          if (state.status == TaskStatus.fail) {
-            return _buildErrorState(state.errorMessage ?? Words.unknown.tr());
-          }
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _TaskHeader(),
+            Expanded(
+              child: BlocBuilder<TaskBloc, TaskState>(
+                builder: (context, state) {
+                  if (state.status == TaskStatus.loading) {
+                    return _buildShimmerLoading();
+                  }
+                  if (state.status == TaskStatus.fail) {
+                    return _buildErrorState(
+                      state.errorMessage ?? Words.unknown.tr(),
+                    );
+                  }
 
-          // ================= SUCCESS =================
-          if (state.status == TaskStatus.success) {
-            if (state.tasks.isEmpty) {
-              return _buildEmptyState();
-            }
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<TaskBloc>().add(TaskLoad());
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.only(bottom: 80, top: 8),
-                  itemCount: state.tasks.length + (state.isLoadingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == state.tasks.length) {
-                      return _buildLoadMore();
+                  if (state.status == TaskStatus.success) {
+                    if (state.tasks.isEmpty) {
+                      return _buildEmptyState();
                     }
 
-                    return TaskItemWidget(
-                      task: state.tasks[index],
-                      onTap: () {
-                        // Detalga o'tish qo'shish mumkin
+                    return RefreshIndicator(
+                      color: AppColors.c181D27,
+                      onRefresh: () async {
+                        context.read<TaskBloc>().add(TaskLoad());
                       },
-                    );
-                  },
-                ),
-              ),
-            );
-          }
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        padding: const EdgeInsets.only(top: 18, bottom: 100),
+                        itemCount:
+                            state.tasks.length + (state.isLoadingMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == state.tasks.length) {
+                            return _buildLoadMore();
+                          }
 
-          return const SizedBox();
-        },
+                          return TaskItemWidget(
+                            task: state.tasks[index],
+                            onTap: () {
+                              // Detalga o'tish qo'shish mumkin
+                            },
+                          );
+                        },
+                      ),
+                    );
+                  }
+
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ================= SHIMMER LOADING =================
   Widget _buildShimmerLoading() {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 100),
       itemCount: 6,
       itemBuilder: (context, index) {
         return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          height: 80,
+          margin: const EdgeInsets.only(bottom: 12),
+          height: 180,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: const Color(0xFFF0F0F0),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFEEF1F7)),
           ),
         );
       },
     );
   }
 
-  // ================= ERROR STATE =================
   Widget _buildErrorState(String message) {
     return Center(
       child: Padding(
@@ -161,7 +168,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
     );
   }
 
-  // ================= EMPTY STATE =================
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
@@ -191,7 +197,6 @@ class _TaskListScreenState extends State<TaskListScreen> {
     );
   }
 
-  // ================= LOADING MORE =================
   Widget _buildLoadMore() {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 24),
@@ -202,6 +207,98 @@ class _TaskListScreenState extends State<TaskListScreen> {
           child: CircularProgressIndicator(strokeWidth: 3),
         ),
       ),
+    );
+  }
+}
+
+class _TaskHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 36,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                Words.tasks.tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.manrope(
+                  fontSize: 17,
+                  height: 28 / 17,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1A1D2E),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const _TaskSearchAndFilterBar(),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaskSearchAndFilterBar extends StatelessWidget {
+  const _TaskSearchAndFilterBar();
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO: Search va filter ishlashini TaskBloc/API bilan keyin ulash.
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            decoration: BoxDecoration(
+              color: AppColors.cF9F9F9,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE8E8E8)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.search, size: 24, color: Color(0xFFBBBEC5)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    Words.search.tr().replaceAll('...', ''),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      height: 20 / 13,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFBBBBBB),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.cF9F9F9,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE8E8E8)),
+          ),
+          child: const Icon(
+            Icons.filter_alt_outlined,
+            size: 20,
+            color: Color(0xFFBBBBBB),
+          ),
+        ),
+      ],
     );
   }
 }

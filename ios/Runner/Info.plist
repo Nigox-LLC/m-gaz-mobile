@@ -39,6 +39,10 @@
     <string>Yo'lingizni kuzatish uchun lokatsiya zarur</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>Dastur yopilganda ham yo'lingizni saqlash uchun lokatsiya zarur</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Vazifa uchun asos rasmini olishga kamera kerak</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Vazifa uchun asos faylini tanlashga galereya kerak</string>
     <key>UIBackgroundModes</key>
     <array>
         <string>location</string>

@@ -13,7 +13,8 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     on<TaskAnalysisLoad>(_onFetchAnalysis);
     on<TaskLoadMore>(_onLoadMore);
     on<TaskDetailFetched>(_onDocumentFetched);
-    on<TaskComplete>(_onTaskComplete); // ✅ YANGI
+    on<TaskComplete>(_onTaskComplete);
+    on<TaskCancel>(_onTaskCancel);
   }
 
   Future<void> _onFetched(TaskLoad event, Emitter<TaskState> emit) async {
@@ -124,12 +125,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         longitude: event.longitude,
       );
 
-      emit(
-        state.copyWith(
-          status: TaskStatus.success,
-          isCompletingTask: false,
-        ),
-      );
+      emit(state.copyWith(status: TaskStatus.success, isCompletingTask: false));
 
       debugPrint("✅ Task bajarildi: ${event.taskId}");
 
@@ -140,6 +136,31 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           status: TaskStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isCompletingTask: false,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onTaskCancel(TaskCancel event, Emitter<TaskState> emit) async {
+    emit(state.copyWith(isCancelingTask: true));
+    try {
+      await api.cancelTask(
+        taskId: event.taskId,
+        description: event.description,
+        filePath: event.filePath,
+      );
+
+      emit(state.copyWith(status: TaskStatus.success, isCancelingTask: false));
+
+      debugPrint("Task bekor qilindi: ${event.taskId}");
+
+      add(TaskLoad());
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: TaskStatus.fail,
+          errorMessage: e.toString().replaceAll('Exception: ', ''),
+          isCancelingTask: false,
         ),
       );
     }

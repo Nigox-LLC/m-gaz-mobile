@@ -112,6 +112,12 @@ class AppTools {
   static const String unsatisfactorySelected =
       "assets/icons/unsatisfactory_selected.svg";
   static const String unsatisfactory = "assets/icons/unsatisfactory.svg";
+  static const String icClock = "assets/icons/ic_clock.svg";
+  static const String icZap = "assets/icons/ic_zap.svg";
+  static const String icDroplet = "assets/icons/ic_droplet.svg";
+  static const String icLoader = "assets/icons/ic_loader.svg";
+  static const String icChervonLeft = "assets/icons/ic_chervon_left.svg";
+  static const String icPaperclip = "assets/icons/ic_paperclip.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";
