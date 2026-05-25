@@ -24,8 +24,17 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveToken(AuthTokenModel token) {
     return _hive.putToken(
-      legacy.TokenModel(access: token.access, refresh: token.refresh),
+      legacy.TokenModel(
+        access: token.access,
+        refresh: token.refresh,
+        employeeId: token.employeeId,
+      ),
     );
+  }
+
+  @override
+  Future<void> saveEmployeeId(int employeeId) {
+    return _hive.saveEmployeeId(employeeId);
   }
 
   @override

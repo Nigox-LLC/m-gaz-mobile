@@ -119,6 +119,17 @@ class AppTools {
   static const String icChervonLeft = "assets/icons/ic_chervon_left.svg";
   static const String icPaperclip = "assets/icons/ic_paperclip.svg";
   static const String icPinForm = "assets/icons/ic_pin_form.svg";
+  static const String icNavBarMain = "assets/icons/ic_nav_bar_main.svg";
+  static const String icNavBarTasks = "assets/icons/ic_nav_bar_tasks.svg";
+  static const String icNavBarConsumer = "assets/icons/ic_nav_bar_consumer.svg";
+  static const String icNavBarMovements =
+      "assets/icons/ic_nav_bar_movements.svg";
+  static const String icNavBarDevice = "assets/icons/ic_nav_bar_device.svg";
+  static const String icDashboardSpeed01 =
+      "assets/icons/ic_dashborad_speed_01.svg";
+  static const String icDashboardSpeed02 =
+      "assets/icons/ic_dashboard_speed_02.svg";
+  static const String icTool = "assets/icons/ic_tool.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";

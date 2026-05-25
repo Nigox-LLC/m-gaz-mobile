@@ -43,6 +43,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, User>> loadProfile() async {
     try {
       final userModel = await _remote.loadProfile();
+      final employeeId = userModel.employeeId;
+      if (employeeId != null) {
+        await _local.saveEmployeeId(employeeId);
+      }
       return Right(userModel);
     } on UnauthorizedException catch (e) {
       // Token expired or invalid — purge local state so subsequent flows

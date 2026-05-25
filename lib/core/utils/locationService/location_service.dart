@@ -13,10 +13,10 @@ import 'package:permission_handler/permission_handler.dart' as ph;
 
 /// Toggle for QA: when `true`, tick fires every 30 seconds instead of
 /// 30 minutes. MUST be `false` for any commit that ships to users.
-const bool kDailyRouteDebugFastInterval = false;
+const bool kDailyRouteDebugFastInterval = true;
 
-/// Toggle for QA/debug: when `true`, working-hours gate (09:00–18:00) is
-/// bypassed — location ticks fire any time of day. MUST be `false` for any
+/// Toggle for QA/debug: when `true`, working-hours gate (09:00-18:00) is
+/// bypassed, so location ticks fire any time of day. MUST be `false` for any
 /// commit that ships to users.
 const bool kDailyRouteDebugBypassWorkingHours = false;
 
@@ -99,7 +99,7 @@ class DailyRouteLocationService {
 
     final service = FlutterBackgroundService();
     if (await service.isRunning()) {
-      _log('ensureStarted: service already running → syncNow');
+      _log('ensureStarted: service already running -> syncNow');
       service.invoke(_syncNowMethod);
       return true;
     }
@@ -170,7 +170,7 @@ class DailyRouteLocationService {
     }
 
     try {
-      _log('tick: requesting GPS position…');
+      _log('tick: requesting GPS position...');
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -198,7 +198,7 @@ class DailyRouteLocationService {
       _log('notification permission status: $status');
       if (!status.isGranted) {
         final res = await ph.Permission.notification.request();
-        _log('notification permission requested → $res');
+        _log('notification permission requested -> $res');
       }
     } catch (e) {
       _log('notification permission request error: $e');
@@ -248,7 +248,9 @@ void dailyRouteBackgroundServiceOnStart(ServiceInstance service) {
       if (service is AndroidServiceInstance) {
         await service.setForegroundNotificationInfo(
           title: 'M-Gaz',
-          content: 'Lokatsiya har 30 daqiqada yuborilmoqda',
+          content: kDailyRouteDebugFastInterval
+              ? 'Lokatsiya har 30 soniyada yuborilmoqda'
+              : 'Lokatsiya har 30 daqiqada yuborilmoqda',
         );
       }
 
@@ -304,7 +306,7 @@ class DailyRouteLocationPermissionPolicy {
 
   /// Foreground service starts when the user has at least `whileInUse`.
   /// Background continuation requires `always`, but we don't block startup
-  /// on it — without `always` the service still ticks while the app is in
+  /// on it, without `always` the service still ticks while the app is in
   /// the foreground, and the user can grant `always` later.
   static bool canStartForegroundTracking({
     required DailyRouteCredentials credentials,

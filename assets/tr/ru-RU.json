@@ -197,6 +197,8 @@
   "loginPasswordLabel": "Введите пароль",
   "loginPasswordHint": "Пароль",
   "loginSubmit": "Войти",
+  "loginRequiredFields": "Введите логин и пароль",
+  "loginInvalidCredentials": "Неверный логин или пароль",
   "personalInfo": "Личные данные",
   "reports": "Отчеты",
   "enterName": "Введите имя",
@@ -304,5 +306,16 @@
   "excelId": "Excel ID",
   "qrCode": "QR-код",
   "workCompleted": "Работа завершена",
-  "yourLocation": "Ваше местоположение"
+  "yourLocation": "Ваше местоположение",
+  "actions": "Действия",
+  "comingSoon": "Скоро",
+  "actionEghuReinstall": "Переустановка EGHU",
+  "actionEghuDetach": "Снятие EGHU",
+  "actionEghuIndicatorUpload": "Загрузка показаний EGHU",
+  "actionIndustrialCollectorsReinstall": "Переустановка промышленных коллекторов",
+  "actionIndustrialCollectorsDetach": "Снятие промышленных коллекторов",
+  "actionIndustrialCollectorsIndicatorUpload": "Загрузка показаний промышленных коллекторов",
+  "actionTechnologicalDevicesReinstall": "Переустановка технологических устройств",
+  "actionTechnologicalDevicesDetach": "Снятие технологических устройств",
+  "actionTechnologicalDevicesIndicatorUpload": "Загрузка показаний технологических устройств"
 }
