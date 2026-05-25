@@ -197,6 +197,8 @@
     "loginPasswordLabel": "Паролингизни киритинг",
     "loginPasswordHint": "Парол",
     "loginSubmit": "Кириш",
+    "loginRequiredFields": "Логин ва паролни киритинг",
+    "loginInvalidCredentials": "Логин ёки парол хато",
     "personalInfo": "Шахсий маълумотлар",
     "reports": "Ҳисоботлар",
     "enterName": "Исмни киритинг",
@@ -304,5 +306,16 @@
     "excelId": "Excel ID",
     "qrCode": "QR код",
     "workCompleted": "Иш тугатилган",
-    "yourLocation": "Сизнинг жойлашувингиз"
+    "yourLocation": "Сизнинг жойлашувингиз",
+    "actions": "Ҳаракатлар",
+    "comingSoon": "Тез орада",
+    "actionEghuReinstall": "EGHU қайта ўрнатиш",
+    "actionEghuDetach": "EGHU ечиб олиш",
+    "actionEghuIndicatorUpload": "EGHU кўрсаткичи юклаш",
+    "actionIndustrialCollectorsReinstall": "Саноат коллекторлари қайта ўрнатиш",
+    "actionIndustrialCollectorsDetach": "Саноат коллекторлари ечиб олиш",
+    "actionIndustrialCollectorsIndicatorUpload": "Саноат коллекторлари кўрсаткичи юклаш",
+    "actionTechnologicalDevicesReinstall": "Технологик қурилмалар қайта ўрнатиш",
+    "actionTechnologicalDevicesDetach": "Технологик қурилмалар ечиб олиш",
+    "actionTechnologicalDevicesIndicatorUpload": "Технологик қурилмалар кўрсаткичи юклаш"
 }

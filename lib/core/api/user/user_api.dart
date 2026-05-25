@@ -9,7 +9,7 @@ class UserApi {
   final ApiBase _base;
 
   const UserApi(this._base);
-  ApiHive get hive => _base.hive;  // ⭐ Qo'shildi
+  ApiHive get hive => _base.hive; // ⭐ Qo'shildi
 
   Future<void> loginUser({
     required String userName,
@@ -65,8 +65,12 @@ class UserApi {
         throw Exception("Server noto‘g‘ri formatda data qaytardi");
       }
 
-      return UserModel.fromJson(response.data);
-
+      final profile = UserModel.fromJson(response.data);
+      final employeeId = profile.employeeId;
+      if (employeeId != null) {
+        await _base.hive.saveEmployeeId(employeeId);
+      }
+      return profile;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         /// TOKEN ESKIRGAN → HIVE CLEAR

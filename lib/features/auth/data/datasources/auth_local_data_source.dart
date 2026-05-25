@@ -4,6 +4,7 @@ import '../models/auth_token_model.dart';
 /// the repository layer doesn't depend on Hive directly.
 abstract class AuthLocalDataSource {
   Future<void> saveToken(AuthTokenModel token);
+  Future<void> saveEmployeeId(int employeeId);
 
   String get accessToken;
   String get refreshToken;
