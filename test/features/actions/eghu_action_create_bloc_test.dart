@@ -1,0 +1,236 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:m_gaz/core/models/global/base_model.dart';
+import 'package:m_gaz/core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
+import 'package:m_gaz/core/models/working_with_consumers_document/working_with_consumers_list.dart';
+import 'package:m_gaz/features/actions/data/datasources/eghu_action_api.dart';
+import 'package:m_gaz/features/actions/data/models/eghu_action_attachment.dart';
+import 'package:m_gaz/features/actions/data/models/eghu_action_create_request.dart';
+import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_action_create_bloc.dart';
+
+void main() {
+  group('EghuActionCreateBloc', () {
+    late _FakeSubmitApi api;
+    late EghuActionCreateBloc bloc;
+    late File actFile;
+    late File comparisonFile;
+
+    setUp(() {
+      api = _FakeSubmitApi();
+      bloc = EghuActionCreateBloc(
+        actionType: ActionMenuType.reinstall,
+        api: api,
+        employeeId: 77,
+        employeeName: 'Tester',
+        regionId: 3,
+        districtId: 50,
+        initialStampDateTime: DateTime(2026, 5, 28, 17, 38),
+      );
+      actFile = _tempFile('act.jpg');
+      comparisonFile = _tempFile('comparison.pdf');
+    });
+
+    tearDown(() async {
+      await bloc.close();
+      if (actFile.existsSync()) actFile.deleteSync();
+      if (comparisonFile.existsSync()) comparisonFile.deleteSync();
+    });
+
+    test('initializes stamp date automatically', () async {
+      final before = DateTime.now();
+      final freshBloc = EghuActionCreateBloc(
+        actionType: ActionMenuType.reinstall,
+        api: _FakeSubmitApi(),
+      );
+      addTearDown(freshBloc.close);
+      final after = DateTime.now();
+
+      expect(bloc.state.stampDateTime, DateTime(2026, 5, 28, 17, 38));
+      expect(freshBloc.state.stampDateTime, isNotNull);
+      expect(freshBloc.state.stampDateTime!.isBefore(before), isFalse);
+      expect(freshBloc.state.stampDateTime!.isAfter(after), isFalse);
+    });
+
+    test('validates required fields before submit', () async {
+      expect(bloc.state.canSubmit, isFalse);
+
+      bloc
+        ..add(EghuActionConsumerSelected(_consumer()))
+        ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.act,
+            file: _attachment(actFile.path, true),
+          ),
+        )
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.comparison,
+            file: _attachment(comparisonFile.path, false),
+          ),
+        )
+        ..add(const EghuActionStampNumberChanged('234543245675432'));
+
+      await pumpEventQueue();
+
+      expect(bloc.state.canSubmit, isTrue);
+      final request = bloc.state.toRequest();
+      expect(request, isNotNull);
+      expect(request!.consumerDocumentId, 12);
+      expect(request.egxuItemId, 44);
+      expect(request.employeeId, 77);
+      expect(request.stampNumber, '234543245675432');
+      expect(request.regionId, 3);
+      expect(request.districtId, 50);
+      expect(request.typeOfActivityId, 110);
+    });
+
+    test('selecting consumer clears selected EGHU', () async {
+      bloc
+        ..add(EghuActionConsumerSelected(_consumer()))
+        ..add(EghuActionEghuSelected(_eghu()));
+
+      await pumpEventQueue();
+
+      expect(bloc.state.selectedEghu, isNotNull);
+
+      bloc.add(EghuActionConsumerSelected(_consumer(id: 13)));
+      await pumpEventQueue();
+
+      expect(bloc.state.selectedConsumer!.id, 13);
+      expect(bloc.state.selectedEghu, isNull);
+    });
+
+    test('submit sends built request and emits success', () async {
+      bloc
+        ..add(EghuActionConsumerSelected(_consumer()))
+        ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.act,
+            file: _attachment(actFile.path, true),
+          ),
+        )
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.comparison,
+            file: _attachment(comparisonFile.path, false),
+          ),
+        )
+        ..add(const EghuActionStampNumberChanged('123'));
+      await pumpEventQueue();
+
+      bloc.add(const EghuActionSubmitted());
+      await pumpEventQueue();
+
+      expect(bloc.state.status, EghuActionSubmitStatus.success);
+      expect(api.request, isNotNull);
+      expect(api.request!.actionCode, 'reinstall');
+      final json = api.request!.toJson();
+      expect(json['employee'], 77);
+      expect(json['document_type'], 'consumer');
+      expect(json['document_id'], 12);
+      expect(json['type_of_activity'], 110);
+      expect((json['list'] as List).single['egxu_id'], 44);
+    });
+
+    test('submit emits failure when API fails', () async {
+      api.error = Exception('Server error');
+      bloc
+        ..add(EghuActionConsumerSelected(_consumer()))
+        ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.act,
+            file: _attachment(actFile.path, true),
+          ),
+        )
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.comparison,
+            file: _attachment(comparisonFile.path, false),
+          ),
+        )
+        ..add(const EghuActionStampNumberChanged('123'));
+      await pumpEventQueue();
+
+      bloc.add(const EghuActionSubmitted());
+      await pumpEventQueue();
+
+      expect(bloc.state.status, EghuActionSubmitStatus.failure);
+      expect(bloc.state.errorMessage, 'Server error');
+    });
+  });
+}
+
+class _FakeSubmitApi implements EghuActionSubmitApi {
+  EghuActionCreateRequest? request;
+  Object? error;
+
+  @override
+  Future<void> create(EghuActionCreateRequest request) async {
+    this.request = request;
+    final error = this.error;
+    if (error != null) throw error;
+  }
+}
+
+WorkingWithConsumersList _consumer({int id = 12}) {
+  return WorkingWithConsumersList(
+    id: id,
+    region: 'Andijon',
+    district: 'Andijon tumani',
+    employee: 'Doston Dostonov',
+    consumers: 'Tashkilot nomi',
+    facial: '1651512649',
+    datetime: DateTime(2026, 5, 23),
+    excelId: '42',
+  );
+}
+
+ConsumersEgxuItem _eghu() {
+  return ConsumersEgxuItem(
+    id: 44,
+    consumerRelationEgxu: ConsumerRelationEgxu(typeOfActivityId: 110),
+    egxuType: ConsumersEgxuType(id: 9, name: 'Rotary'),
+    gasEquipmentList: [
+      ConsumersGasEquipmentItem(
+        quantity: 2,
+        gasEquipment: ConsumersGasEquipment(
+          id: 1,
+          name: 'Qozon',
+          hourlyGasConsumption: 1.5,
+        ),
+      ),
+    ],
+    oneFactory: 'Zavod 1',
+    twoFactory: 'Zavod 2',
+  );
+}
+
+WorkingWithConsumersDetailModel _detail() {
+  return WorkingWithConsumersDetailModel(
+    region: Region(id: 3, name: 'Andijon'),
+    district: District(id: 50, name: 'Andijon tumani'),
+    employee: Employee(id: 77, fio: 'Tester'),
+  );
+}
+
+EghuActionAttachment _attachment(String path, bool isImage) {
+  return EghuActionAttachment(
+    path: path,
+    name: path.split(Platform.pathSeparator).last,
+    sizeBytes: 64,
+    isImage: isImage,
+    sourceLabel: 'Test',
+    createdAt: DateTime(2026, 5, 28, 9),
+  );
+}
+
+File _tempFile(String name) {
+  return File(
+    '${Directory.systemTemp.path}/eghu-action-${DateTime.now().microsecondsSinceEpoch}-$name',
+  )..writeAsBytesSync(List<int>.filled(64, 1));
+}
