@@ -13,7 +13,7 @@ import 'package:permission_handler/permission_handler.dart' as ph;
 
 /// Toggle for QA: when `true`, tick fires every 30 seconds instead of
 /// 30 minutes. MUST be `false` for any commit that ships to users.
-const bool kDailyRouteDebugFastInterval = true;
+const bool kDailyRouteDebugFastInterval = false;
 
 /// Toggle for QA/debug: when `true`, working-hours gate (09:00-18:00) is
 /// bypassed, so location ticks fire any time of day. MUST be `false` for any
