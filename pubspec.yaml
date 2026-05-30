@@ -4,7 +4,7 @@ description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 
-version: 1.0.0+3
+version: 1.0.0+6
 
 environment:
   sdk: ^3.9.2
@@ -95,6 +95,7 @@ dependencies:
 
   # Orqa fon rejimida ishlash
   flutter_background_service: ^5.1.0
+  flutter_local_notifications: ^19.5.0
   camera: 0.10.5+9
   pdfx: ^2.9.2
   google_mlkit_face_detection: ^0.13.1

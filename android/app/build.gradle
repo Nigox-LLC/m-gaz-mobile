@@ -28,6 +28,18 @@ def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+def hasReleaseKeystore = keystorePropertiesFile.exists()
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def releaseTasks = taskGraph.allTasks.any { task ->
+        task.name in ['bundleRelease', 'assembleRelease']
+    }
+    if (releaseTasks && !hasReleaseKeystore) {
+        throw new GradleException(
+                'Missing android/key.properties. Copy android/key.properties.example to android/key.properties and fill the upload keystore credentials.'
+        )
+    }
+}
 android {
     namespace = "nigox.uz.m_gaz"
     compileSdk = flutter.compileSdkVersion
@@ -36,6 +48,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
@@ -52,7 +65,7 @@ android {
 
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (hasReleaseKeystore) {
             release {
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
@@ -64,7 +77,9 @@ android {
 
     buildTypes {
         release {
-            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             shrinkResources false
         }
@@ -74,7 +89,9 @@ android {
 
 dependencies {
 
-    implementation "com.google.android.gms:play-services-location:21.1.0"}
+    implementation "com.google.android.gms:play-services-location:21.1.0"
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"
+}
 flutter {
     source = "../.."
 }
