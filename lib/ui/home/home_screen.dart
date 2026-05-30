@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   static const double _navMaxWidth = 350;
 
   late int _currentIndex;
+  Locale? _dailyRouteLocale;
+  bool _dailyRouteTrackingStartRequested = false;
 
   final List<BottomNavItemModel> _navItems = [
     const BottomNavItemModel(
@@ -62,12 +65,44 @@ class _HomeScreenState extends State<HomeScreen> {
     _currentIndex = (widget.initialIndex ?? 0)
         .clamp(0, _navItems.length - 1)
         .toInt();
-    _startDailyRouteTracking();
   }
 
-  void _startDailyRouteTracking() {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = context.locale;
+    if (_dailyRouteLocale == locale && _dailyRouteTrackingStartRequested) {
+      return;
+    }
+
+    _dailyRouteLocale = locale;
+    _syncDailyRouteNotificationTexts();
+  }
+
+  void _syncDailyRouteNotificationTexts() {
+    final notificationTexts = DailyRouteNotificationTexts(
+      title: Words.dailyRouteNotificationTitle.tr(),
+      preparing: Words.dailyRouteNotificationPreparing.tr(),
+      running30Min: Words.dailyRouteNotificationRunning30Min.tr(),
+      running30Sec: Words.dailyRouteNotificationRunning30Sec.tr(),
+    );
+    final service = DailyRouteLocationService();
+
+    if (_dailyRouteTrackingStartRequested) {
+      unawaited(
+        service.updateNotificationTexts(notificationTexts).catchError((
+          Object error,
+          StackTrace _,
+        ) {
+          debugPrint('DailyRoute updateNotificationTexts error: $error');
+        }),
+      );
+      return;
+    }
+
+    _dailyRouteTrackingStartRequested = true;
     unawaited(
-      DailyRouteLocationService().ensureStarted().catchError((
+      service.ensureStarted(notificationTexts: notificationTexts).catchError((
         Object error,
         StackTrace _,
       ) {

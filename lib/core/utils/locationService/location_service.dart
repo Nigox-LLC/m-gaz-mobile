@@ -6,6 +6,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
@@ -32,8 +33,57 @@ const String _queueBoxName = 'daily_route_location_queue';
 const String _accessTokenKey = 'access_token';
 const String _refreshTokenKey = 'refresh_token';
 const String _employeeIdKey = 'employee_id';
+const String _notificationTitleKey = 'daily_route_notification_title';
+const String _notificationPreparingKey = 'daily_route_notification_preparing';
+const String _notificationRunning30MinKey =
+    'daily_route_notification_running_30_min';
+const String _notificationRunning30SecKey =
+    'daily_route_notification_running_30_sec';
+const String _notificationChannelId = 'm_gaz_daily_route_location';
+const int _notificationId = 1001;
 const String _stopMethod = 'dailyRouteStop';
 const String _syncNowMethod = 'dailyRouteSyncNow';
+const String _updateNotificationMethod = 'dailyRouteUpdateNotification';
+
+class DailyRouteNotificationTexts {
+  const DailyRouteNotificationTexts({
+    required this.title,
+    required this.preparing,
+    required this.running30Min,
+    required this.running30Sec,
+  });
+
+  static const fallback = DailyRouteNotificationTexts(
+    title: 'M-Gaz',
+    preparing: 'Lokatsiya kuzatuvi tayyorlanmoqda',
+    running30Min: 'Lokatsiya har 30 daqiqada yuborilmoqda',
+    running30Sec: 'Lokatsiya har 30 soniyada yuborilmoqda',
+  );
+
+  final String title;
+  final String preparing;
+  final String running30Min;
+  final String running30Sec;
+
+  String get runningContent =>
+      kDailyRouteDebugFastInterval ? running30Sec : running30Min;
+
+  DailyRouteNotificationTexts copyWithFallback() {
+    final fallbackTexts = DailyRouteNotificationTexts.fallback;
+    return DailyRouteNotificationTexts(
+      title: title.trim().isEmpty ? fallbackTexts.title : title.trim(),
+      preparing: preparing.trim().isEmpty
+          ? fallbackTexts.preparing
+          : preparing.trim(),
+      running30Min: running30Min.trim().isEmpty
+          ? fallbackTexts.running30Min
+          : running30Min.trim(),
+      running30Sec: running30Sec.trim().isEmpty
+          ? fallbackTexts.running30Sec
+          : running30Sec.trim(),
+    );
+  }
+}
 
 class DailyRouteLocationService {
   DailyRouteLocationService._();
@@ -45,8 +95,14 @@ class DailyRouteLocationService {
 
   bool _configured = false;
 
-  Future<void> configureBackgroundService() async {
+  Future<void> configureBackgroundService({
+    DailyRouteNotificationTexts? notificationTexts,
+  }) async {
     if (_configured) return;
+
+    final texts = (notificationTexts ?? DailyRouteNotificationTexts.fallback)
+        .copyWithFallback();
+    await _createNotificationChannel(texts);
 
     final service = FlutterBackgroundService();
     await service.configure(
@@ -60,8 +116,10 @@ class DailyRouteLocationService {
         autoStart: false,
         autoStartOnBoot: true,
         isForegroundMode: true,
-        initialNotificationTitle: 'M-Gaz',
-        initialNotificationContent: 'Lokatsiya kuzatuvi tayyorlanmoqda',
+        notificationChannelId: _notificationChannelId,
+        foregroundServiceNotificationId: _notificationId,
+        initialNotificationTitle: texts.title,
+        initialNotificationContent: texts.preparing,
         foregroundServiceTypes: const [AndroidForegroundType.location],
       ),
     );
@@ -69,9 +127,23 @@ class DailyRouteLocationService {
     _configured = true;
   }
 
-  Future<bool> ensureStarted() async {
-    await configureBackgroundService();
-    await _requestNotificationPermissionIfNeeded();
+  Future<bool> ensureStarted({
+    DailyRouteNotificationTexts? notificationTexts,
+  }) async {
+    final texts = (notificationTexts ?? DailyRouteNotificationTexts.fallback)
+        .copyWithFallback();
+    await _saveNotificationTexts(texts);
+    await configureBackgroundService(notificationTexts: texts);
+
+    final notificationPermissionGranted =
+        await _requestNotificationPermissionIfNeeded();
+    if (!notificationPermissionGranted) {
+      _log(
+        'ensureStarted: notification permission denied, service not started',
+      );
+      return false;
+    }
+
     await flushPending();
 
     final store = DailyRouteHiveLocalStore();
@@ -83,7 +155,8 @@ class DailyRouteLocationService {
     _log(
       'ensureStarted: tokenSet=${credentials.accessToken.isNotEmpty}, '
       'employeeId=${credentials.employeeId}, serviceEnabled=$serviceEnabled, '
-      'permission=$permission',
+      'permission=$permission, '
+      'notificationPermissionGranted=$notificationPermissionGranted',
     );
 
     final canStart =
@@ -91,6 +164,7 @@ class DailyRouteLocationService {
           credentials: credentials,
           serviceEnabled: serviceEnabled,
           permission: permission,
+          notificationPermissionGranted: notificationPermissionGranted,
         );
     if (!canStart) {
       _log('ensureStarted: gate failed, service not started');
@@ -107,6 +181,16 @@ class DailyRouteLocationService {
     final started = await service.startService();
     _log('ensureStarted: startService() = $started');
     return started;
+  }
+
+  Future<void> updateNotificationTexts(
+    DailyRouteNotificationTexts notificationTexts,
+  ) async {
+    await _saveNotificationTexts(notificationTexts.copyWithFallback());
+    final service = FlutterBackgroundService();
+    if (await service.isRunning()) {
+      service.invoke(_updateNotificationMethod);
+    }
   }
 
   Future<void> stop() async {
@@ -146,15 +230,19 @@ class DailyRouteLocationService {
 
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     final permission = await Geolocator.checkPermission();
+    final notificationPermissionGranted = await _hasNotificationPermission();
     final canTrack =
         DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
           credentials: credentials,
           serviceEnabled: serviceEnabled,
           permission: permission,
+          notificationPermissionGranted: notificationPermissionGranted,
         );
     if (!canTrack) {
       _log(
-        'tick: gate failed (serviceEnabled=$serviceEnabled, permission=$permission)',
+        'tick: gate failed (serviceEnabled=$serviceEnabled, '
+        'permission=$permission, '
+        'notificationPermissionGranted=$notificationPermissionGranted)',
       );
       return false;
     }
@@ -191,18 +279,64 @@ class DailyRouteLocationService {
     }
   }
 
-  Future<void> _requestNotificationPermissionIfNeeded() async {
-    if (defaultTargetPlatform != TargetPlatform.android) return;
+  Future<bool> _requestNotificationPermissionIfNeeded() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return true;
     try {
       final status = await ph.Permission.notification.status;
       _log('notification permission status: $status');
-      if (!status.isGranted) {
-        final res = await ph.Permission.notification.request();
-        _log('notification permission requested -> $res');
-      }
+      if (status.isGranted) return true;
+
+      final res = await ph.Permission.notification.request();
+      _log('notification permission requested -> $res');
+      return res.isGranted;
     } catch (e) {
       _log('notification permission request error: $e');
+      return false;
     }
+  }
+
+  static Future<bool> _hasNotificationPermission() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return true;
+    try {
+      return (await ph.Permission.notification.status).isGranted;
+    } catch (e) {
+      _log('notification permission status error: $e');
+      return false;
+    }
+  }
+
+  Future<void> _createNotificationChannel(
+    DailyRouteNotificationTexts notificationTexts,
+  ) async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+
+    final plugin = FlutterLocalNotificationsPlugin();
+    await plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(
+          AndroidNotificationChannel(
+            _notificationChannelId,
+            notificationTexts.title,
+            description: notificationTexts.preparing,
+            importance: Importance.low,
+          ),
+        );
+  }
+
+  static Future<void> _saveNotificationTexts(
+    DailyRouteNotificationTexts notificationTexts,
+  ) async {
+    final store = DailyRouteHiveLocalStore();
+    await store.init();
+    await store.saveNotificationTexts(notificationTexts);
+  }
+
+  static Future<DailyRouteNotificationTexts> _readNotificationTexts() async {
+    final store = DailyRouteHiveLocalStore();
+    await store.init();
+    return store.readNotificationTexts();
   }
 
   static Future<LocationPermission> _requestLocationPermission() async {
@@ -245,14 +379,7 @@ void dailyRouteBackgroundServiceOnStart(ServiceInstance service) {
     if (isSyncing) return;
     isSyncing = true;
     try {
-      if (service is AndroidServiceInstance) {
-        await service.setForegroundNotificationInfo(
-          title: 'M-Gaz',
-          content: kDailyRouteDebugFastInterval
-              ? 'Lokatsiya har 30 soniyada yuborilmoqda'
-              : 'Lokatsiya har 30 daqiqada yuborilmoqda',
-        );
-      }
+      await _updateForegroundNotification(service);
 
       final shouldContinue =
           await DailyRouteLocationService.runBackgroundSyncTick();
@@ -276,6 +403,10 @@ void dailyRouteBackgroundServiceOnStart(ServiceInstance service) {
     unawaited(runTick());
   });
 
+  service.on(_updateNotificationMethod).listen((_) {
+    unawaited(_updateForegroundNotification(service));
+  });
+
   connectivitySubscription = Connectivity().onConnectivityChanged.listen((
     results,
   ) {
@@ -289,6 +420,15 @@ void dailyRouteBackgroundServiceOnStart(ServiceInstance service) {
   timer = Timer.periodic(dailyRouteLocationInterval, (_) {
     unawaited(runTick());
   });
+}
+
+Future<void> _updateForegroundNotification(ServiceInstance service) async {
+  if (service is! AndroidServiceInstance) return;
+  final texts = await DailyRouteLocationService._readNotificationTexts();
+  await service.setForegroundNotificationInfo(
+    title: texts.title,
+    content: texts.runningContent,
+  );
 }
 
 Future<void> _flushPendingFromBackground() async {
@@ -312,9 +452,11 @@ class DailyRouteLocationPermissionPolicy {
     required DailyRouteCredentials credentials,
     required bool serviceEnabled,
     required LocationPermission permission,
+    required bool notificationPermissionGranted,
   }) {
     return credentials.canSend &&
         serviceEnabled &&
+        notificationPermissionGranted &&
         (permission == LocationPermission.always ||
             permission == LocationPermission.whileInUse);
   }
@@ -462,6 +604,38 @@ class DailyRouteHiveLocalStore implements DailyRouteLocalStore {
     await _api.put(_refreshTokenKey, tokens.refreshToken);
   }
 
+  Future<void> saveNotificationTexts(
+    DailyRouteNotificationTexts notificationTexts,
+  ) async {
+    final texts = notificationTexts.copyWithFallback();
+    await _api.put(_notificationTitleKey, texts.title);
+    await _api.put(_notificationPreparingKey, texts.preparing);
+    await _api.put(_notificationRunning30MinKey, texts.running30Min);
+    await _api.put(_notificationRunning30SecKey, texts.running30Sec);
+  }
+
+  DailyRouteNotificationTexts readNotificationTexts() {
+    final fallbackTexts = DailyRouteNotificationTexts.fallback;
+    return DailyRouteNotificationTexts(
+      title: _readString(
+        _notificationTitleKey,
+        defaultValue: fallbackTexts.title,
+      ),
+      preparing: _readString(
+        _notificationPreparingKey,
+        defaultValue: fallbackTexts.preparing,
+      ),
+      running30Min: _readString(
+        _notificationRunning30MinKey,
+        defaultValue: fallbackTexts.running30Min,
+      ),
+      running30Sec: _readString(
+        _notificationRunning30SecKey,
+        defaultValue: fallbackTexts.running30Sec,
+      ),
+    ).copyWithFallback();
+  }
+
   @override
   Future<void> enqueue(DailyRouteLocationRecord record) async {
     await _queue.put(record.id, record.toJson());
@@ -485,8 +659,8 @@ class DailyRouteHiveLocalStore implements DailyRouteLocalStore {
     await _queue.delete(id);
   }
 
-  String _readString(String key) {
-    final value = _api.get(key, defaultValue: '') ?? '';
+  String _readString(String key, {String defaultValue = ''}) {
+    final value = _api.get(key, defaultValue: defaultValue) ?? defaultValue;
     return value.toString();
   }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -214,6 +215,7 @@ void main() {
           credentials: _credentials(),
           serviceEnabled: true,
           permission: LocationPermission.always,
+          notificationPermissionGranted: true,
         ),
         isTrue,
       );
@@ -222,6 +224,7 @@ void main() {
           credentials: _credentials(),
           serviceEnabled: true,
           permission: LocationPermission.whileInUse,
+          notificationPermissionGranted: true,
         ),
         isTrue,
       );
@@ -235,6 +238,7 @@ void main() {
             credentials: _credentials(),
             serviceEnabled: true,
             permission: LocationPermission.denied,
+            notificationPermissionGranted: true,
           ),
           isFalse,
         );
@@ -243,6 +247,7 @@ void main() {
             credentials: _credentials(),
             serviceEnabled: true,
             permission: LocationPermission.deniedForever,
+            notificationPermissionGranted: true,
           ),
           isFalse,
         );
@@ -251,6 +256,7 @@ void main() {
             credentials: _credentials(),
             serviceEnabled: false,
             permission: LocationPermission.always,
+            notificationPermissionGranted: true,
           ),
           isFalse,
         );
@@ -263,11 +269,83 @@ void main() {
             ),
             serviceEnabled: true,
             permission: LocationPermission.always,
+            notificationPermissionGranted: true,
           ),
           isFalse,
         );
       },
     );
+
+    test('rejects denied notification permission', () {
+      expect(
+        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+          credentials: _credentials(),
+          serviceEnabled: true,
+          permission: LocationPermission.always,
+          notificationPermissionGranted: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('DailyRouteNotificationTexts', () {
+    test('uses 30 minute content for release tracking interval', () {
+      const texts = DailyRouteNotificationTexts(
+        title: 'M-Gaz',
+        preparing: 'Preparing',
+        running30Min: 'Every 30 minutes',
+        running30Sec: 'Every 30 seconds',
+      );
+
+      expect(kDailyRouteDebugFastInterval, isFalse);
+      expect(texts.runningContent, 'Every 30 minutes');
+    });
+
+    test('fills blank values from fallback text', () {
+      const texts = DailyRouteNotificationTexts(
+        title: '',
+        preparing: '',
+        running30Min: 'Every 30 minutes',
+        running30Sec: '',
+      );
+
+      final normalized = texts.copyWithFallback();
+
+      expect(normalized.title, DailyRouteNotificationTexts.fallback.title);
+      expect(
+        normalized.preparing,
+        DailyRouteNotificationTexts.fallback.preparing,
+      );
+      expect(normalized.running30Min, 'Every 30 minutes');
+      expect(
+        normalized.running30Sec,
+        DailyRouteNotificationTexts.fallback.running30Sec,
+      );
+    });
+  });
+
+  group('Daily route notification translations', () {
+    const requiredKeys = [
+      'dailyRouteNotificationTitle',
+      'dailyRouteNotificationPreparing',
+      'dailyRouteNotificationRunning30Min',
+      'dailyRouteNotificationRunning30Sec',
+      'dailyRouteNotificationPermissionRequired',
+    ];
+
+    for (final localeFile in ['uz-UZ.json', 'uz-Cyrl.json', 'ru-RU.json']) {
+      test('$localeFile contains all notification keys', () {
+        final file = File('assets/tr/$localeFile');
+        final values =
+            jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+
+        for (final key in requiredKeys) {
+          expect(values[key], isA<String>(), reason: '$localeFile:$key');
+          expect((values[key] as String).trim(), isNotEmpty);
+        }
+      });
+    }
   });
 
   group('DailyRouteWorkingHoursPolicy', () {
