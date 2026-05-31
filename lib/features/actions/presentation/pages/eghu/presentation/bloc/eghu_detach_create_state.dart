@@ -14,8 +14,7 @@ class EghuDetachCreateState extends Equatable {
     this.proofFile,
     this.protocolFile,
     this.gasSupplyStopped,
-    this.stampNumber = '',
-    this.stampDateTime,
+    this.stamps = const [],
     this.employeeId,
     this.employeeName,
     this.profileRegionId,
@@ -24,7 +23,6 @@ class EghuDetachCreateState extends Equatable {
     this.errorMessage = '',
     this.lastSubmittedRequest,
     this.recordId,
-    this.stampRealId,
   });
 
   factory EghuDetachCreateState.fromDetail(
@@ -35,9 +33,17 @@ class EghuDetachCreateState extends Equatable {
     int? districtId,
     DateTime? now,
   }) {
-    final firstReal = detail.reals.isNotEmpty ? detail.reals.first : null;
-    final stampDate =
-        _parseDate(firstReal?.installedDate) ?? now ?? DateTime.now();
+    final fallbackDate = now ?? DateTime.now();
+    final stamps = detail.reals
+        .map(
+          (real) => EghuActionStampEntry.existing(
+            realId: real.id,
+            number: real.realNumberValue ?? '',
+            installedAt: _parseDate(real.installedDate) ?? fallbackDate,
+            employeeName: employeeName,
+          ),
+        )
+        .toList();
 
     EghuActionAttachment? actFile;
     EghuActionAttachment? proofFile;
@@ -65,10 +71,8 @@ class EghuDetachCreateState extends Equatable {
       actFile: actFile,
       proofFile: proofFile,
       protocolFile: protocolFile,
-      stampNumber: firstReal?.realNumberValue ?? '',
-      stampDateTime: stampDate,
+      stamps: stamps,
       recordId: detail.id,
-      stampRealId: firstReal?.id,
       employeeId: employeeId,
       employeeName: employeeName,
       profileRegionId: regionId,
@@ -86,8 +90,7 @@ class EghuDetachCreateState extends Equatable {
   final EghuActionAttachment? proofFile;
   final EghuActionAttachment? protocolFile;
   final EghuGasSupplyStopped? gasSupplyStopped;
-  final String stampNumber;
-  final DateTime? stampDateTime;
+  final List<EghuActionStampEntry> stamps;
   final int? employeeId;
   final String? employeeName;
   final int? profileRegionId;
@@ -96,9 +99,18 @@ class EghuDetachCreateState extends Equatable {
   final String errorMessage;
   final EghuActionCreateRequest? lastSubmittedRequest;
   final int? recordId;
-  final int? stampRealId;
 
   bool get isEdit => recordId != null;
+
+  String get stampNumber => stamps.isEmpty ? '' : stamps.first.number;
+
+  DateTime? get stampDateTime =>
+      stamps.isEmpty ? null : stamps.first.installedAt;
+
+  int? get stampRealId => stamps.isEmpty ? null : stamps.first.realId;
+
+  bool get hasValidStamps =>
+      stamps.isNotEmpty && stamps.every((stamp) => stamp.isValid);
 
   bool get shouldShowOtherReason => reason == EghuDetachReason.other;
 
@@ -129,8 +141,7 @@ class EghuDetachCreateState extends Equatable {
       (!shouldShowAct || actFile != null) &&
       (sealStatus != EghuDetachSealStatus.defective ||
           gasSupplyStopped != null) &&
-      (!shouldShowStamp ||
-          (stampNumber.trim().isNotEmpty && stampDateTime != null)) &&
+      (!shouldShowStamp || hasValidStamps) &&
       (!shouldShowProtocol || protocolFile != null) &&
       status != EghuDetachSubmitStatus.submitting;
 
@@ -150,8 +161,7 @@ class EghuDetachCreateState extends Equatable {
       actionType: ActionMenuType.detach,
       consumerDocumentId: consumer.id,
       egxuItemId: eghu.id!,
-      stampNumber: shouldShowStamp ? stampNumber.trim() : '',
-      stampDateTime: stampDateTime ?? now,
+      stamps: shouldShowStamp ? stamps : const [],
       regionId: selectedConsumerDetail?.region?.id ?? profileRegionId ?? 0,
       districtId:
           selectedConsumerDetail?.district?.id ?? profileDistrictId ?? 0,
@@ -182,7 +192,6 @@ class EghuDetachCreateState extends Equatable {
       sealStatus: selectedSealStatus.apiValue,
       gasSupplyStopped: selectedGasSupplyStopped.apiValue,
       recordId: recordId,
-      stampRealId: shouldShowStamp ? stampRealId : null,
       existingAktIds: _existingAktIds(),
     );
   }
@@ -312,8 +321,7 @@ class EghuDetachCreateState extends Equatable {
     EghuActionAttachment? proofFile,
     EghuActionAttachment? protocolFile,
     EghuGasSupplyStopped? gasSupplyStopped,
-    String? stampNumber,
-    DateTime? stampDateTime,
+    List<EghuActionStampEntry>? stamps,
     int? employeeId,
     String? employeeName,
     int? profileRegionId,
@@ -322,7 +330,6 @@ class EghuDetachCreateState extends Equatable {
     String? errorMessage,
     EghuActionCreateRequest? lastSubmittedRequest,
     int? recordId,
-    int? stampRealId,
     bool clearSelectedEghu = false,
     bool clearSelectedConsumerDetail = false,
     bool clearReason = false,
@@ -353,8 +360,7 @@ class EghuDetachCreateState extends Equatable {
       gasSupplyStopped: clearGasSupplyStopped
           ? null
           : (gasSupplyStopped ?? this.gasSupplyStopped),
-      stampNumber: clearStamp ? '' : (stampNumber ?? this.stampNumber),
-      stampDateTime: clearStamp ? null : (stampDateTime ?? this.stampDateTime),
+      stamps: clearStamp ? const [] : (stamps ?? this.stamps),
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
       profileRegionId: profileRegionId ?? this.profileRegionId,
@@ -363,7 +369,6 @@ class EghuDetachCreateState extends Equatable {
       errorMessage: errorMessage ?? this.errorMessage,
       lastSubmittedRequest: lastSubmittedRequest ?? this.lastSubmittedRequest,
       recordId: recordId ?? this.recordId,
-      stampRealId: stampRealId ?? this.stampRealId,
     );
   }
 
@@ -379,8 +384,7 @@ class EghuDetachCreateState extends Equatable {
     proofFile,
     protocolFile,
     gasSupplyStopped,
-    stampNumber,
-    stampDateTime,
+    stamps,
     employeeId,
     employeeName,
     profileRegionId,
@@ -389,6 +393,5 @@ class EghuDetachCreateState extends Equatable {
     errorMessage,
     lastSubmittedRequest,
     recordId,
-    stampRealId,
   ];
 }

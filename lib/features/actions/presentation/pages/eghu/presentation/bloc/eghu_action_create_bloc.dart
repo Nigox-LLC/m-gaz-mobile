@@ -7,6 +7,7 @@ import '../../../../../../../core/models/working_with_consumers_document/working
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_action_attachment.dart';
 import '../../../../../data/models/eghu_action_create_request.dart';
+import '../../../../../data/models/eghu_action_stamp_entry.dart';
 import '../../../../../data/models/eghu_removal_detail.dart';
 import '../../../../../domain/entities/action_menu_item.dart';
 
@@ -27,6 +28,7 @@ class EghuActionCreateBloc
     DateTime? initialStampDateTime,
   }) : _api = api,
        _detailApi = detailApi,
+       _now = initialStampDateTime,
        super(
          detail != null
              ? EghuActionCreateState.fromDetail(
@@ -44,13 +46,20 @@ class EghuActionCreateBloc
                  employeeName: employeeName,
                  profileRegionId: regionId,
                  profileDistrictId: districtId,
-                 stampDateTime: initialStampDateTime ?? DateTime.now(),
+                 stamps: [
+                   EghuActionStampEntry.newEntry(
+                     installedAt: initialStampDateTime ?? DateTime.now(),
+                     employeeName: employeeName,
+                   ),
+                 ],
                ),
        ) {
     on<EghuActionConsumerSelected>(_onConsumerSelected);
     on<EghuActionEghuSelected>(_onEghuSelected);
     on<EghuActionAttachmentSet>(_onAttachmentSet);
     on<EghuActionAttachmentRemoved>(_onAttachmentRemoved);
+    on<EghuActionStampAdded>(_onStampAdded);
+    on<EghuActionStampRemoved>(_onStampRemoved);
     on<EghuActionStampNumberChanged>(_onStampNumberChanged);
     on<EghuActionStampDateChanged>(_onStampDateChanged);
     on<EghuActionProfileChanged>(_onProfileChanged);
@@ -59,6 +68,7 @@ class EghuActionCreateBloc
 
   final EghuActionSubmitApi _api;
   final EghuActionDetailApi? _detailApi;
+  final DateTime? _now;
 
   void _onConsumerSelected(
     EghuActionConsumerSelected event,
@@ -118,14 +128,81 @@ class EghuActionCreateBloc
     EghuActionStampNumberChanged event,
     Emitter<EghuActionCreateState> emit,
   ) {
-    emit(state.copyWith(stampNumber: event.value));
+    final stampId =
+        event.localId ??
+        (state.stamps.isEmpty ? null : state.stamps.first.localId);
+    if (stampId == null) return;
+
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .map(
+              (stamp) => stamp.localId == stampId
+                  ? stamp.copyWith(number: event.value, isDirty: true)
+                  : stamp,
+            )
+            .toList(),
+      ),
+    );
   }
 
   void _onStampDateChanged(
     EghuActionStampDateChanged event,
     Emitter<EghuActionCreateState> emit,
   ) {
-    emit(state.copyWith(stampDateTime: event.value));
+    final stampId =
+        event.localId ??
+        (state.stamps.isEmpty ? null : state.stamps.first.localId);
+    if (stampId == null) return;
+
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .map(
+              (stamp) => stamp.localId == stampId
+                  ? stamp.copyWith(installedAt: event.value, isDirty: true)
+                  : stamp,
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  void _onStampAdded(
+    EghuActionStampAdded event,
+    Emitter<EghuActionCreateState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        stamps: [
+          EghuActionStampEntry.newEntry(
+            installedAt: _now ?? DateTime.now(),
+            employeeName: state.employeeName,
+            localId:
+                'stamp-${DateTime.now().microsecondsSinceEpoch}-${state.stamps.length}',
+          ),
+          ...state.stamps,
+        ],
+      ),
+    );
+  }
+
+  void _onStampRemoved(
+    EghuActionStampRemoved event,
+    Emitter<EghuActionCreateState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .where(
+              (stamp) =>
+                  stamp.localId != event.localId ||
+                  !stamp.isNew ||
+                  stamp.realId != null,
+            )
+            .toList(),
+      ),
+    );
   }
 
   void _onProfileChanged(

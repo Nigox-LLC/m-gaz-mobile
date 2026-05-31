@@ -10,8 +10,7 @@ class EghuActionCreateState extends Equatable {
     this.selectedEghu,
     this.actFile,
     this.comparisonFile,
-    this.stampNumber = '',
-    this.stampDateTime,
+    this.stamps = const [],
     this.employeeId,
     this.employeeName,
     this.profileRegionId,
@@ -20,7 +19,6 @@ class EghuActionCreateState extends Equatable {
     this.errorMessage = '',
     this.lastSubmittedRequest,
     this.recordId,
-    this.stampRealId,
   });
 
   factory EghuActionCreateState.fromDetail(
@@ -32,9 +30,17 @@ class EghuActionCreateState extends Equatable {
     int? districtId,
     DateTime? now,
   }) {
-    final firstReal = detail.reals.isNotEmpty ? detail.reals.first : null;
-    final stampDate =
-        _parseDate(firstReal?.installedDate) ?? now ?? DateTime.now();
+    final fallbackDate = now ?? DateTime.now();
+    final stamps = detail.reals
+        .map(
+          (real) => EghuActionStampEntry.existing(
+            realId: real.id,
+            number: real.realNumberValue ?? '',
+            installedAt: _parseDate(real.installedDate) ?? fallbackDate,
+            employeeName: employeeName,
+          ),
+        )
+        .toList();
 
     EghuActionAttachment? actFile;
     EghuActionAttachment? comparisonFile;
@@ -55,10 +61,8 @@ class EghuActionCreateState extends Equatable {
       selectedEghu: _eghuStub(detail),
       actFile: actFile,
       comparisonFile: comparisonFile,
-      stampNumber: firstReal?.realNumberValue ?? '',
-      stampDateTime: stampDate,
+      stamps: stamps,
       recordId: detail.id,
-      stampRealId: firstReal?.id,
       employeeId: employeeId,
       employeeName: employeeName,
       profileRegionId: regionId,
@@ -72,8 +76,7 @@ class EghuActionCreateState extends Equatable {
   final ConsumersEgxuItem? selectedEghu;
   final EghuActionAttachment? actFile;
   final EghuActionAttachment? comparisonFile;
-  final String stampNumber;
-  final DateTime? stampDateTime;
+  final List<EghuActionStampEntry> stamps;
   final int? employeeId;
   final String? employeeName;
   final int? profileRegionId;
@@ -82,31 +85,37 @@ class EghuActionCreateState extends Equatable {
   final String errorMessage;
   final EghuActionCreateRequest? lastSubmittedRequest;
   final int? recordId;
-  final int? stampRealId;
 
   bool get isEdit => recordId != null;
+
+  String get stampNumber => stamps.isEmpty ? '' : stamps.first.number;
+
+  DateTime? get stampDateTime =>
+      stamps.isEmpty ? null : stamps.first.installedAt;
+
+  int? get stampRealId => stamps.isEmpty ? null : stamps.first.realId;
+
+  bool get hasValidStamps =>
+      stamps.isNotEmpty && stamps.every((stamp) => stamp.isValid);
 
   bool get canSubmit =>
       selectedConsumer != null &&
       selectedEghu?.id != null &&
       actFile != null &&
       comparisonFile != null &&
-      stampNumber.trim().isNotEmpty &&
-      stampDateTime != null;
+      hasValidStamps;
 
   EghuActionCreateRequest? toRequest() {
     final consumer = selectedConsumer;
     final eghu = selectedEghu;
     final act = actFile;
     final comparison = comparisonFile;
-    final date = stampDateTime;
 
     if (consumer == null ||
         eghu?.id == null ||
         act == null ||
         comparison == null ||
-        stampNumber.trim().isEmpty ||
-        date == null) {
+        !hasValidStamps) {
       return null;
     }
 
@@ -114,8 +123,7 @@ class EghuActionCreateState extends Equatable {
       actionType: actionType,
       consumerDocumentId: consumer.id,
       egxuItemId: eghu!.id!,
-      stampNumber: stampNumber.trim(),
-      stampDateTime: date,
+      stamps: stamps,
       regionId: selectedConsumerDetail?.region?.id ?? profileRegionId ?? 0,
       districtId:
           selectedConsumerDetail?.district?.id ?? profileDistrictId ?? 0,
@@ -138,7 +146,6 @@ class EghuActionCreateState extends Equatable {
       oneFactory: eghu.oneFactory,
       twoFactory: eghu.twoFactory,
       recordId: recordId,
-      stampRealId: stampRealId,
       existingAktIds: _existingAktIds(),
     );
   }
@@ -252,8 +259,7 @@ class EghuActionCreateState extends Equatable {
     ConsumersEgxuItem? selectedEghu,
     EghuActionAttachment? actFile,
     EghuActionAttachment? comparisonFile,
-    String? stampNumber,
-    DateTime? stampDateTime,
+    List<EghuActionStampEntry>? stamps,
     int? employeeId,
     String? employeeName,
     int? profileRegionId,
@@ -262,7 +268,6 @@ class EghuActionCreateState extends Equatable {
     String? errorMessage,
     EghuActionCreateRequest? lastSubmittedRequest,
     int? recordId,
-    int? stampRealId,
     bool clearSelectedEghu = false,
     bool clearSelectedConsumerDetail = false,
     bool clearActFile = false,
@@ -281,8 +286,7 @@ class EghuActionCreateState extends Equatable {
       comparisonFile: clearComparisonFile
           ? null
           : (comparisonFile ?? this.comparisonFile),
-      stampNumber: stampNumber ?? this.stampNumber,
-      stampDateTime: stampDateTime ?? this.stampDateTime,
+      stamps: stamps ?? this.stamps,
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
       profileRegionId: profileRegionId ?? this.profileRegionId,
@@ -291,7 +295,6 @@ class EghuActionCreateState extends Equatable {
       errorMessage: errorMessage ?? this.errorMessage,
       lastSubmittedRequest: lastSubmittedRequest ?? this.lastSubmittedRequest,
       recordId: recordId ?? this.recordId,
-      stampRealId: stampRealId ?? this.stampRealId,
     );
   }
 
@@ -303,8 +306,7 @@ class EghuActionCreateState extends Equatable {
     selectedEghu,
     actFile,
     comparisonFile,
-    stampNumber,
-    stampDateTime,
+    stamps,
     employeeId,
     employeeName,
     profileRegionId,
@@ -313,6 +315,5 @@ class EghuActionCreateState extends Equatable {
     errorMessage,
     lastSubmittedRequest,
     recordId,
-    stampRealId,
   ];
 }

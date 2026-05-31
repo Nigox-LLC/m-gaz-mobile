@@ -99,31 +99,6 @@ class _EghuUploadSectionState extends State<EghuUploadSection> {
   }
 }
 
-class _TooltipDot extends StatelessWidget {
-  const _TooltipDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Align(
-      alignment: Alignment.center,
-      child: SizedBox(
-        width: 7,
-        height: 12,
-        child: Center(
-          child: DecoratedBox(
-            key: Key('eghu-upload-info-dot'),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              shape: BoxShape.circle,
-            ),
-            child: SizedBox(width: 7, height: 7),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _UploadInfoPanel extends StatelessWidget {
   const _UploadInfoPanel({
     required this.keyName,

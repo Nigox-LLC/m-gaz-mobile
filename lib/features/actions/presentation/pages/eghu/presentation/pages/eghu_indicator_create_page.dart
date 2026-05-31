@@ -429,7 +429,7 @@ class _IndicatorValueField extends StatelessWidget {
                 lineHeight: 20,
                 color: EghuActionCreateColors.textSub,
               ),
-              suffixText: 'mВі',
+              suffixText: 'm³',
               suffixStyle: eghuText(
                 fontSize: 13,
                 lineHeight: 20,

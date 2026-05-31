@@ -48,7 +48,6 @@ class EghuActionCreatePage extends StatefulWidget {
 }
 
 class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
-  final _stampController = TextEditingController();
   final _imagePicker = ImagePicker();
   EghuActionCreateBloc? _bloc;
   EghuActionConsumerSource? _consumerSource;
@@ -88,7 +87,6 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
 
   @override
   void dispose() {
-    _stampController.dispose();
     if (widget.bloc == null) _bloc?.close();
     super.dispose();
   }
@@ -101,15 +99,6 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
         listenWhen: (previous, current) => previous.status != current.status,
         listener: _onSubmitStateChanged,
         builder: (context, state) {
-          if (_stampController.text != state.stampNumber) {
-            _stampController.value = TextEditingValue(
-              text: state.stampNumber,
-              selection: TextSelection.collapsed(
-                offset: state.stampNumber.length,
-              ),
-            );
-          }
-
           return Scaffold(
             backgroundColor: EghuActionCreateColors.white,
             body: SafeArea(
@@ -173,14 +162,21 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
                               ),
                               const SizedBox(height: 16),
                               EghuStampSection(
-                                controller: _stampController,
+                                stamps: state.stamps,
                                 employeeName: state.employeeName,
-                                selectedDate: state.stampDateTime,
-                                onNumberChanged: (value) => context
+                                onAdd: () => context
                                     .read<EghuActionCreateBloc>()
-                                    .add(EghuActionStampNumberChanged(value)),
-                                onPickDate: () =>
-                                    _pickStampDate(context, state),
+                                    .add(const EghuActionStampAdded()),
+                                onNumberChanged: (localId, value) =>
+                                    context.read<EghuActionCreateBloc>().add(
+                                      EghuActionStampNumberChanged(
+                                        value,
+                                        localId: localId,
+                                      ),
+                                    ),
+                                onRemoveUnsaved: (localId) => context
+                                    .read<EghuActionCreateBloc>()
+                                    .add(EghuActionStampRemoved(localId)),
                               ),
                               const SizedBox(height: 16),
                               EghuUploadSection(
@@ -421,56 +417,6 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
       isImage: _isImage(path),
       sourceLabel: Words.uploadFromPhone.tr(),
       createdAt: DateTime.now(),
-    );
-  }
-
-  Future<void> _pickStampDate(
-    BuildContext context,
-    EghuActionCreateState state,
-  ) async {
-    final now = DateTime.now();
-    final today = _dateOnly(now);
-    final initialDate = _clampDate(
-      _dateOnly(state.stampDateTime ?? now),
-      min: DateTime(2020),
-      max: today,
-    );
-
-    final date = await pickEghuDate(
-      context,
-      initialDate: initialDate,
-      firstDate: DateTime(2020),
-      lastDate: today,
-      dialogKey: const Key('eghu-stamp-calendar-dialog'),
-    );
-    if (!context.mounted || date == null) return;
-
-    final initialTime = _initialStampTimeForDate(
-      selectedDate: date,
-      currentStampDateTime: state.stampDateTime,
-      now: now,
-    );
-    final time = await showDialog<TimeOfDay>(
-      context: context,
-      builder: (_) => _EghuStampTimeDialog(
-        selectedDate: date,
-        initialTime: initialTime,
-        now: now,
-      ),
-    );
-    if (!context.mounted || time == null) return;
-
-    final latestNow = DateTime.now();
-    if (_isSameDate(date, latestNow) &&
-        _isTimeAfter(time, TimeOfDay.fromDateTime(latestNow))) {
-      showToast(context, Words.futureTimeInvalid.tr());
-      return;
-    }
-
-    context.read<EghuActionCreateBloc>().add(
-      EghuActionStampDateChanged(
-        DateTime(date.year, date.month, date.day, time.hour, time.minute),
-      ),
     );
   }
 

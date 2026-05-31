@@ -7,6 +7,7 @@ import '../../../../../../../core/models/working_with_consumers_document/working
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_action_attachment.dart';
 import '../../../../../data/models/eghu_action_create_request.dart';
+import '../../../../../data/models/eghu_action_stamp_entry.dart';
 import '../../../../../data/models/eghu_removal_detail.dart';
 import '../../../../../domain/entities/action_menu_item.dart';
 
@@ -42,7 +43,12 @@ class EghuDetachCreateBloc
                  employeeName: employeeName,
                  profileRegionId: regionId,
                  profileDistrictId: districtId,
-                 stampDateTime: now ?? DateTime.now(),
+                 stamps: [
+                   EghuActionStampEntry.newEntry(
+                     installedAt: now ?? DateTime.now(),
+                     employeeName: employeeName,
+                   ),
+                 ],
                ),
        ) {
     on<EghuDetachConsumerSelected>(_onConsumerSelected);
@@ -60,6 +66,8 @@ class EghuDetachCreateBloc
     on<EghuDetachProtocolFileRemoved>(_onProtocolFileRemoved);
     on<EghuDetachGasSupplyStoppedSelected>(_onGasSupplyStoppedSelected);
     on<EghuDetachGasSupplyStoppedCleared>(_onGasSupplyStoppedCleared);
+    on<EghuDetachStampAdded>(_onStampAdded);
+    on<EghuDetachStampRemoved>(_onStampRemoved);
     on<EghuDetachStampNumberChanged>(_onStampNumberChanged);
     on<EghuDetachStampDateChanged>(_onStampDateChanged);
     on<EghuDetachProfileChanged>(_onProfileChanged);
@@ -227,13 +235,18 @@ class EghuDetachCreateBloc
     EghuDetachGasSupplyStoppedSelected event,
     Emitter<EghuDetachCreateState> emit,
   ) {
+    final shouldAddInitialStamp =
+        event.value == EghuGasSupplyStopped.yes && state.stamps.isEmpty;
     emit(
       state.copyWith(
         gasSupplyStopped: event.value,
-        stampDateTime:
-            event.value == EghuGasSupplyStopped.yes &&
-                state.stampDateTime == null
-            ? _now ?? DateTime.now()
+        stamps: shouldAddInitialStamp
+            ? [
+                EghuActionStampEntry.newEntry(
+                  installedAt: _now ?? DateTime.now(),
+                  employeeName: state.employeeName,
+                ),
+              ]
             : null,
         clearProtocolFile: event.value != EghuGasSupplyStopped.no,
         clearStamp: event.value != EghuGasSupplyStopped.yes,
@@ -258,14 +271,81 @@ class EghuDetachCreateBloc
     EghuDetachStampNumberChanged event,
     Emitter<EghuDetachCreateState> emit,
   ) {
-    emit(state.copyWith(stampNumber: event.value));
+    final stampId =
+        event.localId ??
+        (state.stamps.isEmpty ? null : state.stamps.first.localId);
+    if (stampId == null) return;
+
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .map(
+              (stamp) => stamp.localId == stampId
+                  ? stamp.copyWith(number: event.value, isDirty: true)
+                  : stamp,
+            )
+            .toList(),
+      ),
+    );
   }
 
   void _onStampDateChanged(
     EghuDetachStampDateChanged event,
     Emitter<EghuDetachCreateState> emit,
   ) {
-    emit(state.copyWith(stampDateTime: event.value));
+    final stampId =
+        event.localId ??
+        (state.stamps.isEmpty ? null : state.stamps.first.localId);
+    if (stampId == null) return;
+
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .map(
+              (stamp) => stamp.localId == stampId
+                  ? stamp.copyWith(installedAt: event.value, isDirty: true)
+                  : stamp,
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  void _onStampAdded(
+    EghuDetachStampAdded event,
+    Emitter<EghuDetachCreateState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        stamps: [
+          EghuActionStampEntry.newEntry(
+            installedAt: _now ?? DateTime.now(),
+            employeeName: state.employeeName,
+            localId:
+                'stamp-${DateTime.now().microsecondsSinceEpoch}-${state.stamps.length}',
+          ),
+          ...state.stamps,
+        ],
+      ),
+    );
+  }
+
+  void _onStampRemoved(
+    EghuDetachStampRemoved event,
+    Emitter<EghuDetachCreateState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .where(
+              (stamp) =>
+                  stamp.localId != event.localId ||
+                  !stamp.isNew ||
+                  stamp.realId != null,
+            )
+            .toList(),
+      ),
+    );
   }
 
   void _onProfileChanged(

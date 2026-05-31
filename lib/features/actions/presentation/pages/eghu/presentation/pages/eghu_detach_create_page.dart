@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../../../../core/api/working_with_consumers_api/consumer_relations_api.dart';
 import '../../../../../../../core/common/words.dart';
@@ -17,7 +16,6 @@ import '../../../../../data/models/eghu_action_attachment.dart';
 import '../../../../../data/models/eghu_removal_detail.dart';
 import '../bloc/eghu_action_create_bloc.dart';
 import '../bloc/eghu_detach_create_bloc.dart';
-import 'eghu_action_create_page.dart' as eghu_create;
 import '../widgets/create/eghu_action_bottom_sheets.dart';
 import '../widgets/create/eghu_action_form_fields.dart';
 import '../widgets/create/eghu_action_upload_widgets.dart';
@@ -47,7 +45,6 @@ class EghuDetachCreatePage extends StatefulWidget {
 
 class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
   final _otherReasonController = TextEditingController();
-  final _stampController = TextEditingController();
   final _imagePicker = ImagePicker();
   EghuDetachCreateBloc? _bloc;
   EghuActionConsumerSource? _consumerSource;
@@ -88,7 +85,6 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
   @override
   void dispose() {
     _otherReasonController.dispose();
-    _stampController.dispose();
     if (widget.bloc == null) _bloc?.close();
     super.dispose();
   }
@@ -109,15 +105,6 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
               ),
             );
           }
-          if (_stampController.text != state.stampNumber) {
-            _stampController.value = TextEditingValue(
-              text: state.stampNumber,
-              selection: TextSelection.collapsed(
-                offset: state.stampNumber.length,
-              ),
-            );
-          }
-
           return Scaffold(
             backgroundColor: EghuActionCreateColors.white,
             body: SafeArea(
@@ -283,15 +270,22 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
                               ],
                               if (state.shouldShowStamp) ...[
                                 const SizedBox(height: 12),
-                                _DetachStampSection(
-                                  controller: _stampController,
+                                EghuStampSection(
+                                  stamps: state.stamps,
                                   employeeName: state.employeeName,
-                                  selectedDate: state.stampDateTime,
-                                  onNumberChanged: (value) => context
+                                  onAdd: () => context
                                       .read<EghuDetachCreateBloc>()
-                                      .add(EghuDetachStampNumberChanged(value)),
-                                  onPickDate: () =>
-                                      _pickStampDate(context, state),
+                                      .add(const EghuDetachStampAdded()),
+                                  onNumberChanged: (localId, value) =>
+                                      context.read<EghuDetachCreateBloc>().add(
+                                        EghuDetachStampNumberChanged(
+                                          value,
+                                          localId: localId,
+                                        ),
+                                      ),
+                                  onRemoveUnsaved: (localId) => context
+                                      .read<EghuDetachCreateBloc>()
+                                      .add(EghuDetachStampRemoved(localId)),
                                 ),
                               ],
                               if (state.shouldShowProtocol) ...[
@@ -568,20 +562,6 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
         lower.endsWith('.jpeg') ||
         lower.endsWith('.png');
   }
-
-  Future<void> _pickStampDate(
-    BuildContext context,
-    EghuDetachCreateState state,
-  ) async {
-    final selected = await eghu_create.pickEghuStampDateTime(
-      context,
-      currentStampDateTime: state.stampDateTime,
-    );
-    if (!context.mounted || selected == null) return;
-    context.read<EghuDetachCreateBloc>().add(
-      EghuDetachStampDateChanged(selected),
-    );
-  }
 }
 
 enum _DetachDropdown { reason, sealStatus, gasSupply }
@@ -712,157 +692,6 @@ class _InlineDropdownField<T> extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _DetachStampSection extends StatelessWidget {
-  const _DetachStampSection({
-    required this.controller,
-    required this.employeeName,
-    required this.selectedDate,
-    required this.onNumberChanged,
-    required this.onPickDate,
-  });
-
-  final TextEditingController controller;
-  final String? employeeName;
-  final DateTime? selectedDate;
-  final ValueChanged<String> onNumberChanged;
-  final VoidCallback onPickDate;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayDate = DateFormat(
-      'dd.MM.yyyy HH:mm',
-    ).format(selectedDate ?? DateTime.now());
-    final displayEmployee = employeeName?.trim();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          Words.stampInformation.tr(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: eghuText(fontSize: 11, lineHeight: 16, letterSpacing: 0.4),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 44,
-          child: TextField(
-            key: const Key('eghu-detach-stamp-number-field'),
-            controller: controller,
-            onChanged: onNumberChanged,
-            keyboardType: TextInputType.number,
-            style: eghuText(fontSize: 13, lineHeight: 20),
-            decoration: InputDecoration(
-              hintText: Words.stampNumberHint.tr(),
-              hintStyle: eghuText(
-                fontSize: 13,
-                lineHeight: 20,
-                color: EghuActionCreateColors.textSub,
-              ),
-              filled: true,
-              fillColor: EghuActionCreateColors.field,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              border: _border(),
-              enabledBorder: _border(),
-              focusedBorder: _border(EghuActionCreateColors.primary),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: EghuActionCreateColors.field,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.person_search_outlined,
-                size: 18,
-                color: Color(0xA61B1F3B),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  displayEmployee?.isNotEmpty == true
-                      ? displayEmployee!
-                      : Words.fallbackUser.tr(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: eghuText(
-                    fontSize: 13,
-                    lineHeight: 20,
-                    color: const Color(0xA61B1F3B),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Material(
-          color: EghuActionCreateColors.field,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: onPickDate,
-            child: Container(
-              key: const Key('eghu-detach-stamp-date-field'),
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: EghuActionCreateColors.stroke),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayDate,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: eghuText(fontSize: 13, lineHeight: 18),
-                        ),
-                        Text(
-                          Words.stampTime.tr(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: eghuText(
-                            fontSize: 9,
-                            lineHeight: 13,
-                            color: const Color(0xFF5B6078),
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.calendar_today_outlined, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  OutlineInputBorder _border([Color color = EghuActionCreateColors.stroke]) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: color),
     );
   }
 }

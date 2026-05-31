@@ -45,22 +45,37 @@ class EghuActionAttachmentRemoved extends EghuActionCreateEvent {
   List<Object?> get props => [slot];
 }
 
-class EghuActionStampNumberChanged extends EghuActionCreateEvent {
-  const EghuActionStampNumberChanged(this.value);
+class EghuActionStampAdded extends EghuActionCreateEvent {
+  const EghuActionStampAdded();
+}
 
-  final String value;
+class EghuActionStampRemoved extends EghuActionCreateEvent {
+  const EghuActionStampRemoved(this.localId);
+
+  final String localId;
 
   @override
-  List<Object?> get props => [value];
+  List<Object?> get props => [localId];
+}
+
+class EghuActionStampNumberChanged extends EghuActionCreateEvent {
+  const EghuActionStampNumberChanged(this.value, {this.localId});
+
+  final String value;
+  final String? localId;
+
+  @override
+  List<Object?> get props => [value, localId];
 }
 
 class EghuActionStampDateChanged extends EghuActionCreateEvent {
-  const EghuActionStampDateChanged(this.value);
+  const EghuActionStampDateChanged(this.value, {this.localId});
 
   final DateTime value;
+  final String? localId;
 
   @override
-  List<Object?> get props => [value];
+  List<Object?> get props => [value, localId];
 }
 
 class EghuActionProfileChanged extends EghuActionCreateEvent {

@@ -113,22 +113,37 @@ class EghuDetachGasSupplyStoppedCleared extends EghuDetachCreateEvent {
   const EghuDetachGasSupplyStoppedCleared();
 }
 
-class EghuDetachStampNumberChanged extends EghuDetachCreateEvent {
-  const EghuDetachStampNumberChanged(this.value);
+class EghuDetachStampAdded extends EghuDetachCreateEvent {
+  const EghuDetachStampAdded();
+}
 
-  final String value;
+class EghuDetachStampRemoved extends EghuDetachCreateEvent {
+  const EghuDetachStampRemoved(this.localId);
+
+  final String localId;
 
   @override
-  List<Object?> get props => [value];
+  List<Object?> get props => [localId];
+}
+
+class EghuDetachStampNumberChanged extends EghuDetachCreateEvent {
+  const EghuDetachStampNumberChanged(this.value, {this.localId});
+
+  final String value;
+  final String? localId;
+
+  @override
+  List<Object?> get props => [value, localId];
 }
 
 class EghuDetachStampDateChanged extends EghuDetachCreateEvent {
-  const EghuDetachStampDateChanged(this.value);
+  const EghuDetachStampDateChanged(this.value, {this.localId});
 
   final DateTime value;
+  final String? localId;
 
   @override
-  List<Object?> get props => [value];
+  List<Object?> get props => [value, localId];
 }
 
 class EghuDetachProfileChanged extends EghuDetachCreateEvent {

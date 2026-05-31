@@ -7,6 +7,7 @@ import 'package:m_gaz/core/models/working_with_consumers_document/working_with_c
 import 'package:m_gaz/features/actions/data/datasources/eghu_action_api.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_action_attachment.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_action_create_request.dart';
+import 'package:m_gaz/features/actions/data/models/eghu_removal_detail.dart';
 import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
 import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_action_create_bloc.dart';
 
@@ -39,18 +40,16 @@ void main() {
     });
 
     test('initializes stamp date automatically', () async {
-      final before = DateTime.now();
       final freshBloc = EghuActionCreateBloc(
         actionType: ActionMenuType.reinstall,
         api: _FakeSubmitApi(),
       );
       addTearDown(freshBloc.close);
-      final after = DateTime.now();
 
       expect(bloc.state.stampDateTime, DateTime(2026, 5, 28, 17, 38));
       expect(freshBloc.state.stampDateTime, isNotNull);
-      expect(freshBloc.state.stampDateTime!.isBefore(before), isFalse);
-      expect(freshBloc.state.stampDateTime!.isAfter(after), isFalse);
+      expect(freshBloc.state.stampDateTime!.second, 0);
+      expect(freshBloc.state.stampDateTime!.millisecond, 0);
     });
 
     test('validates required fields before submit', () async {
@@ -275,6 +274,94 @@ void main() {
       expect(bloc.state.status, EghuActionSubmitStatus.success);
       expect(api.request, isNotNull);
     });
+
+    test('add creates a new stamp and unsaved stamp can be removed', () async {
+      expect(bloc.state.stamps, hasLength(1));
+      final previousFirstId = bloc.state.stamps.first.localId;
+
+      bloc.add(const EghuActionStampAdded());
+      await pumpEventQueue();
+
+      expect(bloc.state.stamps, hasLength(2));
+      expect(bloc.state.stamps.first.employeeName, 'Tester');
+      expect(bloc.state.stamps.first.installedAt.second, 0);
+      expect(bloc.state.stamps.first.installedAt.millisecond, 0);
+      expect(bloc.state.stamps[1].localId, previousFirstId);
+
+      final localId = bloc.state.stamps.first.localId;
+      bloc.add(EghuActionStampRemoved(localId));
+      await pumpEventQueue();
+
+      expect(bloc.state.stamps, hasLength(1));
+    });
+
+    test('update request sends only changed and new stamps', () async {
+      final detailApi = _FakeDetailApi();
+      final editBloc = EghuActionCreateBloc(
+        actionType: ActionMenuType.reinstall,
+        api: api,
+        detailApi: detailApi,
+        employeeName: 'Tester',
+        initialStampDateTime: DateTime(2026, 5, 30, 10, 45),
+        detail: EghuRemovalDetail(
+          id: 99,
+          documentType: 'reinstall',
+          consumerId: 12,
+          consumerName: 'Tashkilot nomi',
+          egxuId: 44,
+          egxuSerialNumber: 'Zavod 1',
+          reals: const [
+            EghuRemovalReal(
+              id: 1,
+              realNumberValue: '111',
+              installedDate: '2026-05-28',
+            ),
+            EghuRemovalReal(
+              id: 2,
+              realNumberValue: '222',
+              installedDate: '2026-05-29',
+            ),
+          ],
+          akts: const [
+            EghuRemovalAkt(
+              id: 7,
+              fileUrl: 'https://example.com/act.jpg',
+              aktFileType: 'akt',
+            ),
+            EghuRemovalAkt(
+              id: 8,
+              fileUrl: 'https://example.com/comparison.pdf',
+              aktFileType: 'calibration',
+            ),
+          ],
+        ),
+      );
+      addTearDown(editBloc.close);
+
+      final changedStampId = editBloc.state.stamps[1].localId;
+      editBloc
+        ..add(
+          EghuActionStampNumberChanged('222-CHANGED', localId: changedStampId),
+        )
+        ..add(const EghuActionStampAdded());
+      await pumpEventQueue();
+
+      final newStampId = editBloc.state.stamps.first.localId;
+      editBloc.add(EghuActionStampNumberChanged('333', localId: newStampId));
+      await pumpEventQueue();
+
+      editBloc.add(const EghuActionSubmitted());
+      await pumpEventQueue();
+
+      expect(editBloc.state.status, EghuActionSubmitStatus.success);
+      final json = detailApi.request!.toJson(aktIds: const [7, 8]);
+      final reals = json['reals'] as List;
+      expect(reals, hasLength(2));
+      expect(reals[0], containsPair('id', null));
+      expect(reals[0], containsPair('real_number_value', '333'));
+      expect(reals[1], containsPair('id', 2));
+      expect(reals[1], containsPair('real_number_value', '222-CHANGED'));
+    });
   });
 }
 
@@ -287,6 +374,20 @@ class _FakeSubmitApi implements EghuActionSubmitApi {
     this.request = request;
     final error = this.error;
     if (error != null) throw error;
+  }
+}
+
+class _FakeDetailApi implements EghuActionDetailApi {
+  EghuActionCreateRequest? request;
+
+  @override
+  Future<EghuRemovalDetail> getDetail(int id) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> update(int id, EghuActionCreateRequest request) async {
+    this.request = request;
   }
 }
 

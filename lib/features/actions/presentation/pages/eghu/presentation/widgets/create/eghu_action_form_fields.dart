@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:m_gaz/core/common/words.dart';
+import 'package:m_gaz/features/actions/data/models/eghu_action_stamp_entry.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
 class EghuActionCreateColors {
@@ -100,118 +101,216 @@ class EghuSelectorField extends StatelessWidget {
   }
 }
 
-class EghuStampSection extends StatelessWidget {
+class EghuStampSection extends StatefulWidget {
   const EghuStampSection({
     super.key,
-    required this.controller,
+    required this.stamps,
+    required this.onAdd,
     required this.onNumberChanged,
-    required this.onPickDate,
+    required this.onRemoveUnsaved,
     this.employeeName,
-    this.selectedDate,
   });
 
-  final TextEditingController controller;
-  final ValueChanged<String> onNumberChanged;
-  final VoidCallback onPickDate;
+  final List<EghuActionStampEntry> stamps;
+  final VoidCallback onAdd;
+  final void Function(String localId, String value) onNumberChanged;
+  final ValueChanged<String> onRemoveUnsaved;
   final String? employeeName;
-  final DateTime? selectedDate;
+
+  @override
+  State<EghuStampSection> createState() => _EghuStampSectionState();
+}
+
+class _EghuStampSectionState extends State<EghuStampSection> {
+  final Map<String, TextEditingController> _controllers = {};
+
+  @override
+  void didUpdateWidget(covariant EghuStampSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncControllers();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _syncControllers();
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _syncControllers() {
+    final ids = widget.stamps.map((stamp) => stamp.localId).toSet();
+    final removed = _controllers.keys.where((id) => !ids.contains(id)).toList();
+    for (final id in removed) {
+      _controllers.remove(id)?.dispose();
+    }
+
+    for (final stamp in widget.stamps) {
+      final controller = _controllers.putIfAbsent(
+        stamp.localId,
+        () => TextEditingController(),
+      );
+      if (controller.text != stamp.number) {
+        controller.value = TextEditingValue(
+          text: stamp.number,
+          selection: TextSelection.collapsed(offset: stamp.number.length),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        EghuSectionHeader(title: Words.stampAdd.tr(), onAdd: widget.onAdd),
+        const SizedBox(height: 4),
+        ...widget.stamps.map(
+          (stamp) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _StampListItem(
+              stamp: stamp,
+              controller: _controllers[stamp.localId]!,
+              employeeName: stamp.employeeName ?? widget.employeeName,
+              onChanged: (value) =>
+                  widget.onNumberChanged(stamp.localId, value),
+              onRemove: stamp.isNew
+                  ? () => widget.onRemoveUnsaved(stamp.localId)
+                  : null,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StampListItem extends StatelessWidget {
+  const _StampListItem({
+    required this.stamp,
+    required this.controller,
+    required this.employeeName,
+    required this.onChanged,
+    this.onRemove,
+  });
+
+  final EghuActionStampEntry stamp;
+  final TextEditingController controller;
+  final String? employeeName;
+  final ValueChanged<String> onChanged;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
     final displayDate = DateFormat(
       'dd.MM.yyyy HH:mm',
-    ).format(selectedDate ?? DateTime.now());
+    ).format(stamp.installedAt);
     final displayEmployee = employeeName?.trim();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        EghuSectionHeader(title: Words.stampAdd.tr(), onAdd: () {}),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 44,
-          child: TextField(
-            key: const Key('eghu-stamp-number-field'),
-            controller: controller,
-            onChanged: onNumberChanged,
-            keyboardType: TextInputType.number,
-            style: eghuText(fontSize: 13, lineHeight: 20),
-            decoration: InputDecoration(
-              hintText: Words.stampNumberHint.tr(),
-              hintStyle: eghuText(
-                fontSize: 13,
-                lineHeight: 20,
-                color: EghuActionCreateColors.textSub,
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: EghuActionCreateColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: EghuActionCreateColors.stroke),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 44,
+            child: TextField(
+              key: Key('eghu-stamp-number-field-${stamp.localId}'),
+              controller: controller,
+              onChanged: onChanged,
+              keyboardType: TextInputType.number,
+              style: eghuText(fontSize: 13, lineHeight: 20),
+              decoration: InputDecoration(
+                hintText: Words.stampNumberHint.tr(),
+                hintStyle: eghuText(
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: EghuActionCreateColors.textSub,
+                ),
+                filled: true,
+                fillColor: EghuActionCreateColors.field,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                suffixIcon: onRemove == null
+                    ? null
+                    : IconButton(
+                        key: Key('eghu-stamp-remove-${stamp.localId}'),
+                        onPressed: onRemove,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                      ),
+                border: _border(),
+                enabledBorder: _border(),
+                focusedBorder: _border(EghuActionCreateColors.primary),
               ),
-              filled: true,
-              fillColor: EghuActionCreateColors.field,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              border: _border(),
-              enabledBorder: _border(),
-              focusedBorder: _border(EghuActionCreateColors.primary),
             ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: EghuActionCreateColors.field,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AppTools.svg(AppTools.icUserCheck),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  displayEmployee?.isNotEmpty == true
-                      ? displayEmployee!
-                      : Words.fallbackUser.tr(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: eghuText(
-                    fontSize: 13,
-                    lineHeight: 20,
-                    color: const Color(0xA61B1F3B),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Material(
-          color: EghuActionCreateColors.field,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: onPickDate,
-            child: Container(
-              key: const Key('eghu-stamp-date-field'),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: EghuActionCreateColors.stroke),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: Text(
-                      displayDate,
-                      style: eghuText(fontSize: 13, lineHeight: 20),
+          const SizedBox(height: 4),
+          Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: EghuActionCreateColors.field,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AppTools.svg(AppTools.icUserCheck),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    displayEmployee?.isNotEmpty == true
+                        ? displayEmployee!
+                        : Words.fallbackUser.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: eghuText(
+                      fontSize: 13,
+                      lineHeight: 20,
+                      color: const Color(0xA61B1F3B),
                     ),
                   ),
-                  AppTools.svg(AppTools.icCalendar),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Container(
+            key: Key('eghu-stamp-date-field-${stamp.localId}'),
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: EghuActionCreateColors.field,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: EghuActionCreateColors.stroke),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    displayDate,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: eghuText(fontSize: 13, lineHeight: 20),
+                  ),
+                ),
+                AppTools.svg(AppTools.icCalendar),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

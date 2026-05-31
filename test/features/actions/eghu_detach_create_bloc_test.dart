@@ -190,6 +190,34 @@ void main() {
       expect(json.containsKey('reals'), isFalse);
       expect(json['akt_ids'], [5, 8]);
     });
+
+    test('stamp add and remove works for gas stopped yes flow', () async {
+      bloc
+        ..add(
+          const EghuDetachSealStatusSelected(EghuDetachSealStatus.defective),
+        )
+        ..add(
+          const EghuDetachGasSupplyStoppedSelected(EghuGasSupplyStopped.yes),
+        );
+      await pumpEventQueue();
+
+      expect(bloc.state.stamps, hasLength(1));
+      final previousFirstId = bloc.state.stamps.first.localId;
+
+      bloc.add(const EghuDetachStampAdded());
+      await pumpEventQueue();
+
+      expect(bloc.state.stamps, hasLength(2));
+      expect(bloc.state.stamps.first.installedAt.second, 0);
+      expect(bloc.state.stamps.first.installedAt.millisecond, 0);
+      expect(bloc.state.stamps[1].localId, previousFirstId);
+
+      final localId = bloc.state.stamps.first.localId;
+      bloc.add(EghuDetachStampRemoved(localId));
+      await pumpEventQueue();
+
+      expect(bloc.state.stamps, hasLength(1));
+    });
   });
 }
 

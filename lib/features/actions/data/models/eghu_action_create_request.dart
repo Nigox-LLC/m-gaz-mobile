@@ -1,13 +1,13 @@
 import '../../domain/entities/action_menu_item.dart';
 import 'eghu_action_attachment.dart';
+import 'eghu_action_stamp_entry.dart';
 
 class EghuActionCreateRequest {
   const EghuActionCreateRequest({
     required this.actionType,
     required this.consumerDocumentId,
     required this.egxuItemId,
-    required this.stampNumber,
-    required this.stampDateTime,
+    required this.stamps,
     required this.regionId,
     required this.districtId,
     required this.typeOfActivityId,
@@ -31,15 +31,13 @@ class EghuActionCreateRequest {
     this.sealStatus,
     this.gasSupplyStopped,
     this.recordId,
-    this.stampRealId,
     this.existingAktIds = const [],
   });
 
   final ActionMenuType actionType;
   final int consumerDocumentId;
   final int egxuItemId;
-  final String stampNumber;
-  final DateTime stampDateTime;
+  final List<EghuActionStampEntry> stamps;
   final int regionId;
   final int districtId;
   final int typeOfActivityId;
@@ -63,7 +61,6 @@ class EghuActionCreateRequest {
   final String? sealStatus;
   final String? gasSupplyStopped;
   final int? recordId;
-  final int? stampRealId;
   final List<int> existingAktIds;
 
   bool get isUpdate => recordId != null;
@@ -73,6 +70,11 @@ class EghuActionCreateRequest {
     ActionMenuType.detach => 'detach',
     ActionMenuType.indicatorUpload => 'indicator_upload',
   };
+
+  String get stampNumber => stamps.isEmpty ? '' : stamps.first.number;
+
+  DateTime? get stampDateTime =>
+      stamps.isEmpty ? null : stamps.first.installedAt;
 
   String get egxuRemovalDocumentType => switch (actionType) {
     ActionMenuType.reinstall => 'reinstall',
@@ -87,8 +89,9 @@ class EghuActionCreateRequest {
   };
 
   Map<String, Object?> toJson({List<int> aktIds = const []}) {
-    final stampDate = _dateOnly(stampDateTime);
-    final trimmedStamp = stampNumber.trim();
+    final reals = isUpdate
+        ? stamps.where((stamp) => stamp.shouldSendOnUpdate).toList()
+        : stamps;
     final selectedReason = reason ?? egxuRemovalReason;
     final trimmedOtherReason = otherReason?.trim();
     return {
@@ -104,14 +107,11 @@ class EghuActionCreateRequest {
           : null,
       'seal_status': sealStatus ?? 'working',
       'gas_supply_stopped': gasSupplyStopped ?? 'no',
-      if (trimmedStamp.isNotEmpty)
-        'reals': [
-          {
-            'id': stampRealId,
-            'real_number_value': trimmedStamp,
-            'installed_date': stampDate,
-          },
-        ],
+      if (reals.isNotEmpty)
+        'reals': reals
+            .where((stamp) => stamp.number.trim().isNotEmpty)
+            .map((stamp) => stamp.toJson())
+            .toList(),
       'akt_ids': aktIds,
     };
   }
@@ -125,12 +125,5 @@ class EghuActionCreateRequest {
       'protocol_file_name': protocolFile?.name,
       'comparison_file_name': comparisonFile?.name,
     };
-  }
-
-  static String _dateOnly(DateTime value) {
-    final local = value.toLocal();
-    return '${local.year.toString().padLeft(4, '0')}-'
-        '${local.month.toString().padLeft(2, '0')}-'
-        '${local.day.toString().padLeft(2, '0')}';
   }
 }
