@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../data/datasources/eghu_action_api.dart';
@@ -19,6 +20,14 @@ class EghuActionListBloc
     on<EghuActionListStarted>(_onStarted);
     on<EghuActionListRefreshed>(_onRefreshed);
     on<EghuActionListLoadMoreRequested>(_onLoadMoreRequested);
+    on<EghuActionListSearchChanged>(
+      _onSearchChanged,
+      transformer: restartable(),
+    );
+    on<EghuActionListFilterChanged>(
+      _onFilterChanged,
+      transformer: restartable(),
+    );
   }
 
   final EghuActionListApi _api;
@@ -46,6 +55,7 @@ class EghuActionListBloc
         status: EghuActionListStatus.loading,
         errorMessage: '',
         clearNextUrl: true,
+        clearDocuments: true,
       ),
     );
 
@@ -53,6 +63,12 @@ class EghuActionListBloc
       final response = await _api.getDocuments(
         limit: limit,
         actionType: actionType,
+        search: state.searchQuery,
+        createdAtFrom: state.filter.dateFrom,
+        createdAtTo: state.filter.dateTo,
+        regionId: state.filter.regionId,
+        districtId: state.filter.districtId,
+        reason: state.filter.reason?.apiValue,
       );
       emit(
         state.copyWith(
@@ -72,6 +88,26 @@ class EghuActionListBloc
         ),
       );
     }
+  }
+
+  Future<void> _onSearchChanged(
+    EghuActionListSearchChanged event,
+    Emitter<EghuActionListState> emit,
+  ) async {
+    emit(state.copyWith(searchQuery: event.query));
+
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    if (emit.isDone) return;
+
+    await _loadFirstPage(emit);
+  }
+
+  Future<void> _onFilterChanged(
+    EghuActionListFilterChanged event,
+    Emitter<EghuActionListState> emit,
+  ) async {
+    emit(state.copyWith(filter: event.filter));
+    await _loadFirstPage(emit);
   }
 
   Future<void> _onLoadMoreRequested(

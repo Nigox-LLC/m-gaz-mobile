@@ -18,12 +18,21 @@ class EghuActionCreateRequest {
     required this.hourlyGasConsumption,
     required this.dailyConsumption,
     required this.replacementReason,
-    required this.actFile,
-    required this.comparisonFile,
+    this.actFile,
+    this.proofFile,
+    this.protocolFile,
+    this.comparisonFile,
     this.employeeId,
     this.egxuTypeId,
     this.oneFactory,
     this.twoFactory,
+    this.reason,
+    this.otherReason,
+    this.sealStatus,
+    this.gasSupplyStopped,
+    this.recordId,
+    this.stampRealId,
+    this.existingAktIds = const [],
   });
 
   final ActionMenuType actionType;
@@ -41,12 +50,23 @@ class EghuActionCreateRequest {
   final num hourlyGasConsumption;
   final num dailyConsumption;
   final String replacementReason;
-  final EghuActionAttachment actFile;
-  final EghuActionAttachment comparisonFile;
+  final EghuActionAttachment? actFile;
+  final EghuActionAttachment? proofFile;
+  final EghuActionAttachment? protocolFile;
+  final EghuActionAttachment? comparisonFile;
   final int? employeeId;
   final int? egxuTypeId;
   final String? oneFactory;
   final String? twoFactory;
+  final String? reason;
+  final String? otherReason;
+  final String? sealStatus;
+  final String? gasSupplyStopped;
+  final int? recordId;
+  final int? stampRealId;
+  final List<int> existingAktIds;
+
+  bool get isUpdate => recordId != null;
 
   String get actionCode => switch (actionType) {
     ActionMenuType.reinstall => 'reinstall',
@@ -68,21 +88,30 @@ class EghuActionCreateRequest {
 
   Map<String, Object?> toJson({List<int> aktIds = const []}) {
     final stampDate = _dateOnly(stampDateTime);
+    final trimmedStamp = stampNumber.trim();
+    final selectedReason = reason ?? egxuRemovalReason;
+    final trimmedOtherReason = otherReason?.trim();
     return {
       'consumer': consumerDocumentId,
       'egxu': egxuItemId,
       'document_type': egxuRemovalDocumentType,
-      'reason': egxuRemovalReason,
-      'other_reason': null,
-      'seal_status': 'working',
-      'gas_supply_stopped': 'no',
-      'reals': [
-        {
-          'id': null,
-          'real_number_value': stampNumber,
-          'installed_date': stampDate,
-        },
-      ],
+      'reason': selectedReason,
+      'other_reason':
+          selectedReason == 'other' &&
+              trimmedOtherReason != null &&
+              trimmedOtherReason.isNotEmpty
+          ? trimmedOtherReason
+          : null,
+      'seal_status': sealStatus ?? 'working',
+      'gas_supply_stopped': gasSupplyStopped ?? 'no',
+      if (trimmedStamp.isNotEmpty)
+        'reals': [
+          {
+            'id': stampRealId,
+            'real_number_value': trimmedStamp,
+            'installed_date': stampDate,
+          },
+        ],
       'akt_ids': aktIds,
     };
   }
@@ -91,8 +120,10 @@ class EghuActionCreateRequest {
     return {
       ...toJson(),
       'action_type': actionCode,
-      'act_file_name': actFile.name,
-      'comparison_file_name': comparisonFile.name,
+      'act_file_name': actFile?.name,
+      'proof_file_name': proofFile?.name,
+      'protocol_file_name': protocolFile?.name,
+      'comparison_file_name': comparisonFile?.name,
     };
   }
 

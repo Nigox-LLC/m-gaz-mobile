@@ -7,6 +7,7 @@ import '../../../../../../../core/models/working_with_consumers_document/working
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_action_attachment.dart';
 import '../../../../../data/models/eghu_action_create_request.dart';
+import '../../../../../data/models/eghu_removal_detail.dart';
 import '../../../../../domain/entities/action_menu_item.dart';
 
 part 'eghu_action_create_event.dart';
@@ -17,21 +18,34 @@ class EghuActionCreateBloc
   EghuActionCreateBloc({
     required ActionMenuType actionType,
     required EghuActionSubmitApi api,
+    EghuActionDetailApi? detailApi,
+    EghuRemovalDetail? detail,
     int? employeeId,
     String? employeeName,
     int? regionId,
     int? districtId,
     DateTime? initialStampDateTime,
   }) : _api = api,
+       _detailApi = detailApi,
        super(
-         EghuActionCreateState(
-           actionType: actionType,
-           employeeId: employeeId,
-           employeeName: employeeName,
-           profileRegionId: regionId,
-           profileDistrictId: districtId,
-           stampDateTime: initialStampDateTime ?? DateTime.now(),
-         ),
+         detail != null
+             ? EghuActionCreateState.fromDetail(
+                 detail,
+                 actionType,
+                 employeeId: employeeId,
+                 employeeName: employeeName,
+                 regionId: regionId,
+                 districtId: districtId,
+                 now: initialStampDateTime,
+               )
+             : EghuActionCreateState(
+                 actionType: actionType,
+                 employeeId: employeeId,
+                 employeeName: employeeName,
+                 profileRegionId: regionId,
+                 profileDistrictId: districtId,
+                 stampDateTime: initialStampDateTime ?? DateTime.now(),
+               ),
        ) {
     on<EghuActionConsumerSelected>(_onConsumerSelected);
     on<EghuActionEghuSelected>(_onEghuSelected);
@@ -44,6 +58,7 @@ class EghuActionCreateBloc
   }
 
   final EghuActionSubmitApi _api;
+  final EghuActionDetailApi? _detailApi;
 
   void _onConsumerSelected(
     EghuActionConsumerSelected event,
@@ -145,7 +160,12 @@ class EghuActionCreateBloc
     );
 
     try {
-      await _api.create(request);
+      final recordId = request.recordId;
+      if (recordId != null && _detailApi != null) {
+        await _detailApi.update(recordId, request);
+      } else {
+        await _api.create(request);
+      }
       emit(state.copyWith(status: EghuActionSubmitStatus.success));
     } catch (e) {
       emit(

@@ -273,11 +273,13 @@ class EghuSubmitBar extends StatelessWidget {
     required this.enabled,
     required this.loading,
     required this.onTap,
+    this.label,
   });
 
   final bool enabled;
   final bool loading;
   final VoidCallback onTap;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +304,9 @@ class EghuSubmitBar extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.check_rounded),
-          label: Text(loading ? Words.submitting.tr() : Words.finish.tr()),
+          label: Text(
+            loading ? Words.submitting.tr() : (label ?? Words.finish.tr()),
+          ),
           style: ElevatedButton.styleFrom(
             elevation: 0,
             backgroundColor: enabled

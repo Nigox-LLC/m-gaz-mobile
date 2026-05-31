@@ -1,31 +1,34 @@
-part of 'eghu_action_create_bloc.dart';
+part of 'eghu_detach_create_bloc.dart';
 
-enum EghuActionSubmitStatus { initial, submitting, success, failure }
+enum EghuDetachSubmitStatus { initial, submitting, success, failure }
 
-class EghuActionCreateState extends Equatable {
-  const EghuActionCreateState({
-    required this.actionType,
+class EghuDetachCreateState extends Equatable {
+  const EghuDetachCreateState({
     this.selectedConsumer,
     this.selectedConsumerDetail,
     this.selectedEghu,
+    this.reason,
+    this.otherReason = '',
+    this.sealStatus,
     this.actFile,
-    this.comparisonFile,
+    this.proofFile,
+    this.protocolFile,
+    this.gasSupplyStopped,
     this.stampNumber = '',
     this.stampDateTime,
     this.employeeId,
     this.employeeName,
     this.profileRegionId,
     this.profileDistrictId,
-    this.status = EghuActionSubmitStatus.initial,
+    this.status = EghuDetachSubmitStatus.initial,
     this.errorMessage = '',
     this.lastSubmittedRequest,
     this.recordId,
     this.stampRealId,
   });
 
-  factory EghuActionCreateState.fromDetail(
-    EghuRemovalDetail detail,
-    ActionMenuType actionType, {
+  factory EghuDetachCreateState.fromDetail(
+    EghuRemovalDetail detail, {
     int? employeeId,
     String? employeeName,
     int? regionId,
@@ -37,24 +40,31 @@ class EghuActionCreateState extends Equatable {
         _parseDate(firstReal?.installedDate) ?? now ?? DateTime.now();
 
     EghuActionAttachment? actFile;
-    EghuActionAttachment? comparisonFile;
+    EghuActionAttachment? proofFile;
+    EghuActionAttachment? protocolFile;
     for (final akt in detail.akts) {
       final attachment = _attachmentFromAkt(akt);
       if (attachment == null) continue;
       switch (akt.aktFileType) {
         case 'akt':
           actFile = attachment;
-        case 'calibration':
-          comparisonFile = attachment;
+        case 'proof':
+          proofFile = attachment;
+        case 'protocol':
+          protocolFile = attachment;
       }
     }
 
-    return EghuActionCreateState(
-      actionType: actionType,
+    return EghuDetachCreateState(
       selectedConsumer: _consumerStub(detail),
       selectedEghu: _eghuStub(detail),
+      reason: _reasonFromApi(detail.reason),
+      otherReason: detail.otherReason ?? '',
+      sealStatus: _sealStatusFromApi(detail.sealStatus),
+      gasSupplyStopped: _gasSupplyStoppedFromApi(detail.gasSupplyStopped),
       actFile: actFile,
-      comparisonFile: comparisonFile,
+      proofFile: proofFile,
+      protocolFile: protocolFile,
       stampNumber: firstReal?.realNumberValue ?? '',
       stampDateTime: stampDate,
       recordId: detail.id,
@@ -66,19 +76,23 @@ class EghuActionCreateState extends Equatable {
     );
   }
 
-  final ActionMenuType actionType;
   final WorkingWithConsumersList? selectedConsumer;
   final WorkingWithConsumersDetailModel? selectedConsumerDetail;
   final ConsumersEgxuItem? selectedEghu;
+  final EghuDetachReason? reason;
+  final String otherReason;
+  final EghuDetachSealStatus? sealStatus;
   final EghuActionAttachment? actFile;
-  final EghuActionAttachment? comparisonFile;
+  final EghuActionAttachment? proofFile;
+  final EghuActionAttachment? protocolFile;
+  final EghuGasSupplyStopped? gasSupplyStopped;
   final String stampNumber;
   final DateTime? stampDateTime;
   final int? employeeId;
   final String? employeeName;
   final int? profileRegionId;
   final int? profileDistrictId;
-  final EghuActionSubmitStatus status;
+  final EghuDetachSubmitStatus status;
   final String errorMessage;
   final EghuActionCreateRequest? lastSubmittedRequest;
   final int? recordId;
@@ -86,36 +100,58 @@ class EghuActionCreateState extends Equatable {
 
   bool get isEdit => recordId != null;
 
+  bool get shouldShowOtherReason => reason == EghuDetachReason.other;
+
+  bool get shouldShowAct => sealStatus == EghuDetachSealStatus.defective;
+
+  bool get shouldShowProof => sealStatus == EghuDetachSealStatus.working;
+
+  bool get shouldShowGasSupplyStopped =>
+      sealStatus == EghuDetachSealStatus.defective && actFile != null;
+
+  bool get shouldShowStamp =>
+      sealStatus == EghuDetachSealStatus.defective &&
+      actFile != null &&
+      gasSupplyStopped == EghuGasSupplyStopped.yes;
+
+  bool get shouldShowProtocol =>
+      sealStatus == EghuDetachSealStatus.defective &&
+      actFile != null &&
+      gasSupplyStopped == EghuGasSupplyStopped.no;
+
   bool get canSubmit =>
       selectedConsumer != null &&
       selectedEghu?.id != null &&
-      actFile != null &&
-      comparisonFile != null &&
-      stampNumber.trim().isNotEmpty &&
-      stampDateTime != null;
+      reason != null &&
+      (!shouldShowOtherReason || otherReason.trim().isNotEmpty) &&
+      sealStatus != null &&
+      (!shouldShowProof || proofFile != null) &&
+      (!shouldShowAct || actFile != null) &&
+      (sealStatus != EghuDetachSealStatus.defective ||
+          gasSupplyStopped != null) &&
+      (!shouldShowStamp ||
+          (stampNumber.trim().isNotEmpty && stampDateTime != null)) &&
+      (!shouldShowProtocol || protocolFile != null) &&
+      status != EghuDetachSubmitStatus.submitting;
 
-  EghuActionCreateRequest? toRequest() {
-    final consumer = selectedConsumer;
-    final eghu = selectedEghu;
-    final act = actFile;
-    final comparison = comparisonFile;
-    final date = stampDateTime;
+  EghuActionCreateRequest? toRequest({required DateTime now}) {
+    if (!canSubmit) return null;
 
-    if (consumer == null ||
-        eghu?.id == null ||
-        act == null ||
-        comparison == null ||
-        stampNumber.trim().isEmpty ||
-        date == null) {
-      return null;
-    }
+    final consumer = selectedConsumer!;
+    final eghu = selectedEghu!;
+    final selectedReason = reason!;
+    final selectedSealStatus = sealStatus!;
+    final selectedGasSupplyStopped =
+        selectedSealStatus == EghuDetachSealStatus.working
+        ? EghuGasSupplyStopped.no
+        : gasSupplyStopped!;
 
     return EghuActionCreateRequest(
-      actionType: actionType,
+      actionType: ActionMenuType.detach,
       consumerDocumentId: consumer.id,
-      egxuItemId: eghu!.id!,
-      stampNumber: stampNumber.trim(),
-      stampDateTime: date,
+      egxuItemId: eghu.id!,
+      stampNumber: shouldShowStamp ? stampNumber.trim() : '',
+      stampDateTime: stampDateTime ?? now,
       regionId: selectedConsumerDetail?.region?.id ?? profileRegionId ?? 0,
       districtId:
           selectedConsumerDetail?.district?.id ?? profileDistrictId ?? 0,
@@ -125,51 +161,46 @@ class EghuActionCreateState extends Equatable {
           _parseInt(eghu.consumerRelationEgxu?.typeOfActivity) ??
           0,
       documentType: 'consumer',
-      removalReason: _removalReason,
-      gasUsageStatus: _gasUsageStatus,
+      removalReason: 'for_repair',
+      gasUsageStatus: 'used',
       usageType: 'all_gas_devices',
       hourlyGasConsumption: _hourlyGasConsumption(eghu),
       dailyConsumption: _hourlyGasConsumption(eghu) * 24,
-      replacementReason: _replacementReason,
-      actFile: act,
-      comparisonFile: comparison,
+      replacementReason: 'EGHU yechib olish',
+      actFile: shouldShowAct ? actFile : null,
+      proofFile: shouldShowProof ? proofFile : null,
+      protocolFile: shouldShowProtocol ? protocolFile : null,
+      comparisonFile: null,
       employeeId: selectedConsumerDetail?.employee?.id ?? employeeId,
       egxuTypeId: eghu.egxuType?.id,
       oneFactory: eghu.oneFactory,
       twoFactory: eghu.twoFactory,
+      reason: selectedReason.apiValue,
+      otherReason: selectedReason == EghuDetachReason.other
+          ? otherReason.trim()
+          : null,
+      sealStatus: selectedSealStatus.apiValue,
+      gasSupplyStopped: selectedGasSupplyStopped.apiValue,
       recordId: recordId,
-      stampRealId: stampRealId,
+      stampRealId: shouldShowStamp ? stampRealId : null,
       existingAktIds: _existingAktIds(),
     );
   }
 
   List<int> _existingAktIds() {
     final ids = <int>[];
-    for (final attachment in <EghuActionAttachment?>[actFile, comparisonFile]) {
-      if (attachment == null || !attachment.isRemote) continue;
+    for (final entry in <(EghuActionAttachment?, bool)>[
+      (actFile, shouldShowAct),
+      (proofFile, shouldShowProof),
+      (protocolFile, shouldShowProtocol),
+    ]) {
+      final attachment = entry.$1;
+      if (!entry.$2 || attachment == null || !attachment.isRemote) continue;
       final aktId = attachment.remoteAktId;
       if (aktId != null) ids.add(aktId);
     }
     return ids;
   }
-
-  String get _removalReason => switch (actionType) {
-    ActionMenuType.reinstall => 'other_type_or_factory',
-    ActionMenuType.detach => 'for_repair',
-    ActionMenuType.indicatorUpload => 'other_type_or_factory',
-  };
-
-  String get _gasUsageStatus => switch (actionType) {
-    ActionMenuType.reinstall => 'tagged',
-    ActionMenuType.detach => 'used',
-    ActionMenuType.indicatorUpload => 'used',
-  };
-
-  String get _replacementReason => switch (actionType) {
-    ActionMenuType.reinstall => "EGHU qayta o'rnatish",
-    ActionMenuType.detach => 'EGHU yechib olish',
-    ActionMenuType.indicatorUpload => "EGHU ko'rsatkichi yuklash",
-  };
 
   num _hourlyGasConsumption(ConsumersEgxuItem eghu) {
     final equipment = eghu.gasEquipmentList;
@@ -246,30 +277,64 @@ class EghuActionCreateState extends Equatable {
         lower.endsWith('.heic');
   }
 
-  EghuActionCreateState copyWith({
+  static EghuDetachReason? _reasonFromApi(String? value) {
+    if (value == null) return null;
+    for (final reason in EghuDetachReason.values) {
+      if (reason.apiValue == value) return reason;
+    }
+    return null;
+  }
+
+  static EghuDetachSealStatus? _sealStatusFromApi(String? value) {
+    if (value == null) return null;
+    for (final status in EghuDetachSealStatus.values) {
+      if (status.apiValue == value) return status;
+    }
+    return null;
+  }
+
+  static EghuGasSupplyStopped? _gasSupplyStoppedFromApi(String? value) {
+    if (value == null) return null;
+    for (final option in EghuGasSupplyStopped.values) {
+      if (option.apiValue == value) return option;
+    }
+    return null;
+  }
+
+  EghuDetachCreateState copyWith({
     WorkingWithConsumersList? selectedConsumer,
     WorkingWithConsumersDetailModel? selectedConsumerDetail,
     ConsumersEgxuItem? selectedEghu,
+    EghuDetachReason? reason,
+    String? otherReason,
+    EghuDetachSealStatus? sealStatus,
     EghuActionAttachment? actFile,
-    EghuActionAttachment? comparisonFile,
+    EghuActionAttachment? proofFile,
+    EghuActionAttachment? protocolFile,
+    EghuGasSupplyStopped? gasSupplyStopped,
     String? stampNumber,
     DateTime? stampDateTime,
     int? employeeId,
     String? employeeName,
     int? profileRegionId,
     int? profileDistrictId,
-    EghuActionSubmitStatus? status,
+    EghuDetachSubmitStatus? status,
     String? errorMessage,
     EghuActionCreateRequest? lastSubmittedRequest,
     int? recordId,
     int? stampRealId,
     bool clearSelectedEghu = false,
     bool clearSelectedConsumerDetail = false,
+    bool clearReason = false,
+    bool clearOtherReason = false,
+    bool clearSealStatus = false,
     bool clearActFile = false,
-    bool clearComparisonFile = false,
+    bool clearProofFile = false,
+    bool clearProtocolFile = false,
+    bool clearGasSupplyStopped = false,
+    bool clearStamp = false,
   }) {
-    return EghuActionCreateState(
-      actionType: actionType,
+    return EghuDetachCreateState(
       selectedConsumer: selectedConsumer ?? this.selectedConsumer,
       selectedConsumerDetail: clearSelectedConsumerDetail
           ? null
@@ -277,12 +342,19 @@ class EghuActionCreateState extends Equatable {
       selectedEghu: clearSelectedEghu
           ? null
           : (selectedEghu ?? this.selectedEghu),
+      reason: clearReason ? null : (reason ?? this.reason),
+      otherReason: clearOtherReason ? '' : (otherReason ?? this.otherReason),
+      sealStatus: clearSealStatus ? null : (sealStatus ?? this.sealStatus),
       actFile: clearActFile ? null : (actFile ?? this.actFile),
-      comparisonFile: clearComparisonFile
+      proofFile: clearProofFile ? null : (proofFile ?? this.proofFile),
+      protocolFile: clearProtocolFile
           ? null
-          : (comparisonFile ?? this.comparisonFile),
-      stampNumber: stampNumber ?? this.stampNumber,
-      stampDateTime: stampDateTime ?? this.stampDateTime,
+          : (protocolFile ?? this.protocolFile),
+      gasSupplyStopped: clearGasSupplyStopped
+          ? null
+          : (gasSupplyStopped ?? this.gasSupplyStopped),
+      stampNumber: clearStamp ? '' : (stampNumber ?? this.stampNumber),
+      stampDateTime: clearStamp ? null : (stampDateTime ?? this.stampDateTime),
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
       profileRegionId: profileRegionId ?? this.profileRegionId,
@@ -297,12 +369,16 @@ class EghuActionCreateState extends Equatable {
 
   @override
   List<Object?> get props => [
-    actionType,
     selectedConsumer,
     selectedConsumerDetail,
     selectedEghu,
+    reason,
+    otherReason,
+    sealStatus,
     actFile,
-    comparisonFile,
+    proofFile,
+    protocolFile,
+    gasSupplyStopped,
     stampNumber,
     stampDateTime,
     employeeId,

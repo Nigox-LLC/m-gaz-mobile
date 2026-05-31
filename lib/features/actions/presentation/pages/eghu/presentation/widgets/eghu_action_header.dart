@@ -9,11 +9,19 @@ class EghuActionHeader extends StatelessWidget {
     required this.title,
     this.onBack,
     this.onAdd,
+    this.searchController,
+    this.onSearchChanged,
+    this.onFilter,
+    this.filterActive = false,
   });
 
   final String title;
   final VoidCallback? onBack;
   final VoidCallback? onAdd;
+  final TextEditingController? searchController;
+  final ValueChanged<String>? onSearchChanged;
+  final VoidCallback? onFilter;
+  final bool filterActive;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +52,12 @@ class EghuActionHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        const EghuSearchFilterBar(),
+        EghuSearchFilterBar(
+          controller: searchController,
+          onChanged: onSearchChanged,
+          onFilter: onFilter,
+          filterActive: filterActive,
+        ),
       ],
     );
   }
@@ -117,55 +130,131 @@ class _AddActionButton extends StatelessWidget {
 }
 
 class EghuSearchFilterBar extends StatelessWidget {
-  const EghuSearchFilterBar({super.key});
+  const EghuSearchFilterBar({
+    super.key,
+    this.controller,
+    this.onChanged,
+    this.onFilter,
+    this.filterActive = false,
+  });
+
+  final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onFilter;
+  final bool filterActive;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.only(left: 12, right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9F9F9),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE8E8E8)),
-            ),
-            child: Row(
+          child: EghuSearchField(controller: controller, onChanged: onChanged),
+        ),
+        const SizedBox(width: 12),
+        Material(
+          color: const Color(0xFFF9F9F9),
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            key: const Key('eghu-list-filter-button'),
+            borderRadius: BorderRadius.circular(16),
+            onTap: onFilter,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                AppTools.svg(AppTools.icSearchIcon, width: 24, height: 24),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    Words.search.tr().replaceAll('...', ''),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      height: 20 / 13,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFFBBBBBB),
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: filterActive
+                          ? const Color(0xFF526ED3)
+                          : const Color(0xFFE8E8E8),
                     ),
                   ),
+                  child: AppTools.svg(
+                    AppTools.icFilterIcon,
+                    width: 16,
+                    height: 16,
+                  ),
                 ),
+                if (filterActive)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF526ED3),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF9F9F9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8E8E8)),
-          ),
-          child: AppTools.svg(AppTools.icFilterIcon, width: 16, height: 16),
-        ),
       ],
+    );
+  }
+}
+
+class EghuSearchField extends StatelessWidget {
+  const EghuSearchField({super.key, this.controller, this.onChanged});
+
+  final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: TextFormField(
+        key: const Key('eghu-list-search-field'),
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        style: GoogleFonts.manrope(
+          fontSize: 13,
+          height: 20 / 13,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF202020),
+        ),
+        decoration: InputDecoration(
+          hintText: Words.search.tr().replaceAll('...', ''),
+          hintStyle: GoogleFonts.manrope(
+            fontSize: 13,
+            height: 20 / 13,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFFBBBBBB),
+          ),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            child: AppTools.svg(AppTools.icSearchIcon, width: 24, height: 24),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 44,
+          ),
+          filled: true,
+          fillColor: const Color(0xFFF9F9F9),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: _border(),
+          enabledBorder: _border(),
+          focusedBorder: _border(const Color(0xFF526ED3)),
+        ),
+      ),
+    );
+  }
+
+  OutlineInputBorder _border([Color color = const Color(0xFFE8E8E8)]) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: color),
     );
   }
 }

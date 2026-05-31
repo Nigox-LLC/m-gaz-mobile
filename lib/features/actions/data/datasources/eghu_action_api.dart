@@ -5,10 +5,17 @@ import '../../../../core/models/paginated_response/paginated_response.dart';
 import '../../domain/entities/action_menu_item.dart';
 import '../models/eghu_action_attachment.dart';
 import '../models/eghu_action_create_request.dart';
+import '../models/eghu_removal_detail.dart';
 import '../models/eghu_working_document.dart';
 
 abstract class EghuActionSubmitApi {
   Future<void> create(EghuActionCreateRequest request);
+}
+
+abstract class EghuActionDetailApi {
+  Future<EghuRemovalDetail> getDetail(int id);
+
+  Future<void> update(int id, EghuActionCreateRequest request);
 }
 
 abstract class EghuActionListApi {
@@ -16,12 +23,19 @@ abstract class EghuActionListApi {
     int limit = 10,
     int offset = 0,
     ActionMenuType? actionType,
+    String? search,
+    DateTime? createdAtFrom,
+    DateTime? createdAtTo,
+    int? regionId,
+    int? districtId,
+    String? reason,
   });
 
   Future<PaginatedResponse<EghuWorkingDocument>> getNextPage(String url);
 }
 
-class EghuActionApi implements EghuActionSubmitApi, EghuActionListApi {
+class EghuActionApi
+    implements EghuActionSubmitApi, EghuActionListApi, EghuActionDetailApi {
   const EghuActionApi(this._base);
 
   final ApiBase _base;
@@ -37,8 +51,15 @@ class EghuActionApi implements EghuActionSubmitApi, EghuActionListApi {
     int limit = 10,
     int offset = 0,
     ActionMenuType? actionType,
+    String? search,
+    DateTime? createdAtFrom,
+    DateTime? createdAtTo,
+    int? regionId,
+    int? districtId,
+    String? reason,
   }) async {
     try {
+      final trimmedSearch = search?.trim();
       final response = await _base.dio.get(
         egxuRemovalsEndpoint,
         queryParameters: {
@@ -46,6 +67,14 @@ class EghuActionApi implements EghuActionSubmitApi, EghuActionListApi {
           'offset': offset,
           if (_documentTypeForAction(actionType) != null)
             'document_type': _documentTypeForAction(actionType),
+          if (trimmedSearch?.isNotEmpty == true) 'search': trimmedSearch,
+          if (createdAtFrom != null)
+            'created_at_from': _dateQueryValue(createdAtFrom),
+          if (createdAtTo != null)
+            'created_at_to': _dateQueryValue(createdAtTo),
+          if (regionId != null) 'region': regionId,
+          if (districtId != null) 'district': districtId,
+          if (reason?.trim().isNotEmpty == true) 'reason': reason!.trim(),
         },
       );
 
@@ -89,10 +118,11 @@ class EghuActionApi implements EghuActionSubmitApi, EghuActionListApi {
 
     final uploadedAktIds = <int>[];
     try {
-      uploadedAktIds.add(await _uploadAktFile(request.actFile, 'akt'));
-      uploadedAktIds.add(
-        await _uploadAktFile(request.comparisonFile, 'calibration'),
-      );
+      for (final upload in _uploadsForRequest(request)) {
+        uploadedAktIds.add(
+          await _uploadAktFile(upload.attachment, upload.aktFileType),
+        );
+      }
 
       final response = await _base.dio.post(
         egxuRemovalsEndpoint,
@@ -110,6 +140,73 @@ class EghuActionApi implements EghuActionSubmitApi, EghuActionListApi {
       await _deleteUploadedAktFiles(uploadedAktIds);
       rethrow;
     }
+  }
+
+  @override
+  Future<EghuRemovalDetail> getDetail(int id) async {
+    try {
+      final response = await _base.dio.get('$egxuRemovalsEndpoint$id/');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map) {
+          return EghuRemovalDetail.fromJson(Map<String, dynamic>.from(data));
+        }
+        throw Exception("Noto'g'ri javob formati");
+      }
+
+      throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  @override
+  Future<void> update(int id, EghuActionCreateRequest request) async {
+    if (request.actionType == ActionMenuType.indicatorUpload) {
+      throw UnsupportedError(
+        'EGHU indicator upload is not supported by this update flow.',
+      );
+    }
+
+    final uploadedAktIds = <int>[];
+    try {
+      for (final upload in _uploadsForRequest(request)) {
+        uploadedAktIds.add(
+          await _uploadAktFile(upload.attachment, upload.aktFileType),
+        );
+      }
+
+      final aktIds = [...request.existingAktIds, ...uploadedAktIds];
+      final response = await _base.dio.put(
+        '$egxuRemovalsEndpoint$id/',
+        data: request.toJson(aktIds: aktIds),
+        options: Options(contentType: Headers.jsonContentType),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      await _deleteUploadedAktFiles(uploadedAktIds);
+      throw Exception(_messageFromDio(e));
+    } catch (_) {
+      await _deleteUploadedAktFiles(uploadedAktIds);
+      rethrow;
+    }
+  }
+
+  List<_AktUpload> _uploadsForRequest(EghuActionCreateRequest request) {
+    return [
+      for (final entry in <(EghuActionAttachment?, String)>[
+        (request.actFile, 'akt'),
+        (request.proofFile, 'proof'),
+        (request.protocolFile, 'protocol'),
+        (request.comparisonFile, 'calibration'),
+      ])
+        if (entry.$1 != null && !entry.$1!.isRemote)
+          _AktUpload(entry.$1!, entry.$2),
+    ];
   }
 
   Future<int> _uploadAktFile(
@@ -191,6 +288,13 @@ class EghuActionApi implements EghuActionSubmitApi, EghuActionListApi {
     };
   }
 
+  String _dateQueryValue(DateTime value) {
+    final local = value.toLocal();
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+  }
+
   int? _parseInt(Object? value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -235,4 +339,11 @@ class EghuActionApi implements EghuActionSubmitApi, EghuActionListApi {
     if (value is Map) return _messageFromResponseData(value);
     return value.toString();
   }
+}
+
+class _AktUpload {
+  const _AktUpload(this.attachment, this.aktFileType);
+
+  final EghuActionAttachment attachment;
+  final String aktFileType;
 }

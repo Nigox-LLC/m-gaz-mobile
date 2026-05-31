@@ -11,6 +11,9 @@ class EghuWorkingDocument extends Equatable {
     required this.documentTypeDisplay,
     required this.employee,
     required this.isActive,
+    this.personalAccount = '',
+    this.factoryNumber1,
+    this.factoryNumber2,
   });
 
   final int id;
@@ -22,6 +25,9 @@ class EghuWorkingDocument extends Equatable {
   final String documentTypeDisplay;
   final String employee;
   final bool isActive;
+  final String personalAccount;
+  final String? factoryNumber1;
+  final String? factoryNumber2;
 
   factory EghuWorkingDocument.fromJson(Map<String, dynamic> json) {
     final consumer = _mapValue(json['consumer']);
@@ -45,11 +51,13 @@ class EghuWorkingDocument extends Equatable {
         json['region'],
         consumer?['region'],
         consumer?['region_name'],
+        _mapValue(consumer?['region_info'])?['name'],
       ]),
       district: _firstText([
         json['district'],
         consumer?['district'],
         consumer?['district_name'],
+        _mapValue(consumer?['district_info'])?['name'],
       ]),
       typeOfActivity: _firstText([
         json['type_of_activity'],
@@ -65,9 +73,20 @@ class EghuWorkingDocument extends Equatable {
       employee: _firstText([
         json['employee'],
         json['employee_full_name'],
+        consumer?['employee'],
         firstReal?['employee_full_name'],
       ]),
       isActive: json['is_active'] == true,
+      personalAccount: _firstText([
+        json['personal_account'],
+        json['facial'],
+        consumer?['facial'],
+        consumer?['personal_account'],
+        consumer?['account_number'],
+        _plainValue(json['consumer']),
+      ]),
+      factoryNumber1: egxu?['one_factory'],
+      factoryNumber2: egxu?['two_factory'],
     );
   }
 
@@ -82,12 +101,20 @@ class EghuWorkingDocument extends Equatable {
     documentTypeDisplay,
     employee,
     isActive,
+    personalAccount,
+    factoryNumber1,
+    factoryNumber2,
   ];
 }
 
 Map<String, dynamic>? _mapValue(Object? value) {
   if (value is Map) return Map<String, dynamic>.from(value);
   return null;
+}
+
+Object? _plainValue(Object? value) {
+  if (value is Map || value is List) return null;
+  return value;
 }
 
 String _firstText(List<Object?> values) {

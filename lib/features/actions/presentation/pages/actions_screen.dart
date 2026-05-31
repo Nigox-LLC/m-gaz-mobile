@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_indicator_upload_page.dart';
 import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_reset.dart';
 import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_take_off.dart';
 import 'package:m_gaz/features/actions/presentation/widgets/action_card.dart';
@@ -75,6 +76,8 @@ class ActionsScreen extends StatelessWidget {
         const EghuResetPage(),
       (ActionMenuCategory.eghu, ActionMenuType.detach) =>
         const EghuTakeOffPage(),
+      (ActionMenuCategory.eghu, ActionMenuType.indicatorUpload) =>
+        const EghuIndicatorUploadPage(),
       _ => null,
     };
 

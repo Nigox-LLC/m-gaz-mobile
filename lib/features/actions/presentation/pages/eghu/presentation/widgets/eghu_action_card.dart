@@ -53,17 +53,10 @@ class EghuActionCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _InlineInfo(
-                          label:
-                              data.personalAccountLabel ??
-                              '${Words.personalAccountLabel.tr()}:',
-                          value: data.personalAccount,
-                        ),
+                        _InlineInfo(label: data.personalAccountLabel ?? '${Words.personalAccountLabel.tr()}:', value: data.personalAccount),
                         const SizedBox(height: 2),
                         _InlineInfo(
-                          label:
-                              data.factoryNumberLabel ??
-                              '${Words.factoryNumberLabel.tr()}:',
+                          label: data.factoryNumberLabel ?? '${Words.factoryNumberLabel.tr()}:',
                           value: data.factoryNumber,
                           valueBold: false,
                           labelColor: const Color(0xA61B1F3B),
@@ -77,34 +70,29 @@ class EghuActionCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              _CardDetailRow(
-                icon: AppTools.svg(AppTools.icMapPin, width: 16, height: 16),
-                label: Words.region.tr(),
-                value: data.region,
-              ),
+              _CardDetailRow(icon: AppTools.svg(AppTools.icMapPin, width: 16, height: 16), label: Words.region.tr(), value: data.region),
               const SizedBox(height: 4),
-              _CardDetailRow(
-                icon: AppTools.svg(
-                  AppTools.icNavigation,
-                  width: 16,
-                  height: 16,
-                ),
-                label: Words.district.tr(),
-                value: data.district,
-              ),
+              _CardDetailRow(icon: AppTools.svg(AppTools.icNavigation, width: 16, height: 16), label: Words.district.tr(), value: data.district),
               const SizedBox(height: 4),
               _CardDetailRow(
                 icon: AppTools.svg(AppTools.icCalendar, width: 16, height: 16),
                 label: Words.date.tr(),
-                value: data.date,
+                value: _dateWithTime(data.date),
                 valueBold: true,
               ),
-              const SizedBox(height: 4),
-              _CardDetailRow(
-                icon: AppTools.svg(AppTools.icBreifcase, width: 16, height: 16),
-                label: Words.employee.tr(),
-                value: data.employee,
-                valueBold: true,
+              Visibility(
+                visible: data.employee.isNotEmpty,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 4),
+                    _CardDetailRow(
+                      icon: AppTools.svg(AppTools.icBreifcase, width: 16, height: 16),
+                      label: Words.employee.tr(),
+                      value: data.employee,
+                      valueBold: true,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -112,6 +100,17 @@ class EghuActionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _dateWithTime(String value) {
+  final date = value.trim();
+  if (RegExp(r'^\d{2}\.\d{2}\.\d{4}$').hasMatch(date)) {
+    return '$date 00:00:00';
+  }
+  if (RegExp(r'^\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2}$').hasMatch(date)) {
+    return '$date:00';
+  }
+  return date;
 }
 
 class _SpeedBadge extends StatelessWidget {
@@ -122,16 +121,9 @@ class _SpeedBadge extends StatelessWidget {
     return Container(
       width: 48,
       height: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFCFC),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFFCFCFC), borderRadius: BorderRadius.circular(12)),
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.speed_rounded,
-        size: 28,
-        color: Color(0xFF335CFF),
-      ),
+      child: const Icon(Icons.speed_rounded, size: 28, color: Color(0xFF335CFF)),
     );
   }
 }
@@ -164,12 +156,7 @@ class _InlineInfo extends StatelessWidget {
         children: [
           TextSpan(
             text: '$label  ',
-            style: GoogleFonts.manrope(
-              fontSize: fontSize,
-              height: lineHeight / fontSize,
-              fontWeight: FontWeight.w500,
-              color: labelColor,
-            ),
+            style: GoogleFonts.manrope(fontSize: fontSize, height: lineHeight / fontSize, fontWeight: FontWeight.w500, color: labelColor),
           ),
           TextSpan(
             text: value,
@@ -187,12 +174,7 @@ class _InlineInfo extends StatelessWidget {
 }
 
 class _CardDetailRow extends StatelessWidget {
-  const _CardDetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.valueBold = false,
-  });
+  const _CardDetailRow({required this.icon, required this.label, required this.value, this.valueBold = false});
 
   final Widget icon;
   final String label;

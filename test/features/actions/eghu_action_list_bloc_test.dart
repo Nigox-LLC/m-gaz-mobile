@@ -49,6 +49,64 @@ void main() {
       expect(api.actionType, ActionMenuType.reinstall);
     });
 
+    test('reloads first page with server search query', () async {
+      final api = _FakeListApi(
+        first: PaginatedResponse(
+          count: 1,
+          next: null,
+          previous: null,
+          results: [_document(id: 1)],
+        ),
+      );
+      final bloc = EghuActionListBloc(api: api);
+      addTearDown(bloc.close);
+
+      bloc.add(const EghuActionListSearchChanged('1430200078'));
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+      await pumpEventQueue();
+
+      expect(bloc.state.searchQuery, '1430200078');
+      expect(api.search, '1430200078');
+      expect(api.requestedOffset, 0);
+    });
+
+    test('reloads first page with selected filters', () async {
+      final api = _FakeListApi(
+        first: PaginatedResponse(
+          count: 1,
+          next: null,
+          previous: null,
+          results: [_document(id: 1)],
+        ),
+      );
+      final bloc = EghuActionListBloc(
+        api: api,
+        actionType: ActionMenuType.detach,
+      );
+      addTearDown(bloc.close);
+      final filter = EghuActionListFilter(
+        dateFrom: DateTime(2026, 5),
+        dateTo: DateTime(2026, 5, 31),
+        regionId: 7,
+        regionName: 'Samarqand',
+        districtId: 88,
+        districtName: 'Samarqand shahar',
+        reason: EghuActionReasonFilter.repair,
+      );
+
+      bloc.add(EghuActionListFilterChanged(filter));
+      await pumpEventQueue();
+
+      expect(bloc.state.filter, filter);
+      expect(bloc.state.hasActiveFilters, isTrue);
+      expect(api.actionType, ActionMenuType.detach);
+      expect(api.createdAtFrom, DateTime(2026, 5));
+      expect(api.createdAtTo, DateTime(2026, 5, 31));
+      expect(api.regionId, 7);
+      expect(api.districtId, 88);
+      expect(api.reason, 'repair');
+    });
+
     test('loads next page when next URL exists', () async {
       final api = _FakeListApi(
         first: PaginatedResponse(
@@ -102,6 +160,12 @@ class _FakeListApi implements EghuActionListApi {
   int? requestedLimit;
   int? requestedOffset;
   ActionMenuType? actionType;
+  String? search;
+  DateTime? createdAtFrom;
+  DateTime? createdAtTo;
+  int? regionId;
+  int? districtId;
+  String? reason;
   String? nextUrl;
 
   @override
@@ -109,10 +173,22 @@ class _FakeListApi implements EghuActionListApi {
     int limit = 10,
     int offset = 0,
     ActionMenuType? actionType,
+    String? search,
+    DateTime? createdAtFrom,
+    DateTime? createdAtTo,
+    int? regionId,
+    int? districtId,
+    String? reason,
   }) async {
     requestedLimit = limit;
     requestedOffset = offset;
     this.actionType = actionType;
+    this.search = search;
+    this.createdAtFrom = createdAtFrom;
+    this.createdAtTo = createdAtTo;
+    this.regionId = regionId;
+    this.districtId = districtId;
+    this.reason = reason;
     final error = this.error;
     if (error != null) throw error;
     return first ??

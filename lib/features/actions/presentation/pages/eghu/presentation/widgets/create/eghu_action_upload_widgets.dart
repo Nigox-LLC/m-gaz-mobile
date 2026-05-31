@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -18,6 +19,9 @@ class EghuUploadSection extends StatefulWidget {
     required this.onRemove,
     this.showHelp = false,
     this.uploaderName,
+    this.title,
+    this.emptyText,
+    this.keyName,
   });
 
   final EghuActionAttachmentSlot slot;
@@ -26,6 +30,9 @@ class EghuUploadSection extends StatefulWidget {
   final VoidCallback onRemove;
   final bool showHelp;
   final String? uploaderName;
+  final String? title;
+  final String? emptyText;
+  final String? keyName;
 
   @override
   State<EghuUploadSection> createState() => _EghuUploadSectionState();
@@ -51,28 +58,31 @@ class _EghuUploadSectionState extends State<EghuUploadSection> {
   Widget build(BuildContext context) {
     final attachment = widget.attachment;
     final canShowHelp = widget.showHelp && attachment != null;
+    final keyName = widget.keyName ?? widget.slot.name;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         EghuSectionHeader(
-          title: widget.slot.title,
+          title: widget.title ?? widget.slot.title,
           onAdd: widget.onAdd,
           showHelp: canShowHelp,
           onHelp: canShowHelp
               ? () => setState(() => _showDetails = !_showDetails)
               : null,
-          helpKey: Key('eghu-upload-help-${widget.slot.name}'),
+          helpKey: Key('eghu-upload-help-$keyName'),
         ),
-        if (_showDetails && attachment != null) const _TooltipDot(),
-        SizedBox(height: _showDetails && attachment != null ? 2 : 8),
+        SizedBox(height: 8),
         if (attachment == null)
-          _UploadDropZone(onTap: widget.onAdd)
+          _UploadDropZone(
+            onTap: widget.onAdd,
+            text: widget.emptyText ?? Words.sendFile.tr(),
+          )
         else if (attachment.isImage)
           _ImagePreview(
             attachment: attachment,
             showDetails: _showDetails,
-            slot: widget.slot,
+            keyName: keyName,
             uploaderName: widget.uploaderName,
             onRemove: _removeAttachment,
           )
@@ -80,7 +90,7 @@ class _EghuUploadSectionState extends State<EghuUploadSection> {
           _FilePreview(
             attachment: attachment,
             showDetails: _showDetails,
-            slot: widget.slot,
+            keyName: keyName,
             uploaderName: widget.uploaderName,
             onRemove: _removeAttachment,
           ),
@@ -116,12 +126,12 @@ class _TooltipDot extends StatelessWidget {
 
 class _UploadInfoPanel extends StatelessWidget {
   const _UploadInfoPanel({
-    required this.slot,
+    required this.keyName,
     required this.attachment,
     required this.uploaderName,
   });
 
-  final EghuActionAttachmentSlot slot;
+  final String keyName;
   final EghuActionAttachment attachment;
   final String? uploaderName;
 
@@ -131,7 +141,7 @@ class _UploadInfoPanel extends StatelessWidget {
     final date = DateFormat('dd.MM.yyyy HH:mm').format(attachment.createdAt);
 
     return Container(
-      key: Key('eghu-upload-info-${slot.name}'),
+      key: Key('eghu-upload-info-$keyName'),
       width: 210,
       padding: const EdgeInsets.fromLTRB(12, 9, 13, 11),
       decoration: BoxDecoration(
@@ -206,9 +216,10 @@ class _InfoLine extends StatelessWidget {
 }
 
 class _UploadDropZone extends StatelessWidget {
-  const _UploadDropZone({required this.onTap});
+  const _UploadDropZone({required this.onTap, required this.text});
 
   final VoidCallback onTap;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
@@ -226,10 +237,7 @@ class _UploadDropZone extends StatelessWidget {
             children: [
               AppTools.svg(AppTools.icPaperclip),
               const SizedBox(width: 8),
-              Text(
-                Words.sendFile.tr(),
-                style: eghuText(fontSize: 15, lineHeight: 24),
-              ),
+              Text(text, style: eghuText(fontSize: 15, lineHeight: 24)),
             ],
           ),
         ),
@@ -242,14 +250,14 @@ class _ImagePreview extends StatelessWidget {
   const _ImagePreview({
     required this.attachment,
     required this.showDetails,
-    required this.slot,
+    required this.keyName,
     required this.uploaderName,
     required this.onRemove,
   });
 
   final EghuActionAttachment attachment;
   final bool showDetails;
-  final EghuActionAttachmentSlot slot;
+  final String keyName;
   final String? uploaderName;
   final VoidCallback onRemove;
 
@@ -271,7 +279,22 @@ class _ImagePreview extends StatelessWidget {
                   child: Container(
                     key: const Key('eghu-upload-image-preview'),
                     color: EghuActionCreateColors.field,
-                    child: attachment.exists
+                    child: attachment.isRemote
+                        ? CachedNetworkImage(
+                            imageUrl: attachment.remoteUrl!,
+                            fit: BoxFit.cover,
+                            progressIndicatorBuilder:
+                                (context, url, progress) => Center(
+                                  child: CircularProgressIndicator(
+                                    value: progress.progress,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                            errorWidget: (_, __, ___) => const Center(
+                              child: Icon(Icons.image_outlined, size: 40),
+                            ),
+                          )
+                        : attachment.exists
                         ? Image.file(File(attachment.path), fit: BoxFit.cover)
                         : const Center(
                             child: Icon(Icons.image_outlined, size: 40),
@@ -308,7 +331,7 @@ class _ImagePreview extends StatelessWidget {
                   visible: showDetails,
                   maintainState: true,
                   child: _UploadInfoPanel(
-                    slot: slot,
+                    keyName: keyName,
                     attachment: attachment,
                     uploaderName: uploaderName,
                   ),
@@ -326,14 +349,14 @@ class _FilePreview extends StatelessWidget {
   const _FilePreview({
     required this.attachment,
     required this.showDetails,
-    required this.slot,
+    required this.keyName,
     required this.uploaderName,
     required this.onRemove,
   });
 
   final EghuActionAttachment attachment;
   final bool showDetails;
-  final EghuActionAttachmentSlot slot;
+  final String keyName;
   final String? uploaderName;
   final VoidCallback onRemove;
 
@@ -365,7 +388,7 @@ class _FilePreview extends StatelessWidget {
                   visible: showDetails,
                   maintainState: true,
                   child: _UploadInfoPanel(
-                    slot: slot,
+                    keyName: keyName,
                     attachment: attachment,
                     uploaderName: uploaderName,
                   ),

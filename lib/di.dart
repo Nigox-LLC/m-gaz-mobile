@@ -8,6 +8,7 @@ import 'package:m_gaz/core/api/global/global_api.dart';
 import 'package:m_gaz/core/api/task/task_api.dart';
 import 'package:m_gaz/core/api/working-with-stamps/working_with_stamps_api.dart';
 import 'package:m_gaz/features/actions/data/datasources/eghu_action_api.dart';
+import 'package:m_gaz/features/actions/data/datasources/eghu_indicator_api.dart';
 import 'package:m_gaz/ui/home/measurement_devices/technological-measuring/bloc/tech_measures_bloc.dart';
 import 'package:m_toast/m_toast.dart';
 import 'core/api/base/base_api.dart';
@@ -72,6 +73,7 @@ Future<void> _setupFactory() async {
   di.registerLazySingleton(() => UserApi(di.get()));
   di.registerLazySingleton(() => ConsumerRelationsApi(di.get()));
   di.registerLazySingleton(() => EghuActionApi(di.get()));
+  di.registerLazySingleton(() => EghuIndicatorApi(di.get()));
   di.registerLazySingleton(() => GlobalApi(di.get()));
   di.registerLazySingleton(() => TechMeasureApi(di.get()));
   di.registerLazySingleton(() => TaskApi(di.get()));

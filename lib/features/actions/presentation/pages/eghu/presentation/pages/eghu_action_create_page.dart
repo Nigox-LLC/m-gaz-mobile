@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
-import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../../../../core/api/working_with_consumers_api/consumer_relations_api.dart';
 import '../../../../../../../core/common/words.dart';
@@ -16,17 +14,22 @@ import '../../../../../../../di.dart';
 import '../../../../../../../features/auth/presentation/bloc/login_bloc.dart';
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_action_attachment.dart';
+import '../../../../../data/models/eghu_removal_detail.dart';
 import '../../../../../domain/entities/action_menu_item.dart';
 import '../bloc/eghu_action_create_bloc.dart';
 import '../widgets/create/eghu_action_bottom_sheets.dart';
 import '../widgets/create/eghu_action_form_fields.dart';
 import '../widgets/create/eghu_action_upload_widgets.dart';
+import '../widgets/create/eghu_create_header.dart';
+import '../widgets/eghu_calendar_dialog.dart';
 
 class EghuActionCreatePage extends StatefulWidget {
   const EghuActionCreatePage({
     super.key,
     required this.actionType,
     this.api,
+    this.detailApi,
+    this.detail,
     this.consumerApi,
     this.consumerSource,
     this.bloc,
@@ -34,6 +37,8 @@ class EghuActionCreatePage extends StatefulWidget {
 
   final ActionMenuType actionType;
   final EghuActionSubmitApi? api;
+  final EghuActionDetailApi? detailApi;
+  final EghuRemovalDetail? detail;
   final ConsumerRelationsApi? consumerApi;
   final EghuActionConsumerSource? consumerSource;
   final EghuActionCreateBloc? bloc;
@@ -64,6 +69,10 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
         EghuActionCreateBloc(
           actionType: widget.actionType,
           api: widget.api ?? di.get<EghuActionApi>(),
+          detailApi:
+              widget.detailApi ??
+              (widget.detail != null ? di.get<EghuActionApi>() : null),
+          detail: widget.detail,
           employeeId: profile?.user?.employeeId,
           employeeName: profile?.user?.username,
           regionId: profile?.user?.regionId,
@@ -117,7 +126,16 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _CreateHeader(title: _title),
+                              EghuCreateHeader(
+                                title: _title,
+                                helpText: Words.eghuCreateHelpTooltip.tr(),
+                                helpButtonKey: const Key(
+                                  'eghu-create-help-button',
+                                ),
+                                helpTooltipKey: const Key(
+                                  'eghu-create-help-tooltip',
+                                ),
+                              ),
                               const SizedBox(height: 24),
                               EghuSelectorField(
                                 label: Words.consumer.tr(),
@@ -418,13 +436,12 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
       max: today,
     );
 
-    final date = await showDialog<DateTime>(
-      context: context,
-      builder: (_) => _EghuStampCalendarDialog(
-        initialDate: initialDate,
-        firstDate: DateTime(2020),
-        lastDate: today,
-      ),
+    final date = await pickEghuDate(
+      context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: today,
+      dialogKey: const Key('eghu-stamp-calendar-dialog'),
     );
     if (!context.mounted || date == null) return;
 
@@ -467,495 +484,6 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
     return lower.endsWith('.jpg') ||
         lower.endsWith('.jpeg') ||
         lower.endsWith('.png');
-  }
-}
-
-class _CreateHeader extends StatefulWidget {
-  const _CreateHeader({required this.title});
-
-  final String title;
-
-  @override
-  State<_CreateHeader> createState() => _CreateHeaderState();
-}
-
-class _CreateHeaderState extends State<_CreateHeader> {
-  final LayerLink _helpLink = LayerLink();
-  OverlayEntry? _tooltipEntry;
-
-  @override
-  void dispose() {
-    _hideTooltip();
-    super.dispose();
-  }
-
-  void _toggleTooltip() {
-    if (_tooltipEntry != null) {
-      _hideTooltip();
-      return;
-    }
-
-    _tooltipEntry = OverlayEntry(
-      builder: (context) => Positioned.fill(
-        child: IgnorePointer(
-          child: CompositedTransformFollower(
-            link: _helpLink,
-            showWhenUnlinked: false,
-            offset: const Offset(-250, 32),
-            child: const Align(
-              alignment: Alignment.topLeft,
-              widthFactor: 1,
-              heightFactor: 1,
-              child: _CreateHeaderHelpTooltip(),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(_tooltipEntry!);
-  }
-
-  void _hideTooltip() {
-    _tooltipEntry?.remove();
-    _tooltipEntry = null;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.chevron_left_rounded),
-            color: EghuActionCreateColors.textStrong,
-            iconSize: 28,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(width: 32, height: 40),
-          ),
-          Expanded(
-            child: Text(
-              widget.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
-                fontSize: 17,
-                height: 28 / 17,
-                fontWeight: FontWeight.w800,
-                color: EghuActionCreateColors.textStrong,
-              ),
-            ),
-          ),
-          CompositedTransformTarget(
-            link: _helpLink,
-            child: IconButton(
-              key: const Key('eghu-create-help-button'),
-              onPressed: _toggleTooltip,
-              icon: const Icon(Icons.help_outline_rounded),
-              color: EghuActionCreateColors.textStrong,
-              iconSize: 24,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 32, height: 40),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CreateHeaderHelpTooltip extends StatelessWidget {
-  const _CreateHeaderHelpTooltip();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      key: const Key('eghu-create-help-tooltip'),
-      width: 275,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: -4,
-            right: 2,
-            child: Container(
-              key: const Key('eghu-create-help-tooltip-dot'),
-              width: 7,
-              height: 7,
-              decoration: const BoxDecoration(
-                color: Colors.black,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.fromLTRB(12, 9, 13, 9),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9F9F9),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0D000000),
-                  blurRadius: 1.5,
-                  offset: Offset(0, 1),
-                ),
-                BoxShadow(
-                  color: Color(0x1F000000),
-                  blurRadius: 15,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Text(
-              Words.eghuCreateHelpTooltip.tr(),
-              textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
-                fontSize: 11,
-                height: 16 / 11,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.4,
-                color: EghuActionCreateColors.textStrong,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EghuStampCalendarDialog extends StatefulWidget {
-  const _EghuStampCalendarDialog({
-    required this.initialDate,
-    required this.firstDate,
-    required this.lastDate,
-  });
-
-  final DateTime initialDate;
-  final DateTime firstDate;
-  final DateTime lastDate;
-
-  @override
-  State<_EghuStampCalendarDialog> createState() =>
-      _EghuStampCalendarDialogState();
-}
-
-class _EghuStampCalendarDialogState extends State<_EghuStampCalendarDialog> {
-  late DateTime _focusedDay;
-  late DateTime _selectedDay;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusedDay = widget.initialDate;
-    _selectedDay = widget.initialDate;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context).toLanguageTag();
-
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-      backgroundColor: Colors.transparent,
-      child: Container(
-        key: const Key('eghu-stamp-calendar-dialog'),
-        width: 320,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE2E6F2)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 11,
-              offset: Offset(0, 11),
-            ),
-            BoxShadow(
-              color: Color(0x08000000),
-              blurRadius: 15,
-              offset: Offset(0, 25),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _EghuCalendarHeader(
-              focusedDay: _focusedDay,
-              firstDate: widget.firstDate,
-              lastDate: widget.lastDate,
-              locale: locale,
-              onPrevious: _canGoPrevious
-                  ? () => setState(() {
-                      _focusedDay = DateTime(
-                        _focusedDay.year,
-                        _focusedDay.month - 1,
-                      );
-                    })
-                  : null,
-              onNext: _canGoNext
-                  ? () => setState(() {
-                      _focusedDay = DateTime(
-                        _focusedDay.year,
-                        _focusedDay.month + 1,
-                      );
-                    })
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TableCalendar<void>(
-              locale: locale,
-              firstDay: widget.firstDate,
-              lastDay: widget.lastDate,
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => _isSameDate(day, _selectedDay),
-              enabledDayPredicate: (day) =>
-                  !_isDateAfter(day, widget.lastDate) &&
-                  !_isDateBefore(day, widget.firstDate),
-              headerVisible: false,
-              rowHeight: 36,
-              daysOfWeekHeight: 36,
-              availableGestures: AvailableGestures.horizontalSwipe,
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              onPageChanged: (focusedDay) =>
-                  setState(() => _focusedDay = focusedDay),
-              daysOfWeekStyle: DaysOfWeekStyle(
-                weekdayStyle: _calendarTextStyle(
-                  13,
-                  const Color(0xFFD9D9D9),
-                  lineHeight: 20,
-                ),
-                weekendStyle: _calendarTextStyle(
-                  13,
-                  const Color(0xFFD9D9D9),
-                  lineHeight: 20,
-                ),
-              ),
-              calendarStyle: const CalendarStyle(
-                outsideDaysVisible: true,
-                markerDecoration: BoxDecoration(color: Colors.transparent),
-              ),
-              calendarBuilders: CalendarBuilders<void>(
-                defaultBuilder: (context, day, focusedDay) =>
-                    _EghuCalendarDayCell(
-                      day: day,
-                      onTap: () => _handleDaySelected(day, focusedDay),
-                    ),
-                todayBuilder: (context, day, focusedDay) =>
-                    _EghuCalendarDayCell(
-                      day: day,
-                      isToday: true,
-                      onTap: () => _handleDaySelected(day, focusedDay),
-                    ),
-                selectedBuilder: (context, day, focusedDay) =>
-                    _EghuCalendarDayCell(
-                      day: day,
-                      isSelected: true,
-                      onTap: () => _handleDaySelected(day, focusedDay),
-                    ),
-                disabledBuilder: (context, day, focusedDay) =>
-                    _EghuCalendarDayCell(day: day, isDisabled: true),
-                outsideBuilder: (context, day, focusedDay) {
-                  final enabled =
-                      !_isDateAfter(day, widget.lastDate) &&
-                      !_isDateBefore(day, widget.firstDate);
-                  return _EghuCalendarDayCell(
-                    day: day,
-                    isOutside: true,
-                    onTap: enabled
-                        ? () => _handleDaySelected(day, focusedDay)
-                        : null,
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  bool get _canGoPrevious {
-    final previous = DateTime(_focusedDay.year, _focusedDay.month - 1);
-    final firstMonth = DateTime(widget.firstDate.year, widget.firstDate.month);
-    return !previous.isBefore(firstMonth);
-  }
-
-  bool get _canGoNext {
-    final next = DateTime(_focusedDay.year, _focusedDay.month + 1);
-    final lastMonth = DateTime(widget.lastDate.year, widget.lastDate.month);
-    return !next.isAfter(lastMonth);
-  }
-
-  void _handleDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    if (_isDateAfter(selectedDay, widget.lastDate) ||
-        _isDateBefore(selectedDay, widget.firstDate)) {
-      return;
-    }
-    setState(() {
-      _selectedDay = _dateOnly(selectedDay);
-      _focusedDay = focusedDay;
-    });
-    Navigator.of(context).pop(_dateOnly(selectedDay));
-  }
-}
-
-class _EghuCalendarHeader extends StatelessWidget {
-  const _EghuCalendarHeader({
-    required this.focusedDay,
-    required this.firstDate,
-    required this.lastDate,
-    required this.locale,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final DateTime focusedDay;
-  final DateTime firstDate;
-  final DateTime lastDate;
-  final String locale;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final month = DateFormat.MMMM(locale).format(focusedDay);
-
-    return Row(
-      children: [
-        _CalendarNavButton(
-          key: const Key('eghu-calendar-previous-month'),
-          icon: Icons.chevron_left_rounded,
-          onPressed: onPrevious,
-        ),
-        Expanded(
-          child: RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: GoogleFonts.manrope(
-                fontSize: 17,
-                height: 28 / 17,
-                fontWeight: FontWeight.w500,
-                color: EghuActionCreateColors.text,
-              ),
-              children: [
-                TextSpan(text: '${_capitalize(month)} '),
-                TextSpan(
-                  text: '${focusedDay.year}',
-                  style: const TextStyle(color: Color(0xFF314692)),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _CalendarNavButton(
-          key: const Key('eghu-calendar-next-month'),
-          icon: Icons.chevron_right_rounded,
-          onPressed: onNext,
-        ),
-      ],
-    );
-  }
-}
-
-class _CalendarNavButton extends StatelessWidget {
-  const _CalendarNavButton({
-    super.key,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-      padding: EdgeInsets.zero,
-      onPressed: onPressed,
-      icon: Icon(
-        icon,
-        size: 20,
-        color: onPressed == null
-            ? const Color(0xFFD9D9D9)
-            : EghuActionCreateColors.text,
-      ),
-    );
-  }
-}
-
-class _EghuCalendarDayCell extends StatelessWidget {
-  const _EghuCalendarDayCell({
-    required this.day,
-    this.isSelected = false,
-    this.isToday = false,
-    this.isDisabled = false,
-    this.isOutside = false,
-    this.onTap,
-  });
-
-  final DateTime day;
-  final bool isSelected;
-  final bool isToday;
-  final bool isDisabled;
-  final bool isOutside;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isWeekend =
-        day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
-    final Color backgroundColor;
-    final Color textColor;
-
-    if (isSelected) {
-      backgroundColor = EghuActionCreateColors.primary;
-      textColor = Colors.white;
-    } else if (isDisabled) {
-      backgroundColor = Colors.transparent;
-      textColor = const Color(0xFFD9D9D9);
-    } else if (isToday) {
-      backgroundColor = const Color(0xFFE0E0E0);
-      textColor = EghuActionCreateColors.text;
-    } else {
-      backgroundColor = Colors.transparent;
-      textColor = isWeekend || isOutside
-          ? EghuActionCreateColors.primary
-          : EghuActionCreateColors.text;
-    }
-
-    return GestureDetector(
-      key: Key('eghu-calendar-day-${_dateKey(day)}'),
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(2),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              '${day.day}',
-              style: _calendarTextStyle(15, textColor, lineHeight: 24),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -1268,23 +796,54 @@ TimeOfDay _clampTimeForDate(
 bool _isSameDate(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-bool _isDateAfter(DateTime value, DateTime limit) =>
-    _dateOnly(value).isAfter(_dateOnly(limit));
-
-bool _isDateBefore(DateTime value, DateTime limit) =>
-    _dateOnly(value).isBefore(_dateOnly(limit));
-
 bool _isTimeAfter(TimeOfDay value, TimeOfDay limit) {
   if (value.hour != limit.hour) return value.hour > limit.hour;
   return value.minute > limit.minute;
 }
 
-String _dateKey(DateTime day) =>
-    '${day.year}-${_twoDigits(day.month)}-${_twoDigits(day.day)}';
-
 String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
-String _capitalize(String value) {
-  if (value.isEmpty) return value;
-  return '${value[0].toUpperCase()}${value.substring(1)}';
+Future<DateTime?> pickEghuStampDateTime(
+  BuildContext context, {
+  DateTime? currentStampDateTime,
+}) async {
+  final now = DateTime.now();
+  final today = _dateOnly(now);
+  final initialDate = _clampDate(
+    _dateOnly(currentStampDateTime ?? now),
+    min: DateTime(2020),
+    max: today,
+  );
+
+  final date = await pickEghuDate(
+    context,
+    initialDate: initialDate,
+    firstDate: DateTime(2020),
+    lastDate: today,
+    dialogKey: const Key('eghu-stamp-calendar-dialog'),
+  );
+  if (!context.mounted || date == null) return null;
+
+  final initialTime = _initialStampTimeForDate(
+    selectedDate: date,
+    currentStampDateTime: currentStampDateTime,
+    now: now,
+  );
+  final time = await showDialog<TimeOfDay>(
+    context: context,
+    builder: (_) => _EghuStampTimeDialog(
+      selectedDate: date,
+      initialTime: initialTime,
+      now: now,
+    ),
+  );
+  if (!context.mounted || time == null) return null;
+
+  final latestNow = DateTime.now();
+  if (_isSameDate(date, latestNow) &&
+      _isTimeAfter(time, TimeOfDay.fromDateTime(latestNow))) {
+    return null;
+  }
+
+  return DateTime(date.year, date.month, date.day, time.hour, time.minute);
 }
