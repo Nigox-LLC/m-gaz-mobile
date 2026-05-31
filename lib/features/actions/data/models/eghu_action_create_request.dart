@@ -54,38 +54,36 @@ class EghuActionCreateRequest {
     ActionMenuType.indicatorUpload => 'indicator_upload',
   };
 
-  Map<String, Object?> toJson() {
+  String get egxuRemovalDocumentType => switch (actionType) {
+    ActionMenuType.reinstall => 'reinstall',
+    ActionMenuType.detach => 'removal',
+    ActionMenuType.indicatorUpload => 'indicator_upload',
+  };
+
+  String get egxuRemovalReason => switch (actionType) {
+    ActionMenuType.reinstall => 'eghu_improvement',
+    ActionMenuType.detach => 'repair',
+    ActionMenuType.indicatorUpload => 'other',
+  };
+
+  Map<String, Object?> toJson({List<int> aktIds = const []}) {
     final stampDate = _dateOnly(stampDateTime);
     return {
-      'datetime': stampDateTime.toUtc().toIso8601String(),
-      'region': regionId,
-      'district': districtId,
-      'type_of_activity': typeOfActivityId,
-      'document_type': documentType,
-      'document_id': consumerDocumentId,
-      'employee': employeeId ?? 0,
-      'list': [
+      'consumer': consumerDocumentId,
+      'egxu': egxuItemId,
+      'document_type': egxuRemovalDocumentType,
+      'reason': egxuRemovalReason,
+      'other_reason': null,
+      'seal_status': 'working',
+      'gas_supply_stopped': 'no',
+      'reals': [
         {
-          'egxu_id': egxuItemId,
-          'removal_reason': removalReason,
-          'gas_usage_status': gasUsageStatus,
-          'usage_type': usageType,
-          'hourly_gas_consumption': hourlyGasConsumption,
-          'daily_consumption': dailyConsumption,
-          'replacement_reason': replacementReason,
-          'real_numbers': [
-            {
-              'real_number': stampNumber,
-              'from_date': stampDate,
-              'to_date': stampDate,
-            },
-          ],
-          'certificates': const [],
-          'egxu_type': egxuTypeId ?? 0,
-          'one_factory': oneFactory ?? '',
-          'two_factory': twoFactory ?? '',
+          'id': null,
+          'real_number_value': stampNumber,
+          'installed_date': stampDate,
         },
       ],
+      'akt_ids': aktIds,
     };
   }
 

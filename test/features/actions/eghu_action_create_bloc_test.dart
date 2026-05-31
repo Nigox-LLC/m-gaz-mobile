@@ -87,6 +87,50 @@ void main() {
       expect(request.typeOfActivityId, 110);
     });
 
+    test('profile update preserves existing form values', () async {
+      bloc
+        ..add(EghuActionConsumerSelected(_consumer()))
+        ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.act,
+            file: _attachment(actFile.path, true),
+          ),
+        )
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.comparison,
+            file: _attachment(comparisonFile.path, false),
+          ),
+        )
+        ..add(const EghuActionStampNumberChanged('234543245675432'));
+
+      await pumpEventQueue();
+
+      final stampDate = bloc.state.stampDateTime;
+      bloc.add(
+        const EghuActionProfileChanged(
+          employeeId: 91,
+          employeeName: 'Current User',
+          regionId: 8,
+          districtId: 23,
+        ),
+      );
+
+      await pumpEventQueue();
+
+      expect(bloc.state.employeeId, 91);
+      expect(bloc.state.employeeName, 'Current User');
+      expect(bloc.state.profileRegionId, 8);
+      expect(bloc.state.profileDistrictId, 23);
+      expect(bloc.state.selectedConsumer, isNotNull);
+      expect(bloc.state.selectedEghu, isNotNull);
+      expect(bloc.state.actFile, isNotNull);
+      expect(bloc.state.comparisonFile, isNotNull);
+      expect(bloc.state.stampNumber, '234543245675432');
+      expect(bloc.state.stampDateTime, stampDate);
+    });
+
     test('selecting consumer clears selected EGHU', () async {
       bloc
         ..add(EghuActionConsumerSelected(_consumer()))
@@ -129,11 +173,52 @@ void main() {
       expect(api.request, isNotNull);
       expect(api.request!.actionCode, 'reinstall');
       final json = api.request!.toJson();
-      expect(json['employee'], 77);
-      expect(json['document_type'], 'consumer');
-      expect(json['document_id'], 12);
-      expect(json['type_of_activity'], 110);
-      expect((json['list'] as List).single['egxu_id'], 44);
+      expect(json['consumer'], 12);
+      expect(json['egxu'], 44);
+      expect(json['document_type'], 'reinstall');
+      expect(json['reason'], 'eghu_improvement');
+      expect(json['seal_status'], 'working');
+      expect(json['gas_supply_stopped'], 'no');
+      expect(json['akt_ids'], isEmpty);
+      final real = (json['reals'] as List).single as Map<String, Object?>;
+      expect(real['id'], isNull);
+      expect(real['real_number_value'], '123');
+      expect(real['installed_date'], '2026-05-28');
+    });
+
+    test('detach request maps to removal document type', () async {
+      final detachBloc = EghuActionCreateBloc(
+        actionType: ActionMenuType.detach,
+        api: api,
+        initialStampDateTime: DateTime(2026, 5, 28, 17, 38),
+      );
+      addTearDown(detachBloc.close);
+
+      detachBloc
+        ..add(EghuActionConsumerSelected(_consumer()))
+        ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.act,
+            file: _attachment(actFile.path, true),
+          ),
+        )
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.comparison,
+            file: _attachment(comparisonFile.path, false),
+          ),
+        )
+        ..add(const EghuActionStampNumberChanged('456'));
+      await pumpEventQueue();
+
+      detachBloc.add(const EghuActionSubmitted());
+      await pumpEventQueue();
+
+      expect(detachBloc.state.status, EghuActionSubmitStatus.success);
+      final json = api.request!.toJson();
+      expect(json['document_type'], 'removal');
+      expect(json['reason'], 'repair');
     });
 
     test('submit emits failure when API fails', () async {
@@ -161,6 +246,34 @@ void main() {
 
       expect(bloc.state.status, EghuActionSubmitStatus.failure);
       expect(bloc.state.errorMessage, 'Server error');
+    });
+
+    test('submit succeeds when type of activity is missing', () async {
+      bloc
+        ..add(EghuActionConsumerSelected(_consumer()))
+        ..add(
+          EghuActionEghuSelected(_eghuWithoutType(), consumerDetail: _detail()),
+        )
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.act,
+            file: _attachment(actFile.path, true),
+          ),
+        )
+        ..add(
+          EghuActionAttachmentSet(
+            slot: EghuActionAttachmentSlot.comparison,
+            file: _attachment(comparisonFile.path, false),
+          ),
+        )
+        ..add(const EghuActionStampNumberChanged('123'));
+      await pumpEventQueue();
+
+      bloc.add(const EghuActionSubmitted());
+      await pumpEventQueue();
+
+      expect(bloc.state.status, EghuActionSubmitStatus.success);
+      expect(api.request, isNotNull);
     });
   });
 }
@@ -215,6 +328,14 @@ WorkingWithConsumersDetailModel _detail() {
     region: Region(id: 3, name: 'Andijon'),
     district: District(id: 50, name: 'Andijon tumani'),
     employee: Employee(id: 77, fio: 'Tester'),
+  );
+}
+
+ConsumersEgxuItem _eghuWithoutType() {
+  return ConsumersEgxuItem(
+    id: 44,
+    consumerRelationEgxu: ConsumerRelationEgxu(),
+    egxuType: ConsumersEgxuType(id: 9, name: 'Rotary'),
   );
 }
 

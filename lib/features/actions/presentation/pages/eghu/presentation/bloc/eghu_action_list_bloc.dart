@@ -3,15 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_working_document.dart';
+import '../../../../../domain/entities/action_menu_item.dart';
 
 part 'eghu_action_list_event.dart';
 part 'eghu_action_list_state.dart';
 
 class EghuActionListBloc
     extends Bloc<EghuActionListEvent, EghuActionListState> {
-  EghuActionListBloc({required EghuActionListApi api, this.limit = 10})
-    : _api = api,
-      super(const EghuActionListState()) {
+  EghuActionListBloc({
+    required EghuActionListApi api,
+    this.limit = 10,
+    this.actionType,
+  }) : _api = api,
+       super(const EghuActionListState()) {
     on<EghuActionListStarted>(_onStarted);
     on<EghuActionListRefreshed>(_onRefreshed);
     on<EghuActionListLoadMoreRequested>(_onLoadMoreRequested);
@@ -19,6 +23,7 @@ class EghuActionListBloc
 
   final EghuActionListApi _api;
   final int limit;
+  final ActionMenuType? actionType;
 
   Future<void> _onStarted(
     EghuActionListStarted event,
@@ -45,7 +50,10 @@ class EghuActionListBloc
     );
 
     try {
-      final response = await _api.getDocuments(limit: limit);
+      final response = await _api.getDocuments(
+        limit: limit,
+        actionType: actionType,
+      );
       emit(
         state.copyWith(
           status: EghuActionListStatus.success,

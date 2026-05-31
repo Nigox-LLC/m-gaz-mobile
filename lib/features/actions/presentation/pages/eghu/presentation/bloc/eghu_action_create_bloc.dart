@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../../../core/common/words.dart';
 import '../../../../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
 import '../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
 import '../../../../../data/datasources/eghu_action_api.dart';
@@ -38,6 +39,7 @@ class EghuActionCreateBloc
     on<EghuActionAttachmentRemoved>(_onAttachmentRemoved);
     on<EghuActionStampNumberChanged>(_onStampNumberChanged);
     on<EghuActionStampDateChanged>(_onStampDateChanged);
+    on<EghuActionProfileChanged>(_onProfileChanged);
     on<EghuActionSubmitted>(_onSubmitted);
   }
 
@@ -111,6 +113,20 @@ class EghuActionCreateBloc
     emit(state.copyWith(stampDateTime: event.value));
   }
 
+  void _onProfileChanged(
+    EghuActionProfileChanged event,
+    Emitter<EghuActionCreateState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        employeeId: event.employeeId,
+        employeeName: event.employeeName,
+        profileRegionId: event.regionId,
+        profileDistrictId: event.districtId,
+      ),
+    );
+  }
+
   Future<void> _onSubmitted(
     EghuActionSubmitted event,
     Emitter<EghuActionCreateState> emit,
@@ -143,20 +159,11 @@ class EghuActionCreateBloc
 }
 
 enum EghuActionAttachmentSlot {
-  act(
-    title: "Dalolatnoma ma'lumotlari",
-    alertTitle: "Dalolatnoma fayli yuklandi",
-  ),
-  comparison(
-    title: "Yangi qiyoslov ma'lumotlari",
-    alertTitle: "Qiyoslov fayli yuklandi",
-  );
+  act,
+  comparison;
 
-  const EghuActionAttachmentSlot({
-    required this.title,
-    required this.alertTitle,
-  });
-
-  final String title;
-  final String alertTitle;
+  String get title => switch (this) {
+    EghuActionAttachmentSlot.act => Words.actInformation.tr(),
+    EghuActionAttachmentSlot.comparison => Words.comparisonInformation.tr(),
+  };
 }

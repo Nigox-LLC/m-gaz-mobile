@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
 class EghuActionCreateColors {
@@ -125,7 +126,7 @@ class EghuStampSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        EghuSectionHeader(title: "Tamg'a qo'shish", onAdd: () {}),
+        EghuSectionHeader(title: Words.stampAdd.tr(), onAdd: () {}),
         const SizedBox(height: 4),
         SizedBox(
           height: 44,
@@ -136,7 +137,7 @@ class EghuStampSection extends StatelessWidget {
             keyboardType: TextInputType.number,
             style: eghuText(fontSize: 13, lineHeight: 20),
             decoration: InputDecoration(
-              hintText: 'Raqamini kiriting',
+              hintText: Words.stampNumberHint.tr(),
               hintStyle: eghuText(
                 fontSize: 13,
                 lineHeight: 20,
@@ -168,7 +169,7 @@ class EghuStampSection extends StatelessWidget {
                 child: Text(
                   displayEmployee?.isNotEmpty == true
                       ? displayEmployee!
-                      : 'Foydalanuvchi',
+                      : Words.fallbackUser.tr(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: eghuText(
@@ -301,7 +302,7 @@ class EghuSubmitBar extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.check_rounded),
-          label: Text(loading ? 'Yuborilmoqda' : 'Tugatish'),
+          label: Text(loading ? Words.submitting.tr() : Words.finish.tr()),
           style: ElevatedButton.styleFrom(
             elevation: 0,
             backgroundColor: enabled
@@ -362,7 +363,10 @@ class _AddChip extends StatelessWidget {
             children: [
               const Icon(Icons.add_rounded, size: 14),
               const SizedBox(width: 4),
-              Text("Qo'shish", style: eghuText(fontSize: 13, lineHeight: 20)),
+              Text(
+                Words.add.tr(),
+                style: eghuText(fontSize: 13, lineHeight: 20),
+              ),
             ],
           ),
         ),

@@ -63,6 +63,23 @@ class EghuActionStampDateChanged extends EghuActionCreateEvent {
   List<Object?> get props => [value];
 }
 
+class EghuActionProfileChanged extends EghuActionCreateEvent {
+  const EghuActionProfileChanged({
+    this.employeeId,
+    this.employeeName,
+    this.regionId,
+    this.districtId,
+  });
+
+  final int? employeeId;
+  final String? employeeName;
+  final int? regionId;
+  final int? districtId;
+
+  @override
+  List<Object?> get props => [employeeId, employeeName, regionId, districtId];
+}
+
 class EghuActionSubmitted extends EghuActionCreateEvent {
   const EghuActionSubmitted();
 }

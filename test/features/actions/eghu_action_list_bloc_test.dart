@@ -2,11 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:m_gaz/core/models/paginated_response/paginated_response.dart';
 import 'package:m_gaz/features/actions/data/datasources/eghu_action_api.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_working_document.dart';
+import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
 import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_action_list_bloc.dart';
 
 void main() {
   group('EghuActionListBloc', () {
-    test('loads first page from working-with-egxu list API contract', () async {
+    test('loads first page from EGXU removals list API contract', () async {
       final api = _FakeListApi(
         first: PaginatedResponse(
           count: 1,
@@ -25,6 +26,27 @@ void main() {
       expect(api.requestedOffset, 0);
       expect(bloc.state.status, EghuActionListStatus.success);
       expect(bloc.state.documents.single.id, 1);
+    });
+
+    test('passes action type filter to list API', () async {
+      final api = _FakeListApi(
+        first: PaginatedResponse(
+          count: 1,
+          next: null,
+          previous: null,
+          results: [_document(id: 1)],
+        ),
+      );
+      final bloc = EghuActionListBloc(
+        api: api,
+        actionType: ActionMenuType.reinstall,
+      );
+      addTearDown(bloc.close);
+
+      bloc.add(const EghuActionListStarted());
+      await pumpEventQueue();
+
+      expect(api.actionType, ActionMenuType.reinstall);
     });
 
     test('loads next page when next URL exists', () async {
@@ -79,15 +101,18 @@ class _FakeListApi implements EghuActionListApi {
   final Object? error;
   int? requestedLimit;
   int? requestedOffset;
+  ActionMenuType? actionType;
   String? nextUrl;
 
   @override
   Future<PaginatedResponse<EghuWorkingDocument>> getDocuments({
     int limit = 10,
     int offset = 0,
+    ActionMenuType? actionType,
   }) async {
     requestedLimit = limit;
     requestedOffset = offset;
+    this.actionType = actionType;
     final error = this.error;
     if (error != null) throw error;
     return first ??

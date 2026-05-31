@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../../../../core/common/words.dart';
 import '../../../../../../../di.dart';
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_working_document.dart';
+import '../../../../../domain/entities/action_menu_item.dart';
 import '../bloc/eghu_action_list_bloc.dart';
 import 'eghu_action_card.dart';
 import 'eghu_action_header.dart';
@@ -17,14 +21,16 @@ class EghuActionListPage extends StatefulWidget {
     this.items = const [],
     this.onAdd,
     this.useRemoteList = false,
+    this.actionType,
     this.api,
     this.bloc,
   });
 
   final String title;
   final List<EghuActionCardData> items;
-  final VoidCallback? onAdd;
+  final FutureOr<bool?> Function()? onAdd;
   final bool useRemoteList;
+  final ActionMenuType? actionType;
   final EghuActionApi? api;
   final EghuActionListBloc? bloc;
 
@@ -41,7 +47,10 @@ class _EghuActionListPageState extends State<EghuActionListPage> {
     if (widget.useRemoteList) {
       _bloc =
           widget.bloc ??
-          EghuActionListBloc(api: widget.api ?? di.get<EghuActionApi>());
+          EghuActionListBloc(
+            api: widget.api ?? di.get<EghuActionApi>(),
+            actionType: widget.actionType,
+          );
       _bloc!.add(const EghuActionListStarted());
     }
   }
@@ -69,7 +78,10 @@ class _EghuActionListPageState extends State<EghuActionListPage> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Column(
                 children: [
-                  EghuActionHeader(title: widget.title, onAdd: widget.onAdd),
+                  EghuActionHeader(
+                    title: widget.title,
+                    onAdd: widget.onAdd == null ? null : _handleAddPressed,
+                  ),
                   const SizedBox(height: 12),
                   Expanded(child: content),
                 ],
@@ -79,6 +91,13 @@ class _EghuActionListPageState extends State<EghuActionListPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleAddPressed() async {
+    final created = await widget.onAdd?.call();
+    if (!mounted || created != true || !widget.useRemoteList) return;
+
+    _bloc?.add(const EghuActionListRefreshed());
   }
 }
 
@@ -176,8 +195,8 @@ EghuActionCardData _cardDataFromDocument(EghuWorkingDocument document) {
     district: document.district,
     date: DateFormat('dd.MM.yyyy HH:mm').format(document.datetime.toLocal()),
     employee: document.employee,
-    personalAccountLabel: 'Hujjat turi:',
-    factoryNumberLabel: 'Faoliyat turi:',
+    personalAccountLabel: '${Words.documentTypeLabel.tr()}:',
+    factoryNumberLabel: '${Words.activityTypeLabel.tr()}:',
   );
 }
 
@@ -212,7 +231,7 @@ class _EghuListEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text("Ma'lumot topilmadi"));
+    return Center(child: Text(Words.noInformationFound.tr()));
   }
 }
 
@@ -230,7 +249,7 @@ class _EghuListError extends StatelessWidget {
         children: [
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('Qayta urinish')),
+          TextButton(onPressed: onRetry, child: Text(Words.retry.tr())),
         ],
       ),
     );

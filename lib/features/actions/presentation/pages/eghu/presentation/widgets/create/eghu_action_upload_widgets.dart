@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../../../../core/common/words.dart';
 import '../../../../../../../../global_widget/app_tools.dart';
 import '../../../../../../data/models/eghu_action_attachment.dart';
 import '../../bloc/eghu_action_create_bloc.dart';
@@ -63,22 +64,52 @@ class _EghuUploadSectionState extends State<EghuUploadSection> {
               : null,
           helpKey: Key('eghu-upload-help-${widget.slot.name}'),
         ),
-        const SizedBox(height: 8),
-        if (_showDetails && attachment != null) ...[
-          _UploadInfoPanel(
-            slot: widget.slot,
-            attachment: attachment,
-            uploaderName: widget.uploaderName,
-          ),
-          const SizedBox(height: 8),
-        ],
+        if (_showDetails && attachment != null) const _TooltipDot(),
+        SizedBox(height: _showDetails && attachment != null ? 2 : 8),
         if (attachment == null)
           _UploadDropZone(onTap: widget.onAdd)
         else if (attachment.isImage)
-          _ImagePreview(attachment: attachment, onRemove: _removeAttachment)
+          _ImagePreview(
+            attachment: attachment,
+            showDetails: _showDetails,
+            slot: widget.slot,
+            uploaderName: widget.uploaderName,
+            onRemove: _removeAttachment,
+          )
         else
-          _FilePreview(attachment: attachment, onRemove: _removeAttachment),
+          _FilePreview(
+            attachment: attachment,
+            showDetails: _showDetails,
+            slot: widget.slot,
+            uploaderName: widget.uploaderName,
+            onRemove: _removeAttachment,
+          ),
       ],
+    );
+  }
+}
+
+class _TooltipDot extends StatelessWidget {
+  const _TooltipDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Align(
+      alignment: Alignment.center,
+      child: SizedBox(
+        width: 7,
+        height: 12,
+        child: Center(
+          child: DecoratedBox(
+            key: Key('eghu-upload-info-dot'),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            child: SizedBox(width: 7, height: 7),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -101,24 +132,38 @@ class _UploadInfoPanel extends StatelessWidget {
 
     return Container(
       key: Key('eghu-upload-info-${slot.name}'),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      width: 210,
+      padding: const EdgeInsets.fromLTRB(12, 9, 13, 11),
       decoration: BoxDecoration(
         color: EghuActionCreateColors.field,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: EghuActionCreateColors.stroke),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F000000),
+            blurRadius: 15,
+            offset: Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 1.5,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _InfoLine(
-            label: 'Yukladi:',
+            label: '${Words.uploadedBy.tr()}:',
             value: uploadedBy?.isNotEmpty == true
                 ? uploadedBy!
-                : 'Foydalanuvchi',
+                : Words.fallbackUser.tr(),
           ),
-          _InfoLine(label: 'Sanasi:', value: date),
-          _InfoLine(label: 'Hajmi:', value: attachment.formattedSize),
+          _InfoLine(label: '${Words.fileDate.tr()}:', value: date),
+          _InfoLine(
+            label: '${Words.fileSizeLabel.tr()}:',
+            value: attachment.formattedSize,
+          ),
         ],
       ),
     );
@@ -138,17 +183,19 @@ class _InfoLine extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       text: TextSpan(
         style: eghuText(
-          fontSize: 13,
-          lineHeight: 20,
+          fontSize: 11,
+          lineHeight: 16,
           color: EghuActionCreateColors.text,
+          letterSpacing: 0.4,
         ),
         children: [
           TextSpan(
             text: '$label ',
             style: eghuText(
-              fontSize: 13,
-              lineHeight: 20,
+              fontSize: 11,
+              lineHeight: 16,
               color: EghuActionCreateColors.textSub,
+              letterSpacing: 0.4,
             ),
           ),
           TextSpan(text: value),
@@ -180,7 +227,7 @@ class _UploadDropZone extends StatelessWidget {
               AppTools.svg(AppTools.icPaperclip),
               const SizedBox(width: 8),
               Text(
-                'Fayl yuborish',
+                Words.sendFile.tr(),
                 style: eghuText(fontSize: 15, lineHeight: 24),
               ),
             ],
@@ -192,56 +239,148 @@ class _UploadDropZone extends StatelessWidget {
 }
 
 class _ImagePreview extends StatelessWidget {
-  const _ImagePreview({required this.attachment, required this.onRemove});
+  const _ImagePreview({
+    required this.attachment,
+    required this.showDetails,
+    required this.slot,
+    required this.uploaderName,
+    required this.onRemove,
+  });
 
   final EghuActionAttachment attachment;
+  final bool showDetails;
+  final EghuActionAttachmentSlot slot;
+  final String? uploaderName;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Stack(
-        children: [
-          Container(
-            key: const Key('eghu-upload-image-preview'),
-            height: 160,
-            width: double.infinity,
-            color: EghuActionCreateColors.field,
-            child: attachment.exists
-                ? Image.file(File(attachment.path), fit: BoxFit.cover)
-                : const Center(child: Icon(Icons.image_outlined, size: 40)),
-          ),
-          Positioned(
-            right: 8,
-            top: 8,
-            child: InkWell(
-              key: const Key('eghu-upload-remove-button'),
-              borderRadius: BorderRadius.circular(12),
-              onTap: onRemove,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                  color: Color(0x80000000),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.close_rounded,
-                  size: 18,
-                  color: Color(0xFFFF3434),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tooltipLeft = _tooltipLeft(constraints.maxWidth);
+
+        return SizedBox(
+          height: 160,
+          width: double.infinity,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    key: const Key('eghu-upload-image-preview'),
+                    color: EghuActionCreateColors.field,
+                    child: attachment.exists
+                        ? Image.file(File(attachment.path), fit: BoxFit.cover)
+                        : const Center(
+                            child: Icon(Icons.image_outlined, size: 40),
+                          ),
+                  ),
                 ),
               ),
-            ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: InkWell(
+                  key: const Key('eghu-upload-remove-button'),
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: onRemove,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      color: Color(0x80000000),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: Color(0xFFFF3434),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: tooltipLeft,
+                top: 0,
+                child: Visibility(
+                  visible: showDetails,
+                  maintainState: true,
+                  child: _UploadInfoPanel(
+                    slot: slot,
+                    attachment: attachment,
+                    uploaderName: uploaderName,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _FilePreview extends StatelessWidget {
-  const _FilePreview({required this.attachment, required this.onRemove});
+  const _FilePreview({
+    required this.attachment,
+    required this.showDetails,
+    required this.slot,
+    required this.uploaderName,
+    required this.onRemove,
+  });
+
+  final EghuActionAttachment attachment;
+  final bool showDetails;
+  final EghuActionAttachmentSlot slot;
+  final String? uploaderName;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tooltipLeft = _tooltipLeft(constraints.maxWidth);
+
+        return SizedBox(
+          height: 56,
+          width: double.infinity,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _FilePreviewRow(
+                  attachment: attachment,
+                  onRemove: onRemove,
+                ),
+              ),
+              Positioned(
+                left: tooltipLeft,
+                top: 0,
+                child: Visibility(
+                  visible: showDetails,
+                  maintainState: true,
+                  child: _UploadInfoPanel(
+                    slot: slot,
+                    attachment: attachment,
+                    uploaderName: uploaderName,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _FilePreviewRow extends StatelessWidget {
+  const _FilePreviewRow({required this.attachment, required this.onRemove});
 
   final EghuActionAttachment attachment;
   final VoidCallback onRemove;
@@ -292,6 +431,11 @@ class _FilePreview extends StatelessWidget {
       ),
     );
   }
+}
+
+double _tooltipLeft(double maxWidth) {
+  if (maxWidth <= 210) return 0;
+  return ((maxWidth - 210) / 2 - 18).clamp(8.0, maxWidth - 210);
 }
 
 class _DashedBorderPainter extends CustomPainter {

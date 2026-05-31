@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
 class EghuActionHeader extends StatelessWidget {
@@ -98,7 +99,7 @@ class _AddActionButton extends StatelessWidget {
                 AppTools.svg(AppTools.icFileText, width: 20, height: 20),
                 const SizedBox(width: 8),
                 Text(
-                  "Qo'shish",
+                  Words.add.tr(),
                   style: GoogleFonts.manrope(
                     fontSize: 13,
                     height: 20 / 13,
@@ -137,7 +138,7 @@ class EghuSearchFilterBar extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Qidirish',
+                    Words.search.tr().replaceAll('...', ''),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.manrope(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../../../../core/api/working_with_consumers_api/consumer_relations_api.dart';
+import '../../../../../../../../core/common/words.dart';
 import '../../../../../../../../core/models/paginated_response/paginated_response.dart';
 import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
 import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
@@ -124,7 +125,7 @@ class _EghuConsumerPickerSheetState extends State<EghuConsumerPickerSheet> {
     if (_loading) return const _PickerShimmer();
     if (_error != null) return _PickerError(message: _error!, onRetry: _retry);
     if (_items.isEmpty) {
-      return const _PickerEmpty(message: "Iste'molchi topilmadi");
+      return _PickerEmpty(message: Words.noInformationFound.tr());
     }
 
     return ListView.separated(
@@ -276,7 +277,7 @@ class _EghuDevicePickerSheetState extends State<EghuDevicePickerSheet> {
             return target.contains(query);
           }).toList();
 
-    if (filtered.isEmpty) return const _PickerEmpty(message: 'EGHU topilmadi');
+    if (filtered.isEmpty) return _PickerEmpty(message: Words.eghuNotFound.tr());
 
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
@@ -354,14 +355,14 @@ class EghuAttachmentSourceSheet extends StatelessWidget {
               const SizedBox(height: 13),
               _SourceTile(
                 icon: Icons.camera_alt_outlined,
-                label: 'Kamerani ochish',
+                label: Words.openCamera.tr(),
                 onTap: () =>
                     Navigator.of(context).pop(EghuAttachmentSource.camera),
               ),
               const SizedBox(height: 8),
               _SourceTile(
                 icon: Icons.create_new_folder_outlined,
-                label: 'Telefonda yuklash',
+                label: Words.uploadFromPhone.tr(),
                 onTap: () =>
                     Navigator.of(context).pop(EghuAttachmentSource.device),
               ),
@@ -449,7 +450,7 @@ class _SearchField extends StatelessWidget {
         onChanged: onChanged,
         style: eghuText(fontSize: 13, lineHeight: 20),
         decoration: InputDecoration(
-          hintText: 'Qidirish',
+          hintText: Words.search.tr().replaceAll('...', ''),
           hintStyle: eghuText(
             fontSize: 13,
             lineHeight: 20,
@@ -495,9 +496,12 @@ class _ConsumerTile extends StatelessWidget {
       selected: selected,
       onTap: onTap,
       children: [
-        _RichTileLine(label: 'Hisob raqami:', value: item.facial),
+        _RichTileLine(
+          label: '${Words.accountNumber.tr()}:',
+          value: item.facial,
+        ),
         const SizedBox(height: 2),
-        _RichTileLine(label: "Iste'molchi:", value: item.consumers),
+        _RichTileLine(label: '${Words.consumer.tr()}:', value: item.consumers),
       ],
     );
   }
@@ -520,9 +524,9 @@ class _EghuTile extends StatelessWidget {
       selected: selected,
       onTap: onTap,
       children: [
-        _RichTileLine(label: 'Eghu id:', value: '${item.id ?? '-'}'),
+        _RichTileLine(label: 'EGHU ID:', value: '${item.id ?? '-'}'),
         const SizedBox(height: 2),
-        _RichTileLine(label: 'Eghu:', value: eghuTitle(item)),
+        _RichTileLine(label: '${Words.eghu.tr()}:', value: eghuTitle(item)),
       ],
     );
   }
@@ -706,7 +710,7 @@ class _PickerError extends StatelessWidget {
             style: eghuText(fontSize: 15, lineHeight: 24),
           ),
           const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: const Text('Qayta urinish')),
+          TextButton(onPressed: onRetry, child: Text(Words.retry.tr())),
         ],
       ),
     );

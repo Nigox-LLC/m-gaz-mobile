@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../../../../core/common/words.dart';
 import '../../../../../../../global_widget/app_tools.dart';
 
 class EghuActionCardData {
@@ -11,8 +12,8 @@ class EghuActionCardData {
     required this.district,
     required this.date,
     required this.employee,
-    this.personalAccountLabel = 'Shaxsiy hisob:',
-    this.factoryNumberLabel = 'Zavod raqami:',
+    this.personalAccountLabel,
+    this.factoryNumberLabel,
   });
 
   final String personalAccount;
@@ -21,8 +22,8 @@ class EghuActionCardData {
   final String district;
   final String date;
   final String employee;
-  final String personalAccountLabel;
-  final String factoryNumberLabel;
+  final String? personalAccountLabel;
+  final String? factoryNumberLabel;
 }
 
 class EghuActionCard extends StatelessWidget {
@@ -53,12 +54,16 @@ class EghuActionCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _InlineInfo(
-                          label: data.personalAccountLabel,
+                          label:
+                              data.personalAccountLabel ??
+                              '${Words.personalAccountLabel.tr()}:',
                           value: data.personalAccount,
                         ),
                         const SizedBox(height: 2),
                         _InlineInfo(
-                          label: data.factoryNumberLabel,
+                          label:
+                              data.factoryNumberLabel ??
+                              '${Words.factoryNumberLabel.tr()}:',
                           value: data.factoryNumber,
                           valueBold: false,
                           labelColor: const Color(0xA61B1F3B),
@@ -74,7 +79,7 @@ class EghuActionCard extends StatelessWidget {
               const SizedBox(height: 12),
               _CardDetailRow(
                 icon: AppTools.svg(AppTools.icMapPin, width: 16, height: 16),
-                label: 'Viloyat',
+                label: Words.region.tr(),
                 value: data.region,
               ),
               const SizedBox(height: 4),
@@ -84,20 +89,20 @@ class EghuActionCard extends StatelessWidget {
                   width: 16,
                   height: 16,
                 ),
-                label: 'Tuman',
+                label: Words.district.tr(),
                 value: data.district,
               ),
               const SizedBox(height: 4),
               _CardDetailRow(
                 icon: AppTools.svg(AppTools.icCalendar, width: 16, height: 16),
-                label: 'Sanasi',
+                label: Words.date.tr(),
                 value: data.date,
                 valueBold: true,
               ),
               const SizedBox(height: 4),
               _CardDetailRow(
                 icon: AppTools.svg(AppTools.icBreifcase, width: 16, height: 16),
-                label: 'Xodim',
+                label: Words.employee.tr(),
                 value: data.employee,
                 valueBold: true,
               ),
