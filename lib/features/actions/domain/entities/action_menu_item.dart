@@ -42,7 +42,7 @@ class ActionMenuItem {
       type: ActionMenuType.indicatorUpload,
       isWide: true,
     ),
-    ActionMenuItem(
+    /*ActionMenuItem(
       title: Words.actionIndustrialCollectorsReinstall,
       iconPath: AppTools.icDashboardSpeed02,
       category: ActionMenuCategory.industrialCollectors,
@@ -83,6 +83,6 @@ class ActionMenuItem {
       category: ActionMenuCategory.technologicalDevices,
       type: ActionMenuType.indicatorUpload,
       isWide: true,
-    ),
+    ),*/
   ];
 }

@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_indicator_upload_page.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_reset.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_take_off.dart';
 import 'package:m_gaz/features/actions/presentation/widgets/action_card.dart';
 
 class ActionsScreen extends StatelessWidget {
@@ -54,11 +57,7 @@ class ActionsScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       _ActionMenuGrid(
                         items: ActionMenuItem.items,
-                        onTap: (_) => showToast(
-                          context,
-                          Words.comingSoon.tr(),
-                          backgroundColor: const Color(0xFF526ED3),
-                        ),
+                        onTap: (item) => _handleActionTap(context, item),
                       ),
                     ],
                   ),
@@ -69,6 +68,31 @@ class ActionsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _handleActionTap(BuildContext context, ActionMenuItem item) {
+    final destination = switch ((item.category, item.type)) {
+      (ActionMenuCategory.eghu, ActionMenuType.reinstall) =>
+        const EghuResetPage(),
+      (ActionMenuCategory.eghu, ActionMenuType.detach) =>
+        const EghuTakeOffPage(),
+      (ActionMenuCategory.eghu, ActionMenuType.indicatorUpload) =>
+        const EghuIndicatorUploadPage(),
+      _ => null,
+    };
+
+    if (destination == null) {
+      showToast(
+        context,
+        Words.comingSoon.tr(),
+        backgroundColor: const Color(0xFF526ED3),
+      );
+      return;
+    }
+
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => destination));
   }
 }
 
@@ -82,8 +106,8 @@ class _ActionMenuGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final sections = <List<ActionMenuItem>>[
       items.sublist(0, 3),
-      items.sublist(3, 6),
-      items.sublist(6, 9),
+      // items.sublist(3, 6),
+      // items.sublist(6, 9),
     ];
 
     return Column(

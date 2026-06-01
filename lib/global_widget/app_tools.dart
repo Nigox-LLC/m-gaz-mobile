@@ -130,6 +130,14 @@ class AppTools {
   static const String icDashboardSpeed02 =
       "assets/icons/ic_dashboard_speed_02.svg";
   static const String icTool = "assets/icons/ic_tool.svg";
+  static const String icFileText = "assets/icons/ic_file_text.svg";
+  static const String icSearchIcon = "assets/icons/ic_search_icon.svg";
+  static const String icFilterIcon = "assets/icons/ic_filter_icon.svg";
+  static const String icMapPin = "assets/icons/ic_map_pin.svg";
+  static const String icNavigation = "assets/icons/ic_navigation.svg";
+  static const String icCalendar = "assets/icons/ic_calendar.svg";
+  static const String icBreifcase = "assets/icons/ic_breifcase.svg";
+  static const String icUserCheck = "assets/icons/ic_user_check.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";

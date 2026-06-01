@@ -40,39 +40,41 @@ class TaskModel {
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
     return TaskModel(
-      id: json['id'] ?? 0,
-      employee: json['employee'] ?? '',
-      typeTask: json['type_task'],
-      status: json['status'] ?? '',
-      situation: json['situation'] ?? '',
-      description: json['description'] ?? '',
+      id: _readInt(json['id']),
+      employee: _readDisplayText(json['employee']),
+      typeTask: _readNullableDisplayText(json['type_task']),
+      status: _readDisplayText(json['status']),
+      situation: _readDisplayText(json['situation']),
+      description: _readDisplayText(json['description']),
 
       deadline: json['deadline'] == null
           ? null
-          : DateTime.parse(json['deadline']),
+          : DateTime.tryParse(json['deadline'].toString()),
 
       doneDate: json['done_date'] == null
           ? null
-          : DateTime.parse(json['done_date']),
+          : DateTime.tryParse(json['done_date'].toString()),
 
       approvedDate: json['approved_date'] == null
           ? null
-          : DateTime.parse(json['approved_date']),
+          : DateTime.tryParse(json['approved_date'].toString()),
 
       canceledDate: json['canceled_date'] == null
           ? null
-          : DateTime.parse(json['canceled_date']),
+          : DateTime.tryParse(json['canceled_date'].toString()),
 
-      created: DateTime.parse(json['created']),
+      created:
+          DateTime.tryParse(json['created']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
 
-      isDone: json['is_done'] ?? false,
-      isApproved: json['is_approved'] ?? false,
-      isCanceled: json['is_canceled'] ?? false,
-      isAnswerFile: json['is_answer_file'] ?? false,
+      isDone: _readBool(json['is_done']),
+      isApproved: _readBool(json['is_approved']),
+      isCanceled: _readBool(json['is_canceled']),
+      isAnswerFile: _readBool(json['is_answer_file']),
 
-      consumerDocument: json['consumer_docment'] == null
-          ? null
-          : ConsumerDocument.fromJson(json['consumer_docment']),
+      consumerDocument: _readConsumerDocument(
+        json['consumer_docment'] ?? json['consumer_document'],
+      ),
     );
   }
 
@@ -97,26 +99,69 @@ class TaskModel {
     };
   }
 }
+
 class ConsumerDocument {
   final int documentId;
   final String documentName;
 
-  ConsumerDocument({
-    required this.documentId,
-    required this.documentName,
-  });
+  ConsumerDocument({required this.documentId, required this.documentName});
 
   factory ConsumerDocument.fromJson(Map<String, dynamic> json) {
     return ConsumerDocument(
-      documentId: json['document_id'] ?? 0,
-      documentName: json['document_name'] ?? '',
+      documentId: _readInt(json['document_id']),
+      documentName: _readDisplayText(json['document_name']),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'document_id': documentId,
-      'document_name': documentName,
-    };
+    return {'document_id': documentId, 'document_name': documentName};
   }
+}
+
+int _readInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+bool _readBool(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().toLowerCase().trim();
+  return normalized == 'true' || normalized == '1';
+}
+
+ConsumerDocument? _readConsumerDocument(Object? value) {
+  if (value is Map) {
+    return ConsumerDocument.fromJson(Map<String, dynamic>.from(value));
+  }
+  return null;
+}
+
+String? _readNullableDisplayText(Object? value) {
+  final text = _readDisplayText(value).trim();
+  return text.isEmpty ? null : text;
+}
+
+String _readDisplayText(Object? value) {
+  if (value == null) return '';
+  if (value is String) return value;
+  if (value is Map) {
+    for (final key in const [
+      'fio',
+      'full_name',
+      'username',
+      'name',
+      'title',
+      'display_name',
+      'label',
+    ]) {
+      final nestedValue = value[key];
+      if (nestedValue != null && nestedValue.toString().trim().isNotEmpty) {
+        return nestedValue.toString();
+      }
+    }
+    return '';
+  }
+  return value.toString();
 }

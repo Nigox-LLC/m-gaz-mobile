@@ -27,55 +27,63 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkAuth();
   }
 
+  static const _authTimeout = Duration(seconds: 15);
+
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    final access = _api.hive.accessToken;
+    try {
+      final access = _api.hive.accessToken;
 
-    if (access.isEmpty) {
-      _goLogin();
-      return;
-    }
-
-    var profile = await _api.loadUserProfile();
-
-    if (profile == null) {
-      final refreshed = await _api.refreshToken();
-
-      if (!refreshed) {
-        _api.hive.clear();
+      if (access.isEmpty) {
         _goLogin();
         return;
       }
 
-      profile = await _api.loadUserProfile();
+      var profile = await _api.loadUserProfile().timeout(_authTimeout);
 
       if (profile == null) {
-        _api.hive.clear();
-        _goLogin();
-        return;
+        final refreshed = await _api.refreshToken().timeout(_authTimeout);
+
+        if (!refreshed) {
+          _api.hive.clear();
+          _goLogin();
+          return;
+        }
+
+        profile = await _api.loadUserProfile().timeout(_authTimeout);
+
+        if (profile == null) {
+          _api.hive.clear();
+          _goLogin();
+          return;
+        }
       }
-    }
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    // ⭐ CHECK AGREEMENT LOGIC
-    final today = DateTime.now();
-    final todayStr = "${today.year}-${today.month}-${today.day}";
+      // ⭐ CHECK AGREEMENT LOGIC
+      final today = DateTime.now();
+      final todayStr = "${today.year}-${today.month}-${today.day}";
 
-    final lastDate = _api.hive.lastAgreementDate;
+      final lastDate = _api.hive.lastAgreementDate;
 
-    if (lastDate != todayStr) {
-      // bugun hali ko‘rsatilmagan
-      _api.hive.lastAgreementDate = todayStr;
+      if (lastDate != todayStr) {
+        // bugun hali ko‘rsatilmagan
+        _api.hive.lastAgreementDate = todayStr;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => AgreementPdfScreen()),
-      );
-    } else {
-      // bugun bir marta ko‘rsatilgan → asosiy ekranga o‘tadi
-      Navigator.pushReplacementNamed(context, "/home");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AgreementPdfScreen()),
+        );
+      } else {
+        // bugun bir marta ko‘rsatilgan → asosiy ekranga o‘tadi
+        Navigator.pushReplacementNamed(context, "/home");
+      }
+    } catch (_) {
+      // tarmoq xatosi / timeout → splashda qotib qolmasin, loginga o‘tadi
+      if (!mounted) return;
+      _goLogin();
     }
   }
 

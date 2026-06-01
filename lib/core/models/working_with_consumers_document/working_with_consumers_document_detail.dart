@@ -1,5 +1,16 @@
 import '../global/base_model.dart';
 
+List<T>? _mapList<T>(
+  Object? value,
+  T Function(Map<String, dynamic>? json) fromJson,
+) {
+  if (value is! List) return null;
+  return value
+      .whereType<Map>()
+      .map((item) => fromJson(Map<String, dynamic>.from(item)))
+      .toList();
+}
+
 class WorkingWithConsumersDetailModel {
   final int? id;
   final List<ConsumersEgxuItem>? egxuList;
@@ -62,7 +73,12 @@ class ConsumersEgxuItem {
   final ConsumersCompanyInfo? companyInfo;
   final List<ConsumersGasEquipmentItem>? gasEquipmentList;
   final List<ConsumersRealItem>? real;
+  final String? realRaw;
+  final String? hourlyListIndicator;
   final List<ConsumersIndicatorImage>? indicatorImages;
+  final String? indicatorImagesRaw;
+  final String? hourlyFiles;
+  final String? certificates;
   final ConsumersEgxuType? egxuType;
   final String? oneFactory;
   final String? twoFactory;
@@ -76,7 +92,12 @@ class ConsumersEgxuItem {
     this.companyInfo,
     this.gasEquipmentList,
     this.real,
+    this.realRaw,
+    this.hourlyListIndicator,
     this.indicatorImages,
+    this.indicatorImagesRaw,
+    this.hourlyFiles,
+    this.certificates,
     this.egxuType,
     this.oneFactory,
     this.twoFactory,
@@ -97,12 +118,22 @@ class ConsumersEgxuItem {
       gasEquipmentList: (json['gas_equipment_list'] as List?)
           ?.map((e) => ConsumersGasEquipmentItem.fromJson(e))
           .toList(),
-      real: (json['real'] as List?)
-          ?.map((e) => ConsumersRealItem.fromJson(e))
-          .toList(),
-      indicatorImages: (json['indicator_images'] as List?)
-          ?.map((e) => ConsumersIndicatorImage.fromJson(e))
-          .toList(),
+      real: _mapList(json['real'], ConsumersRealItem.fromJson),
+      realRaw: json['real'] is List ? null : json['real']?.toString(),
+      hourlyListIndicator: json['hourly_list_indicator']?.toString(),
+      indicatorImages: _mapList(
+        json['indicator_images'],
+        ConsumersIndicatorImage.fromJson,
+      ),
+      indicatorImagesRaw: json['indicator_images'] is List
+          ? null
+          : json['indicator_images']?.toString(),
+      hourlyFiles: json['hourly_files'] is List
+          ? null
+          : json['hourly_files']?.toString(),
+      certificates: json['certificates'] is List
+          ? null
+          : json['certificates']?.toString(),
       egxuType: ConsumersEgxuType.fromJson(json['egxu_type']),
       oneFactory: json['one_factory'],
       twoFactory: json['two_factory'],
@@ -118,8 +149,13 @@ class ConsumersEgxuItem {
       'consumer_relation_egxu': consumerRelationEgxu?.toJson(),
       'company_info': companyInfo?.toJson(),
       'gas_equipment_list': gasEquipmentList?.map((e) => e.toJson()).toList(),
-      'real': real?.map((e) => e.toJson()).toList(),
-      'indicator_images': indicatorImages?.map((e) => e.toJson()).toList(),
+      'real': real?.map((e) => e.toJson()).toList() ?? realRaw,
+      'hourly_list_indicator': hourlyListIndicator,
+      'indicator_images':
+          indicatorImages?.map((e) => e.toJson()).toList() ??
+          indicatorImagesRaw,
+      'hourly_files': hourlyFiles,
+      'certificates': certificates,
       'egxu_type': egxuType?.toJson(),
       'one_factory': oneFactory,
       'two_factory': twoFactory,
@@ -133,8 +169,11 @@ class ConsumersEgxuItem {
 class ConsumerRelationEgxu {
   final int? id;
   final String? typeOfActivity;
+  final int? typeOfActivityId;
   final String? gasNetworks;
+  final int? gasNetworksId;
   final String? egxuConnectionPoint;
+  final int? egxuConnectionPointId;
   final double? monthStartReading;
   final double? additionalGas;
   final double? violationGas;
@@ -155,8 +194,11 @@ class ConsumerRelationEgxu {
   ConsumerRelationEgxu({
     this.id,
     this.typeOfActivity,
+    this.typeOfActivityId,
     this.gasNetworks,
+    this.gasNetworksId,
     this.egxuConnectionPoint,
+    this.egxuConnectionPointId,
     this.monthStartReading,
     this.additionalGas,
     this.violationGas,
@@ -177,11 +219,27 @@ class ConsumerRelationEgxu {
 
   factory ConsumerRelationEgxu.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumerRelationEgxu();
+    final typeOfActivityRaw = json['type_of_activity'];
+    final gasNetworksRaw = json['gas_networks'];
+    final egxuConnectionPointRaw = json['egxu_connection_point'];
     return ConsumerRelationEgxu(
       id: json['id'],
-      typeOfActivity: json['type_of_activity'],
-      gasNetworks: json['gas_networks'],
-      egxuConnectionPoint: json['egxu_connection_point'],
+      typeOfActivity: _nameOrString(typeOfActivityRaw),
+      typeOfActivityId:
+          _intOrNull(json['type_of_activity_id']) ??
+          (typeOfActivityRaw is Map
+              ? _intOrNull(typeOfActivityRaw['id'])
+              : null),
+      gasNetworks: _nameOrString(gasNetworksRaw),
+      gasNetworksId:
+          _intOrNull(json['gas_networks_id']) ??
+          (gasNetworksRaw is Map ? _intOrNull(gasNetworksRaw['id']) : null),
+      egxuConnectionPoint: _nameOrString(egxuConnectionPointRaw),
+      egxuConnectionPointId:
+          _intOrNull(json['egxu_connection_point_id']) ??
+          (egxuConnectionPointRaw is Map
+              ? _intOrNull(egxuConnectionPointRaw['id'])
+              : null),
       monthStartReading: (json['month_start_reading'] as num?)?.toDouble(),
       additionalGas: (json['additional_gas'] as num?)?.toDouble(),
       violationGas: (json['violation_gas'] as num?)?.toDouble(),
@@ -205,8 +263,11 @@ class ConsumerRelationEgxu {
     return {
       'id': id,
       'type_of_activity': typeOfActivity,
+      'type_of_activity_id': typeOfActivityId,
       'gas_networks': gasNetworks,
+      'gas_networks_id': gasNetworksId,
       'egxu_connection_point': egxuConnectionPoint,
+      'egxu_connection_point_id': egxuConnectionPointId,
       'month_start_reading': monthStartReading,
       'additional_gas': additionalGas,
       'violation_gas': violationGas,
@@ -225,17 +286,29 @@ class ConsumerRelationEgxu {
       'is_active': isActive,
     };
   }
+
+  static int? _intOrNull(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static String? _nameOrString(Object? value) {
+    if (value is Map) return value['name']?.toString();
+    return value?.toString();
+  }
 }
 
-class Ministry {
+class ConsumersLookup {
   final int? id;
   final String? name;
 
-  Ministry({this.id, this.name});
+  ConsumersLookup({this.id, this.name});
 
-  factory Ministry.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return Ministry();
-    return Ministry(id: json['id'], name: json['name']);
+  factory ConsumersLookup.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return ConsumersLookup();
+    return ConsumersLookup(id: json['id'], name: json['name']);
   }
 
   Map<String, dynamic> toJson() {
@@ -243,8 +316,16 @@ class Ministry {
   }
 }
 
+typedef Ministry = ConsumersLookup;
+
 class ConsumersCompanyInfo {
   final int? id;
+  final ConsumersLookup? direction;
+  final ConsumersLookup? grs;
+  final ConsumersLookup? egxuIndustrialCollector;
+  final ConsumersLookup? grsMeasurementDevices;
+  final ConsumersLookup? grpTypes;
+  final ConsumersLookup? neighborhood;
   final String? accountNumber;
   final String? contractNumber;
   final String? companyDirector;
@@ -258,9 +339,22 @@ class ConsumersCompanyInfo {
   final String? typeConsumers;
   final String? season;
   final bool? isActive;
+  final int? directionId;
+  final int? ministryId;
+  final int? grsId;
+  final int? egxuIndustrialCollectorId;
+  final int? grsMeasurementDevicesId;
+  final int? grpTypesId;
+  final int? neighborhoodId;
 
   ConsumersCompanyInfo({
     this.id,
+    this.direction,
+    this.grs,
+    this.egxuIndustrialCollector,
+    this.grsMeasurementDevices,
+    this.grpTypes,
+    this.neighborhood,
     this.accountNumber,
     this.contractNumber,
     this.companyDirector,
@@ -274,12 +368,29 @@ class ConsumersCompanyInfo {
     this.typeConsumers,
     this.season,
     this.isActive,
+    this.directionId,
+    this.ministryId,
+    this.grsId,
+    this.egxuIndustrialCollectorId,
+    this.grsMeasurementDevicesId,
+    this.grpTypesId,
+    this.neighborhoodId,
   });
 
   factory ConsumersCompanyInfo.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersCompanyInfo();
     return ConsumersCompanyInfo(
       id: json['id'],
+      direction: ConsumersLookup.fromJson(json['direction']),
+      grs: ConsumersLookup.fromJson(json['grs']),
+      egxuIndustrialCollector: ConsumersLookup.fromJson(
+        json['egxu_industrial_collector'],
+      ),
+      grsMeasurementDevices: ConsumersLookup.fromJson(
+        json['grs_measurement_devices'],
+      ),
+      grpTypes: ConsumersLookup.fromJson(json['grp_types']),
+      neighborhood: ConsumersLookup.fromJson(json['neighborhood']),
       accountNumber: json['account_number'],
       contractNumber: json['contract_number'],
       companyDirector: json['company_director'],
@@ -293,12 +404,29 @@ class ConsumersCompanyInfo {
       typeConsumers: json['type_consumers'],
       season: json['season'],
       isActive: json['is_active'],
+      directionId: ConsumerRelationEgxu._intOrNull(json['direction_id']),
+      ministryId: ConsumerRelationEgxu._intOrNull(json['ministry_id']),
+      grsId: ConsumerRelationEgxu._intOrNull(json['grs_id']),
+      egxuIndustrialCollectorId: ConsumerRelationEgxu._intOrNull(
+        json['egxu_industrial_collector_id'],
+      ),
+      grsMeasurementDevicesId: ConsumerRelationEgxu._intOrNull(
+        json['grs_measurement_devices_id'],
+      ),
+      grpTypesId: ConsumerRelationEgxu._intOrNull(json['grp_types_id']),
+      neighborhoodId: ConsumerRelationEgxu._intOrNull(json['neighborhood_id']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'direction': direction?.toJson(),
+      'grs': grs?.toJson(),
+      'egxu_industrial_collector': egxuIndustrialCollector?.toJson(),
+      'grs_measurement_devices': grsMeasurementDevices?.toJson(),
+      'grp_types': grpTypes?.toJson(),
+      'neighborhood': neighborhood?.toJson(),
       'account_number': accountNumber,
       'contract_number': contractNumber,
       'company_director': companyDirector,
@@ -312,6 +440,13 @@ class ConsumersCompanyInfo {
       'type_consumers': typeConsumers,
       'season': season,
       'is_active': isActive,
+      'direction_id': directionId,
+      'ministry_id': ministryId,
+      'grs_id': grsId,
+      'egxu_industrial_collector_id': egxuIndustrialCollectorId,
+      'grs_measurement_devices_id': grsMeasurementDevicesId,
+      'grp_types_id': grpTypesId,
+      'neighborhood_id': neighborhoodId,
     };
   }
 }
@@ -344,15 +479,23 @@ class ConsumersGasEquipment {
 class ConsumersGasEquipmentItem {
   final int? id;
   final int? quantity;
+  final double? hourlyGasConsumption;
   final ConsumersGasEquipment? gasEquipment;
 
-  ConsumersGasEquipmentItem({this.id, this.quantity, this.gasEquipment});
+  ConsumersGasEquipmentItem({
+    this.id,
+    this.quantity,
+    this.hourlyGasConsumption,
+    this.gasEquipment,
+  });
 
   factory ConsumersGasEquipmentItem.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersGasEquipmentItem();
     return ConsumersGasEquipmentItem(
       id: json['id'],
       quantity: json['quantity'],
+      hourlyGasConsumption: (json['hourly_gas_consumption'] as num?)
+          ?.toDouble(),
       gasEquipment: ConsumersGasEquipment.fromJson(json['gas_equipment']),
     );
   }
@@ -361,6 +504,7 @@ class ConsumersGasEquipmentItem {
     return {
       'id': id,
       'quantity': quantity,
+      'hourly_gas_consumption': hourlyGasConsumption,
       'gas_equipment': gasEquipment?.toJson(),
     };
   }
