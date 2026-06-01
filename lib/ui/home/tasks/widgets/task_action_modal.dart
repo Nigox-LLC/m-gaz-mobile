@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_bloc.dart';
@@ -15,7 +16,10 @@ import 'package:m_gaz/ui/home/tasks/bloc/task_state.dart';
 
 import '../../../../core/utils/colors.dart';
 import '../../../../global_widget/app_tools.dart';
+import 'task_display_status.dart';
 import 'task_location_picker_screen.dart';
+
+enum TaskActionModalMode { action, detail }
 
 typedef TaskCompletionCallback =
     void Function({
@@ -39,6 +43,7 @@ class TaskActionModal extends StatefulWidget {
   final TaskCancelCallback? onCancelTask;
   final Future<Position?> Function()? locationProvider;
   final TaskLocationAddressResolver? locationAddressResolver;
+  final TaskActionModalMode mode;
 
   const TaskActionModal({
     super.key,
@@ -47,6 +52,7 @@ class TaskActionModal extends StatefulWidget {
     this.onCancelTask,
     this.locationProvider,
     this.locationAddressResolver,
+    this.mode = TaskActionModalMode.action,
   });
 
   @override
@@ -66,6 +72,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
   bool _isCanceling = false;
 
   bool get _requiresAnswerFile => widget.task.isAnswerFile == true;
+  bool get _isDetailMode => widget.mode == TaskActionModalMode.detail;
 
   @override
   void dispose() {
@@ -75,6 +82,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
   @override
   Widget build(BuildContext context) {
+    final displayStatus = TaskDisplayStatus.fromTask(widget.task);
     final content = SafeArea(
       top: false,
       child: Align(
@@ -109,49 +117,61 @@ class _TaskActionModalState extends State<TaskActionModal> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _ModalHeader(
+                              title: _isDetailMode
+                                  ? Words.taskDetails.tr()
+                                  : Words.taskAction.tr(),
+                              showInfoBadge: !_isDetailMode,
                               onClose: () => Navigator.of(context).maybePop(),
                             ),
                             const SizedBox(height: 20),
-                            _InfoTile(
-                              label: Words.taskSituation.tr(),
-                              value: _readable(widget.task.situation),
-                            ),
-                            const SizedBox(height: 12),
-                            _InfoTile(
-                              label: Words.taskType.tr(),
-                              value: _readable(
-                                widget.task.typeTask ?? widget.task.status,
+                            if (_isDetailMode) ...[
+                              _TaskDetailSection(
+                                task: widget.task,
+                                displayStatus: displayStatus,
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            _ReadOnlyComment(
-                              text: _readable(widget.task.description),
-                            ),
-                            if (_requiresAnswerFile) ...[
+                            ] else ...[
+                              _InfoTile(
+                                label: Words.taskSituation.tr(),
+                                value: _readable(widget.task.situation),
+                              ),
                               const SizedBox(height: 12),
-                              _LocationSection(
-                                position: _position,
-                                address: _locationAddress,
-                                onTap: _openLocationPicker,
-                              ),
-                              if (_attachment != null) ...[
-                                const SizedBox(height: 12),
-                                _SelectedAttachmentSummary(
-                                  attachment: _attachment!,
-                                  onRemove: () =>
-                                      setState(() => _attachment = null),
+                              _InfoTile(
+                                label: Words.taskType.tr(),
+                                value: _readable(
+                                  widget.task.typeTask ?? widget.task.status,
                                 ),
+                              ),
+                              const SizedBox(height: 12),
+                              _ReadOnlyComment(
+                                text: _readable(widget.task.description),
+                              ),
+                              if (_requiresAnswerFile) ...[
+                                const SizedBox(height: 12),
+                                _LocationSection(
+                                  position: _position,
+                                  address: _locationAddress,
+                                  onTap: _openLocationPicker,
+                                ),
+                                if (_attachment != null) ...[
+                                  const SizedBox(height: 12),
+                                  _SelectedAttachmentSummary(
+                                    attachment: _attachment!,
+                                    onRemove: () =>
+                                        setState(() => _attachment = null),
+                                  ),
+                                ],
                               ],
                             ],
                           ],
                         ),
                       ),
                     ),
-                    _BottomActions(
-                      isCompleting: _isCompleting,
-                      onDone: _handleDone,
-                      onCancel: () => _handleCancelTodo(),
-                    ),
+                    if (!_isDetailMode)
+                      _BottomActions(
+                        isCompleting: _isCompleting,
+                        onDone: _handleDone,
+                        onCancel: () => _handleCancelTodo(),
+                      ),
                   ],
                 ),
               ),
@@ -161,7 +181,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
       ),
     );
 
-    if (widget.onComplete != null) {
+    if (_isDetailMode || widget.onComplete != null) {
       return content;
     }
 
@@ -457,9 +477,15 @@ class _TaskActionModalState extends State<TaskActionModal> {
 }
 
 class _ModalHeader extends StatelessWidget {
+  final String title;
+  final bool showInfoBadge;
   final VoidCallback onClose;
 
-  const _ModalHeader({required this.onClose});
+  const _ModalHeader({
+    required this.title,
+    required this.onClose,
+    this.showInfoBadge = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -467,34 +493,36 @@ class _ModalHeader extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            Words.taskAction.tr(),
+            title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: _TaskTextStyles.heading,
           ),
         ),
         const SizedBox(width: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: _TaskActionColors.soft,
-            border: Border.all(color: _TaskActionColors.stroke, width: 0.5),
-            borderRadius: BorderRadius.circular(8),
+        if (showInfoBadge) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: _TaskActionColors.soft,
+              border: Border.all(color: _TaskActionColors.stroke, width: 0.5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Batafsil", style: _TaskTextStyles.bodyS),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.help_outline,
+                  size: 12,
+                  color: _TaskActionColors.strong,
+                ),
+              ],
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Batafsil", style: _TaskTextStyles.bodyS),
-              const SizedBox(width: 4),
-              const Icon(
-                Icons.help_outline,
-                size: 12,
-                color: _TaskActionColors.strong,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
+          const SizedBox(width: 12),
+        ],
         InkResponse(
           onTap: onClose,
           radius: 22,
@@ -555,6 +583,61 @@ class _InfoTile extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _TaskDetailSection extends StatelessWidget {
+  final TaskModel task;
+  final TaskDisplayStatus displayStatus;
+
+  const _TaskDetailSection({required this.task, required this.displayStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    final documentName = task.consumerDocument?.documentName.trim();
+
+    return Column(
+      key: const Key('task-detail-section'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoTile(label: Words.employee.tr(), value: _readable(task.employee)),
+        const SizedBox(height: 12),
+        _InfoTile(label: Words.status.tr(), value: _readable(task.status)),
+        const SizedBox(height: 12),
+        _InfoTile(
+          label: Words.taskSituation.tr(),
+          value: displayStatus.label.tr(),
+        ),
+        const SizedBox(height: 12),
+        _InfoTile(
+          label: Words.situation.tr(),
+          value: _readable(task.situation),
+        ),
+        const SizedBox(height: 12),
+        _InfoTile(
+          label: Words.taskType.tr(),
+          value: _readable(task.typeTask ?? task.status),
+        ),
+        const SizedBox(height: 12),
+        _InfoTile(
+          label: Words.date.tr(),
+          value: DateFormat(
+            'd MMM, HH:mm',
+          ).format(displayStatus.displayDateFor(task)),
+        ),
+        if (documentName != null && documentName.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _InfoTile(label: Words.document.tr(), value: documentName),
+        ],
+        const SizedBox(height: 12),
+        _ReadOnlyComment(text: _readable(task.description)),
+      ],
+    );
+  }
+
+  String _readable(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? Words.noData.tr() : trimmed;
   }
 }
 

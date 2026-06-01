@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:m_gaz/core/models/task/tasks_model.dart';
 import 'package:m_gaz/core/utils/colors.dart';
+import 'package:m_gaz/ui/home/tasks/widgets/task_action_modal.dart';
+import 'package:m_gaz/ui/home/tasks/widgets/task_display_status.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_item.dart';
 import 'bloc/task_bloc.dart';
 import 'bloc/task_event.dart';
@@ -82,11 +85,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
                             return _buildLoadMore();
                           }
 
+                          final task = state.tasks[index];
+                          final displayStatus = TaskDisplayStatus.fromTask(
+                            task,
+                          );
+
                           return TaskItemWidget(
-                            task: state.tasks[index],
-                            onTap: () {
-                              // Detalga o'tish qo'shish mumkin
-                            },
+                            task: task,
+                            onTap: () => _showTaskBottomSheet(
+                              context,
+                              task,
+                              displayStatus,
+                            ),
                           );
                         },
                       ),
@@ -100,6 +110,23 @@ class _TaskListScreenState extends State<TaskListScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showTaskBottomSheet(
+    BuildContext context,
+    TaskModel task,
+    TaskDisplayStatus displayStatus,
+  ) {
+    final mode = displayStatus == TaskDisplayStatus.pending
+        ? TaskActionModalMode.action
+        : TaskActionModalMode.detail;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => TaskActionModal(task: task, mode: mode),
     );
   }
 
