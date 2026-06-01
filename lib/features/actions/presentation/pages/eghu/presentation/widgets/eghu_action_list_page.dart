@@ -11,7 +11,7 @@ import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_removal_detail.dart';
 import '../../../../../data/models/eghu_working_document.dart';
 import '../../../../../domain/entities/action_menu_item.dart';
-import '../bloc/eghu_action_list_bloc.dart';
+import '../bloc/eghu_action_list_bloc/eghu_action_list_bloc.dart';
 import '../pages/eghu_action_create_page.dart';
 import '../pages/eghu_detach_create_page.dart';
 import 'eghu_action_card.dart';

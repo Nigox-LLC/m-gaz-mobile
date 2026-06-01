@@ -2,9 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../../data/datasources/eghu_action_api.dart';
-import '../../../../../data/models/eghu_working_document.dart';
-import '../../../../../domain/entities/action_menu_item.dart';
+import '../../../../../../data/datasources/eghu_action_api.dart';
+import '../../../../../../data/models/eghu_working_document.dart';
+import '../../../../../../domain/entities/action_menu_item.dart';
 
 part 'eghu_action_list_event.dart';
 part 'eghu_action_list_state.dart';

@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:m_gaz/core/models/paginated_response/paginated_response.dart';
 import 'package:m_gaz/features/actions/data/datasources/eghu_indicator_api.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_indicator_document.dart';
-import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_indicator_list_bloc.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_indicator_list_bloc/eghu_indicator_list_bloc.dart';
 
 void main() {
   group('EghuIndicatorListBloc', () {

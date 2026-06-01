@@ -8,7 +8,7 @@ import 'package:m_gaz/features/actions/data/datasources/eghu_indicator_api.dart'
 import 'package:m_gaz/features/actions/data/models/eghu_action_attachment.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_indicator_create_request.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_indicator_document.dart';
-import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_indicator_detail_bloc.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_indicator_detail_bloc/eghu_indicator_detail_bloc.dart';
 
 void main() {
   group('EghuIndicatorDetailBloc', () {

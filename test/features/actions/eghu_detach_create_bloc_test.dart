@@ -7,7 +7,7 @@ import 'package:m_gaz/core/models/working_with_consumers_document/working_with_c
 import 'package:m_gaz/features/actions/data/datasources/eghu_action_api.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_action_attachment.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_action_create_request.dart';
-import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_detach_create_bloc.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_detach_create_bloc/eghu_detach_create_bloc.dart';
 
 void main() {
   group('EghuDetachCreateBloc', () {

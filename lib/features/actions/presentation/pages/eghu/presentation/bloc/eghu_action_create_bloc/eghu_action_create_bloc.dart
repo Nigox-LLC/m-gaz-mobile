@@ -1,15 +1,15 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../../../../core/common/words.dart';
-import '../../../../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
-import '../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
-import '../../../../../data/datasources/eghu_action_api.dart';
-import '../../../../../data/models/eghu_action_attachment.dart';
-import '../../../../../data/models/eghu_action_create_request.dart';
-import '../../../../../data/models/eghu_action_stamp_entry.dart';
-import '../../../../../data/models/eghu_removal_detail.dart';
-import '../../../../../domain/entities/action_menu_item.dart';
+import '../../../../../../../../core/common/words.dart';
+import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
+import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
+import '../../../../../../data/datasources/eghu_action_api.dart';
+import '../../../../../../data/models/eghu_action_attachment.dart';
+import '../../../../../../data/models/eghu_action_create_request.dart';
+import '../../../../../../data/models/eghu_action_stamp_entry.dart';
+import '../../../../../../data/models/eghu_removal_detail.dart';
+import '../../../../../../domain/entities/action_menu_item.dart';
 
 part 'eghu_action_create_event.dart';
 part 'eghu_action_create_state.dart';

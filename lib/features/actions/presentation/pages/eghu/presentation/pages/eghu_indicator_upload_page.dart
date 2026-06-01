@@ -7,7 +7,7 @@ import '../../../../../../../core/common/words.dart';
 import '../../../../../../../di.dart';
 import '../../../../../data/datasources/eghu_indicator_api.dart';
 import '../../../../../data/models/eghu_indicator_document.dart';
-import '../bloc/eghu_indicator_list_bloc.dart';
+import '../bloc/eghu_indicator_list_bloc/eghu_indicator_list_bloc.dart';
 import '../widgets/create/eghu_action_bottom_sheets.dart';
 import '../widgets/create/eghu_action_form_fields.dart';
 import '../widgets/eghu_action_card.dart';

@@ -6,7 +6,7 @@ import '../../../../../../../core/common/words.dart';
 import '../../../../../../../core/models/global/global_model.dart';
 import '../../../../../../../di.dart';
 import '../../../../../../../global_widget/app_tools.dart';
-import '../bloc/eghu_action_list_bloc.dart';
+import '../bloc/eghu_action_list_bloc/eghu_action_list_bloc.dart';
 import 'create/eghu_action_form_fields.dart';
 import 'eghu_calendar_dialog.dart';
 

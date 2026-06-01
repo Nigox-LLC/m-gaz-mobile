@@ -2,8 +2,8 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../../data/datasources/eghu_indicator_api.dart';
-import '../../../../../data/models/eghu_indicator_document.dart';
+import '../../../../../../data/datasources/eghu_indicator_api.dart';
+import '../../../../../../data/models/eghu_indicator_document.dart';
 
 part 'eghu_indicator_list_event.dart';
 part 'eghu_indicator_list_state.dart';

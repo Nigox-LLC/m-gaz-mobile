@@ -2,11 +2,11 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
-import '../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
-import '../../../../../data/datasources/eghu_indicator_api.dart';
-import '../../../../../data/models/eghu_action_attachment.dart';
-import '../../../../../data/models/eghu_indicator_create_request.dart';
+import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
+import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
+import '../../../../../../data/datasources/eghu_indicator_api.dart';
+import '../../../../../../data/models/eghu_action_attachment.dart';
+import '../../../../../../data/models/eghu_indicator_create_request.dart';
 
 part 'eghu_indicator_create_event.dart';
 part 'eghu_indicator_create_state.dart';

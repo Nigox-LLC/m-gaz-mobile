@@ -9,7 +9,7 @@ import 'package:m_gaz/features/actions/data/models/eghu_action_attachment.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_action_create_request.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_removal_detail.dart';
 import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
-import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_action_create_bloc.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_action_create_bloc/eghu_action_create_bloc.dart';
 
 void main() {
   group('EghuActionCreateBloc', () {

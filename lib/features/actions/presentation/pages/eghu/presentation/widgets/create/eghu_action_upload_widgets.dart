@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../../../core/common/words.dart';
 import '../../../../../../../../global_widget/app_tools.dart';
 import '../../../../../../data/models/eghu_action_attachment.dart';
-import '../../bloc/eghu_action_create_bloc.dart';
+import '../../bloc/eghu_action_create_bloc/eghu_action_create_bloc.dart';
 import 'eghu_action_form_fields.dart';
 
 class EghuUploadSection extends StatefulWidget {

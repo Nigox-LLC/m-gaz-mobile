@@ -3,7 +3,7 @@ import 'package:m_gaz/core/models/paginated_response/paginated_response.dart';
 import 'package:m_gaz/features/actions/data/datasources/eghu_action_api.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_working_document.dart';
 import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
-import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_action_list_bloc.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/bloc/eghu_action_list_bloc/eghu_action_list_bloc.dart';
 
 void main() {
   group('EghuActionListBloc', () {

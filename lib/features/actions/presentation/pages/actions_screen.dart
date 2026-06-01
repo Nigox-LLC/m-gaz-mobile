@@ -106,8 +106,8 @@ class _ActionMenuGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final sections = <List<ActionMenuItem>>[
       items.sublist(0, 3),
-      items.sublist(3, 6),
-      items.sublist(6, 9),
+      // items.sublist(3, 6),
+      // items.sublist(6, 9),
     ];
 
     return Column(

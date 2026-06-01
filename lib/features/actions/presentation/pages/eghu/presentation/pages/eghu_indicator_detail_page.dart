@@ -9,7 +9,7 @@ import '../../../../../../../core/models/working_with_consumers_document/working
 import '../../../../../../../di.dart';
 import '../../../../../../../features/auth/presentation/bloc/login_bloc.dart';
 import '../../../../../data/datasources/eghu_indicator_api.dart';
-import '../bloc/eghu_indicator_detail_bloc.dart';
+import '../bloc/eghu_indicator_detail_bloc/eghu_indicator_detail_bloc.dart';
 import '../widgets/create/eghu_action_bottom_sheets.dart';
 import '../widgets/create/eghu_action_form_fields.dart';
 import 'eghu_indicator_create_page.dart';
