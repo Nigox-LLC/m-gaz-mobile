@@ -138,6 +138,9 @@ class AppTools {
   static const String icCalendar = "assets/icons/ic_calendar.svg";
   static const String icBreifcase = "assets/icons/ic_breifcase.svg";
   static const String icUserCheck = "assets/icons/ic_user_check.svg";
+  static const String icCheckUser = "assets/icons/ic_check_user.svg";
+  static const String icSun = "assets/icons/ic_sun.svg";
+  static const String icSmile = "assets/icons/ic_smile.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";

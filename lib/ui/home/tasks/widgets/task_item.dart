@@ -27,9 +27,11 @@ class TaskItemWidget extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          onTap: displayStatus == TaskDisplayStatus.pending
-              ? () => _showTaskActionDialog(context)
-              : null,
+          onTap:
+              onTap ??
+              (displayStatus == TaskDisplayStatus.pending
+                  ? () => _showTaskActionDialog(context)
+                  : null),
           borderRadius: BorderRadius.circular(16),
           child: Ink(
             padding: const EdgeInsets.all(12),

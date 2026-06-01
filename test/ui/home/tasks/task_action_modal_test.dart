@@ -155,6 +155,37 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(completedCount, 1);
+
+    await _pumpTaskActionModal(
+      tester,
+      task: _task(
+        isAnswerFile: true,
+        isDone: true,
+        doneDate: DateTime(2026, 5, 22, 10, 30),
+        consumerDocument: ConsumerDocument(
+          documentId: 12,
+          documentName: "Iste'molchi hujjati",
+        ),
+      ),
+      mode: TaskActionModalMode.detail,
+    );
+
+    expect(find.byKey(const Key('task-action-modal')), findsOneWidget);
+    expect(find.byKey(const Key('task-detail-section')), findsOneWidget);
+    expect(find.text("Vazifa ma'lumotlari"), findsOneWidget);
+    expect(find.text('Mark Leonidov'), findsOneWidget);
+    expect(find.text('Yangi'), findsOneWidget);
+    expect(find.text('Bajarilgan'), findsOneWidget);
+    expect(find.text("O'rta"), findsOneWidget);
+    expect(find.text('Joylashuv aniqlash'), findsOneWidget);
+    expect(find.text('22 May, 10:30'), findsOneWidget);
+    expect(find.text("Iste'molchi hujjati"), findsOneWidget);
+
+    expect(find.byKey(const Key('task-done-button')), findsNothing);
+    expect(find.byKey(const Key('task-cancel-todo-button')), findsNothing);
+    expect(find.byKey(const Key('task-location-section')), findsNothing);
+    expect(find.byKey(const Key('task-upload-basis-tile')), findsNothing);
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
   });
@@ -163,10 +194,11 @@ void main() {
 Future<void> _pumpTaskActionModal(
   WidgetTester tester, {
   required TaskModel task,
-  required TaskCompletionCallback onComplete,
+  TaskCompletionCallback? onComplete,
   TaskCancelCallback? onCancelTask,
   Future<Position?> Function()? locationProvider,
   TaskLocationAddressResolver? locationAddressResolver,
+  TaskActionModalMode mode = TaskActionModalMode.action,
 }) async {
   await tester.pumpWidget(
     EasyLocalization(
@@ -192,6 +224,7 @@ Future<void> _pumpTaskActionModal(
                 onCancelTask: onCancelTask,
                 locationProvider: locationProvider,
                 locationAddressResolver: locationAddressResolver,
+                mode: mode,
               ),
             ),
           );
@@ -247,7 +280,15 @@ class _FakeFilePicker extends FilePicker {
   }
 }
 
-TaskModel _task({required bool isAnswerFile}) {
+TaskModel _task({
+  required bool isAnswerFile,
+  bool isDone = false,
+  DateTime? deadline,
+  DateTime? doneDate,
+  DateTime? approvedDate,
+  DateTime? canceledDate,
+  ConsumerDocument? consumerDocument,
+}) {
   return TaskModel(
     id: 7,
     employee: 'Mark Leonidov',
@@ -258,15 +299,15 @@ TaskModel _task({required bool isAnswerFile}) {
     situation: "O'rta",
     description:
         "CRM tizimida yangi “Hisobotlar” bo‘limini qo‘shish. Admin barcha ma’lumotlarni ko‘ra olishi kerak.",
-    deadline: DateTime(2026, 5, 25, 20, 32),
-    doneDate: null,
-    approvedDate: null,
-    canceledDate: null,
+    deadline: deadline ?? DateTime(2026, 5, 25, 20, 32),
+    doneDate: doneDate,
+    approvedDate: approvedDate,
+    canceledDate: canceledDate,
     created: DateTime(2026, 5, 24, 10),
-    isDone: false,
+    isDone: isDone,
     isApproved: false,
     isCanceled: false,
     isAnswerFile: isAnswerFile,
-    consumerDocument: null,
+    consumerDocument: consumerDocument,
   );
 }
