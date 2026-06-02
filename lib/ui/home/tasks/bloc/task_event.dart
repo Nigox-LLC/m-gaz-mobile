@@ -9,7 +9,17 @@ abstract class TaskEvent extends Equatable {
 
 class TaskLoad extends TaskEvent {}
 
-class TaskAnalysisLoad extends TaskEvent {}
+class TaskProfileLoad extends TaskEvent {}
+
+class TaskAnalysisLoad extends TaskEvent {
+  final DateTime? dateFrom;
+  final DateTime? dateTo;
+
+  const TaskAnalysisLoad({this.dateFrom, this.dateTo});
+
+  @override
+  List<Object?> get props => [dateFrom, dateTo];
+}
 
 class TaskLoadMore extends TaskEvent {}
 
