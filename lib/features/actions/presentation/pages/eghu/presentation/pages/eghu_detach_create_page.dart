@@ -283,6 +283,13 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
                                           localId: localId,
                                         ),
                                       ),
+                                  onDateChanged: (localId, value) =>
+                                      context.read<EghuDetachCreateBloc>().add(
+                                        EghuDetachStampDateChanged(
+                                          value,
+                                          localId: localId,
+                                        ),
+                                      ),
                                   onRemoveUnsaved: (localId) => context
                                       .read<EghuDetachCreateBloc>()
                                       .add(EghuDetachStampRemoved(localId)),

@@ -174,6 +174,13 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
                                         localId: localId,
                                       ),
                                     ),
+                                onDateChanged: (localId, value) =>
+                                    context.read<EghuActionCreateBloc>().add(
+                                      EghuActionStampDateChanged(
+                                        value,
+                                        localId: localId,
+                                      ),
+                                    ),
                                 onRemoveUnsaved: (localId) => context
                                     .read<EghuActionCreateBloc>()
                                     .add(EghuActionStampRemoved(localId)),

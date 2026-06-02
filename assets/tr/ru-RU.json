@@ -392,6 +392,9 @@
   "eghuCertificate": "Сертификат ЕГХУ",
   "technicalDocuments": "Проектная техническая документация",
   "contract": "Договор",
+  "uploadSectionHelp": "Можно загрузить файлы JPG, PNG или PDF. Чтобы добавить несколько файлов, нажмите кнопку Добавить.",
+  "unsavedChangesTitle": "Изменения не сохранены.",
+  "unsavedChangesDescription": "Введённые данные не будут сохранены. Подтвердить выход?",
   "addInformation": "Добавить данные",
   "detailsButton": "Подробнее",
   "facialLabel": "Лицевой счёт"

@@ -23,6 +23,7 @@ void main() {
     WidgetTester tester, {
     required List<ConsumerUploadFile> files,
     void Function(ConsumerUploadFile)? onRemove,
+    String? helpText,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -35,6 +36,8 @@ void main() {
               onAdd: () {},
               onRemove: onRemove ?? (_) {},
               onView: (_) {},
+              helpText: helpText,
+              helpKey: const Key('consumer-upload-help-test'),
             ),
           ),
         ),
@@ -51,8 +54,35 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('renders file tiles when populated, remote has no remove',
-      (tester) async {
+  testWidgets(
+    'shows help icon and file info panel when help text is provided',
+    (tester) async {
+      const helpText = 'Upload JPG, PNG or PDF files.';
+      final pending = ConsumerUploadFile.local(
+        path: '/tmp/a.pdf',
+        name: 'a.pdf',
+        sizeBytes: 1024,
+      );
+
+      await pump(tester, files: [pending], helpText: helpText);
+
+      final helpIcon = find.byKey(const Key('consumer-upload-help-test'));
+      expect(helpIcon, findsOneWidget);
+
+      await tester.tap(helpIcon);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('consumer-upload-info-section')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('renders file tiles when populated, remote has no remove', (
+    tester,
+  ) async {
     final remote = ConsumerUploadFile.fromConsumerFile(
       const ConsumerFile(
         id: 1,
@@ -79,11 +109,7 @@ void main() {
       sizeBytes: 10,
     );
 
-    await pump(
-      tester,
-      files: [pending],
-      onRemove: (f) => removed = f,
-    );
+    await pump(tester, files: [pending], onRemove: (f) => removed = f);
 
     final removeButton = find.byKey(const Key('consumer-file-remove'));
     expect(removeButton, findsOneWidget);

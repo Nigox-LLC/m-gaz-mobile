@@ -5,6 +5,8 @@ import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_action_stamp_entry.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
+import '../eghu_calendar_dialog.dart';
+
 class EghuActionCreateColors {
   const EghuActionCreateColors._();
 
@@ -107,6 +109,7 @@ class EghuStampSection extends StatefulWidget {
     required this.stamps,
     required this.onAdd,
     required this.onNumberChanged,
+    required this.onDateChanged,
     required this.onRemoveUnsaved,
     this.employeeName,
   });
@@ -114,6 +117,7 @@ class EghuStampSection extends StatefulWidget {
   final List<EghuActionStampEntry> stamps;
   final VoidCallback onAdd;
   final void Function(String localId, String value) onNumberChanged;
+  final void Function(String localId, DateTime value) onDateChanged;
   final ValueChanged<String> onRemoveUnsaved;
   final String? employeeName;
 
@@ -181,6 +185,8 @@ class _EghuStampSectionState extends State<EghuStampSection> {
               employeeName: stamp.employeeName ?? widget.employeeName,
               onChanged: (value) =>
                   widget.onNumberChanged(stamp.localId, value),
+              onDateChanged: (value) =>
+                  widget.onDateChanged(stamp.localId, value),
               onRemove: stamp.isNew
                   ? () => widget.onRemoveUnsaved(stamp.localId)
                   : null,
@@ -198,6 +204,7 @@ class _StampListItem extends StatelessWidget {
     required this.controller,
     required this.employeeName,
     required this.onChanged,
+    required this.onDateChanged,
     this.onRemove,
   });
 
@@ -205,6 +212,7 @@ class _StampListItem extends StatelessWidget {
   final TextEditingController controller;
   final String? employeeName;
   final ValueChanged<String> onChanged;
+  final ValueChanged<DateTime> onDateChanged;
   final VoidCallback? onRemove;
 
   @override
@@ -286,27 +294,40 @@ class _StampListItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Container(
+          Material(
             key: Key('eghu-stamp-date-field-${stamp.localId}'),
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: EghuActionCreateColors.field,
+            color: EghuActionCreateColors.field,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: EghuActionCreateColors.stroke),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    displayDate,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: eghuText(fontSize: 13, lineHeight: 20),
-                  ),
+              onTap: () async {
+                final value = await pickEghuStampDateTime(
+                  context,
+                  currentStampDateTime: stamp.installedAt,
+                );
+                if (value != null) onDateChanged(value);
+              },
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: EghuActionCreateColors.stroke),
                 ),
-                AppTools.svg(AppTools.icCalendar),
-              ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayDate,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: eghuText(fontSize: 13, lineHeight: 20),
+                      ),
+                    ),
+                    AppTools.svg(AppTools.icCalendar),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

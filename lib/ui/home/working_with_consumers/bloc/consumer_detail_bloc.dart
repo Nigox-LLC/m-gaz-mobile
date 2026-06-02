@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -18,6 +20,10 @@ class ConsumerDetailBloc
       super(const ConsumerDetailState()) {
     on<ConsumerDetailFetched>(_onFetched);
     on<ConsumerDetailCompanyToggled>(_onCompanyToggled);
+    on<ConsumerDetailEgxuToggled>(_onEgxuToggled);
+    on<ConsumerDetailCompanyChanged>(_onCompanyChanged);
+    on<ConsumerDetailEgxuRelationChanged>(_onEgxuRelationChanged);
+    on<ConsumerDetailEgxuItemChanged>(_onEgxuItemChanged);
     on<ConsumerDetailFileAdded>(_onFileAdded);
     on<ConsumerDetailFileRemoved>(_onFileRemoved);
     on<ConsumerDetailSaved>(_onSaved);
@@ -27,9 +33,7 @@ class ConsumerDetailBloc
     ConsumerDetailFetched event,
     Emitter<ConsumerDetailState> emit,
   ) async {
-    emit(
-      const ConsumerDetailState(status: ConsumerDetailStatus.loading),
-    );
+    emit(const ConsumerDetailState(status: ConsumerDetailStatus.loading));
 
     try {
       final document = await _api.getDocumentById(event.documentId);
@@ -39,6 +43,7 @@ class ConsumerDetailBloc
         ConsumerDetailState(
           status: ConsumerDetailStatus.loaded,
           document: document,
+          draftDocument: document,
           certsByEgxu: files.certsByEgxu,
           technicalDocs: files.technical,
           contracts: files.contracts,
@@ -61,6 +66,89 @@ class ConsumerDetailBloc
     emit(state.copyWith(companyInfoExpanded: !state.companyInfoExpanded));
   }
 
+  void _onEgxuToggled(
+    ConsumerDetailEgxuToggled event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final expanded = Set<int>.from(state.expandedEgxuIds);
+    if (!expanded.add(event.egxuId)) {
+      expanded.remove(event.egxuId);
+    }
+    emit(state.copyWith(expandedEgxuIds: expanded));
+  }
+
+  void _onCompanyChanged(
+    ConsumerDetailCompanyChanged event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final draft = state.draftDocument;
+    final egxuList = draft?.egxuList;
+    if (draft == null || egxuList == null) return;
+
+    emit(
+      state.copyWith(
+        draftDocument: draft.copyWith(
+          egxuList: egxuList
+              .map(
+                (item) => item.companyInfo == null
+                    ? item
+                    : item.copyWith(companyInfo: event.companyInfo),
+              )
+              .toList(),
+        ),
+        isDirty: true,
+        saveStatus: ConsumerDetailSaveStatus.idle,
+      ),
+    );
+  }
+
+  void _onEgxuRelationChanged(
+    ConsumerDetailEgxuRelationChanged event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final draft = state.draftDocument;
+    final egxuList = draft?.egxuList;
+    if (draft == null || egxuList == null) return;
+
+    emit(
+      state.copyWith(
+        draftDocument: draft.copyWith(
+          egxuList: egxuList
+              .map(
+                (item) => item.id == event.egxuId
+                    ? item.copyWith(consumerRelationEgxu: event.relation)
+                    : item,
+              )
+              .toList(),
+        ),
+        isDirty: true,
+        saveStatus: ConsumerDetailSaveStatus.idle,
+      ),
+    );
+  }
+
+  void _onEgxuItemChanged(
+    ConsumerDetailEgxuItemChanged event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final draft = state.draftDocument;
+    final egxuList = draft?.egxuList;
+    final itemId = event.item.id;
+    if (draft == null || egxuList == null || itemId == null) return;
+
+    emit(
+      state.copyWith(
+        draftDocument: draft.copyWith(
+          egxuList: egxuList
+              .map((item) => item.id == itemId ? event.item : item)
+              .toList(),
+        ),
+        isDirty: true,
+        saveStatus: ConsumerDetailSaveStatus.idle,
+      ),
+    );
+  }
+
   void _onFileAdded(
     ConsumerDetailFileAdded event,
     Emitter<ConsumerDetailState> emit,
@@ -73,7 +161,12 @@ class ConsumerDetailBloc
           state.pendingCertsByEgxu,
         );
         map[egxuId] = [...?map[egxuId], event.file];
-        emit(state.copyWith(pendingCertsByEgxu: map, saveStatus: ConsumerDetailSaveStatus.idle));
+        emit(
+          state.copyWith(
+            pendingCertsByEgxu: map,
+            saveStatus: ConsumerDetailSaveStatus.idle,
+          ),
+        );
         break;
       case ConsumerFileSlot.technical:
         emit(
@@ -135,12 +228,22 @@ class ConsumerDetailBloc
     ConsumerDetailSaved event,
     Emitter<ConsumerDetailState> emit,
   ) async {
-    final document = state.document;
-    if (document == null || !state.hasPending) return;
+    final document = state.draftDocument ?? state.document;
+    final hasDocumentChanges = _hasDocumentChanges(state);
+    if (document == null || (!state.hasPending && !hasDocumentChanges)) return;
 
     emit(state.copyWith(saveStatus: ConsumerDetailSaveStatus.saving));
 
     try {
+      var savedDocument = document;
+      final documentId = document.id;
+      if (hasDocumentChanges && documentId != null) {
+        savedDocument = await _api.patchDocument(
+          id: documentId,
+          document: document,
+        );
+      }
+
       // EGHU sertifikatlari
       for (final entry in state.pendingCertsByEgxu.entries) {
         final paths = entry.value
@@ -171,10 +274,16 @@ class ConsumerDetailBloc
         );
       }
 
-      // Saqlangach yangilangan ro'yxatni qayta yuklash
-      final files = await _loadRemoteFiles(document);
+      // Saqlangach yangilangan detail va fayllarni qayta yuklash
+      final freshDocument = savedDocument.id == null
+          ? savedDocument
+          : await _api.getDocumentById(savedDocument.id!);
+      final files = await _loadRemoteFiles(freshDocument);
       emit(
         state.copyWith(
+          document: freshDocument,
+          draftDocument: freshDocument,
+          isDirty: false,
           certsByEgxu: files.certsByEgxu,
           technicalDocs: files.technical,
           contracts: files.contracts,
@@ -204,8 +313,9 @@ class ConsumerDetailBloc
       egxuItems.where((e) => e.id != null).map((e) async {
         try {
           final certs = await _api.getEgxuCertificates(egxuId: e.id!);
-          certsByEgxu[e.id!] =
-              certs.map(ConsumerUploadFile.fromCertificate).toList();
+          certsByEgxu[e.id!] = certs
+              .map(ConsumerUploadFile.fromCertificate)
+              .toList();
         } catch (_) {
           certsByEgxu[e.id!] = const [];
         }
@@ -236,6 +346,28 @@ class ConsumerDetailBloc
       technical: technical,
       contracts: contracts,
     );
+  }
+
+  bool _hasDocumentChanges(ConsumerDetailState state) {
+    final document = state.document;
+    final draft = state.draftDocument;
+    if (document == null || draft == null) return false;
+    return jsonEncode(_normalizeJson(document.toJson())) !=
+        jsonEncode(_normalizeJson(draft.toJson()));
+  }
+
+  Object? _normalizeJson(Object? value) {
+    if (value is Map) {
+      final sorted = <String, Object?>{};
+      for (final key in value.keys.map((e) => e.toString()).toList()..sort()) {
+        sorted[key] = _normalizeJson(value[key]);
+      }
+      return sorted;
+    }
+    if (value is List) {
+      return value.map(_normalizeJson).toList();
+    }
+    return value;
   }
 }
 

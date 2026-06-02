@@ -392,6 +392,9 @@
     "eghuCertificate": "ЕГХУ сертификати",
     "technicalDocuments": "Лойиҳа техник ҳужжатлари",
     "contract": "Шартнома",
+    "uploadSectionHelp": "JPG, PNG ёки PDF файлларни юклаш мумкин. Бир нечта файл қўшиш учун Қўшиш тугмасини босинг.",
+    "unsavedChangesTitle": "Ўзгаришлар сақланмаган.",
+    "unsavedChangesDescription": "Киритилган маълумотлар сақланмайди. Чиқишни тасдиқлайсизми?",
     "addInformation": "Маълумот қўшиш",
     "detailsButton": "Батафсил",
     "facialLabel": "Ҳисоб рақам (Лицевой)"

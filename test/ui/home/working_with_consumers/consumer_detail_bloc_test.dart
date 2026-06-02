@@ -35,7 +35,10 @@ Map<String, dynamic> _detailJson() => {
 class _FakeApi implements ConsumerRelationsApi {
   int certUploadCalls = 0;
   int consumerUploadCalls = 0;
+  int patchCalls = 0;
   bool throwOnUpload = false;
+  bool throwOnPatch = false;
+  WorkingWithConsumersDetailModel? patchedDocument;
 
   @override
   Future<WorkingWithConsumersDetailModel> getDocumentById(int id) async {
@@ -74,6 +77,17 @@ class _FakeApi implements ConsumerRelationsApi {
         createdAt: '2026-06-01T20:05:00Z',
       ),
     ];
+  }
+
+  @override
+  Future<WorkingWithConsumersDetailModel> patchDocument({
+    required int id,
+    required WorkingWithConsumersDetailModel document,
+  }) async {
+    if (throwOnPatch) throw Exception('patch failed');
+    patchCalls++;
+    patchedDocument = document;
+    return document;
   }
 
   @override
@@ -122,6 +136,17 @@ void main() {
     return bloc;
   }
 
+  test('patch payload sends top-level relations as pk ids', () {
+    final document = WorkingWithConsumersDetailModel.fromJson(_detailJson());
+    final payload = buildConsumerDocumentPatchPayload(document);
+
+    expect(payload['region'], 3);
+    expect(payload['district'], 50);
+    expect(payload['employee'], 110);
+    expect(payload['consumers'], _consumerId);
+    expect(payload['egxu_list'], isA<List<dynamic>>());
+  });
+
   test('fetch loads document and remote files', () async {
     final bloc = await loaded();
 
@@ -146,23 +171,80 @@ void main() {
     await bloc.close();
   });
 
-  test('adding a technical file makes save available, removing clears it',
-      () async {
+  test(
+    'adding a technical file makes save available, removing clears it',
+    () async {
+      final bloc = await loaded();
+      final file = _localFile();
+
+      bloc.add(
+        ConsumerDetailFileAdded(slot: ConsumerFileSlot.technical, file: file),
+      );
+      await bloc.stream.firstWhere((s) => s.pendingTechnical.isNotEmpty);
+      expect(bloc.state.canSave, isTrue);
+      expect(bloc.state.technicalAll.length, 2); // 1 remote + 1 pending
+
+      bloc.add(
+        ConsumerDetailFileRemoved(slot: ConsumerFileSlot.technical, file: file),
+      );
+      await bloc.stream.firstWhere((s) => s.pendingTechnical.isEmpty);
+      expect(bloc.state.canSave, isFalse);
+
+      await bloc.close();
+    },
+  );
+
+  test('editing company info marks draft dirty and enables save', () async {
     final bloc = await loaded();
-    final file = _localFile();
+    final info = bloc.state.draftDocument!.egxuList!.first.companyInfo!;
 
-    bloc.add(
-      ConsumerDetailFileAdded(slot: ConsumerFileSlot.technical, file: file),
-    );
-    await bloc.stream.firstWhere((s) => s.pendingTechnical.isNotEmpty);
+    bloc.add(ConsumerDetailCompanyChanged(info.copyWith(accountNumber: '999')));
+    await bloc.stream.firstWhere((s) => s.isDirty);
+
     expect(bloc.state.canSave, isTrue);
-    expect(bloc.state.technicalAll.length, 2); // 1 remote + 1 pending
+    expect(
+      bloc.state.draftDocument?.egxuList?.first.companyInfo?.accountNumber,
+      '999',
+    );
+
+    await bloc.close();
+  });
+
+  test('editing egxu relation sends full draft through PATCH', () async {
+    final bloc = await loaded();
 
     bloc.add(
-      ConsumerDetailFileRemoved(slot: ConsumerFileSlot.technical, file: file),
+      ConsumerDetailEgxuRelationChanged(
+        egxuId: _egxuId,
+        relation: ConsumerRelationEgxu(additionalGas: 12.5),
+      ),
     );
-    await bloc.stream.firstWhere((s) => s.pendingTechnical.isEmpty);
-    expect(bloc.state.canSave, isFalse);
+    await bloc.stream.firstWhere((s) => s.isDirty);
+
+    bloc.add(const ConsumerDetailSaved());
+    await bloc.stream.firstWhere(
+      (s) => s.saveStatus == ConsumerDetailSaveStatus.success,
+    );
+
+    expect(api.patchCalls, 1);
+    expect(
+      api.patchedDocument?.egxuList?.first.consumerRelationEgxu?.additionalGas,
+      12.5,
+    );
+    expect(bloc.state.isDirty, isFalse);
+
+    await bloc.close();
+  });
+
+  test('editing egxu item status marks draft dirty', () async {
+    final bloc = await loaded();
+    final item = bloc.state.draftDocument!.egxuList!.first;
+
+    bloc.add(ConsumerDetailEgxuItemChanged(item.copyWith(isActive: false)));
+    await bloc.stream.firstWhere((s) => s.isDirty);
+
+    expect(bloc.state.canSave, isTrue);
+    expect(bloc.state.draftDocument?.egxuList?.first.isActive, isFalse);
 
     await bloc.close();
   });
@@ -192,8 +274,65 @@ void main() {
 
     expect(api.certUploadCalls, 1);
     expect(api.consumerUploadCalls, 1);
+    expect(api.patchCalls, 0);
     expect(bloc.state.pendingTechnical, isEmpty);
     expect(bloc.state.pendingCertsByEgxu[_egxuId] ?? const [], isEmpty);
+
+    await bloc.close();
+  });
+
+  test(
+    'file-only save skips patch when dirty flag has unchanged draft',
+    () async {
+      final bloc = await loaded();
+      final info = bloc.state.draftDocument!.egxuList!.first.companyInfo!;
+
+      bloc.add(ConsumerDetailCompanyChanged(info.copyWith()));
+      await bloc.stream.firstWhere((s) => s.isDirty);
+      bloc.add(
+        ConsumerDetailFileAdded(
+          slot: ConsumerFileSlot.technical,
+          file: _localFile(),
+        ),
+      );
+      await bloc.stream.firstWhere((s) => s.pendingTechnical.isNotEmpty);
+
+      bloc.add(const ConsumerDetailSaved());
+      await bloc.stream.firstWhere(
+        (s) => s.saveStatus == ConsumerDetailSaveStatus.success,
+      );
+
+      expect(api.patchCalls, 0);
+      expect(api.consumerUploadCalls, 1);
+
+      await bloc.close();
+    },
+  );
+
+  test('save patches dirty draft before uploading pending files', () async {
+    final bloc = await loaded();
+    final info = bloc.state.draftDocument!.egxuList!.first.companyInfo!;
+
+    bloc.add(ConsumerDetailCompanyChanged(info.copyWith(accountNumber: '777')));
+    bloc.add(
+      ConsumerDetailFileAdded(
+        slot: ConsumerFileSlot.technical,
+        file: _localFile(),
+      ),
+    );
+    await bloc.stream.firstWhere((s) => s.canSave);
+
+    bloc.add(const ConsumerDetailSaved());
+    await bloc.stream.firstWhere(
+      (s) => s.saveStatus == ConsumerDetailSaveStatus.success,
+    );
+
+    expect(api.patchCalls, 1);
+    expect(api.consumerUploadCalls, 1);
+    expect(
+      api.patchedDocument?.egxuList?.first.companyInfo?.accountNumber,
+      '777',
+    );
 
     await bloc.close();
   });

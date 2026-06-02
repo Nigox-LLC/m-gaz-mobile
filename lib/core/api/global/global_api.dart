@@ -361,7 +361,7 @@ class GlobalApi {
 
       final response = await _base.dio.get(
         'directory/directory/all-list/',
-        queryParameters: {'entity_type': 'GRPturlari'},
+        queryParameters: {'entity_type': 'GRPturlar'},
       );
 
       debugPrint("🔹 GRP Types javob status code: ${response.statusCode}");
@@ -417,7 +417,9 @@ class GlobalApi {
         queryParameters: {'entity_type': 'Tamgaornatishnuqtalari'},
       );
 
-      debugPrint("🔹 Tamga ornatish nuqtalari Types javob status code: ${response.statusCode}");
+      debugPrint(
+        "🔹 Tamga ornatish nuqtalari Types javob status code: ${response.statusCode}",
+      );
       debugPrint("Respomse data: ${response.data}");
 
       if (response.statusCode == 200) {
@@ -432,6 +434,7 @@ class GlobalApi {
       rethrow;
     }
   }
+
   Future<PaginatedResponse<GrsGasEquipment>> getGasEquipment({
     int limit = 10,
     int offset = 0,
@@ -468,9 +471,7 @@ class GlobalApi {
   }
 
   // Keyingi sahifani "next" URL orqali olish
-  Future<PaginatedResponse<GrsGasEquipment>> getNextPage(
-      String url,
-      ) async {
+  Future<PaginatedResponse<GrsGasEquipment>> getNextPage(String url) async {
     try {
       debugPrint("🔹 Keyingi sahifa so'rov yuborilmoqda...");
       debugPrint("🔹 URL: $url");
@@ -509,5 +510,4 @@ class GlobalApi {
       throw Exception("Kutilmagan xatolik: $e");
     }
   }
-
 }

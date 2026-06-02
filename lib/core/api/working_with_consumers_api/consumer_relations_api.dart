@@ -22,7 +22,9 @@ class ConsumerRelationsApi {
   }) async {
     try {
       debugPrint("🔹 Consumer Relations so'rov yuborilmoqda...");
-      debugPrint("🔹 Limit: $limit, Offset: $offset, search: $search, region: $region, district: $district");
+      debugPrint(
+        "🔹 Limit: $limit, Offset: $offset, search: $search, region: $region, district: $district",
+      );
 
       final query = <String, dynamic>{'limit': limit, 'offset': offset};
       if (search != null && search.trim().isNotEmpty) {
@@ -128,12 +130,40 @@ class ConsumerRelationsApi {
     }
   }
 
+  Future<WorkingWithConsumersDetailModel> patchDocument({
+    required int id,
+    required WorkingWithConsumersDetailModel document,
+  }) async {
+    try {
+      final response = await _base.dio.patch(
+        'consumer-relations-documents/$id/',
+        data: buildConsumerDocumentPatchPayload(document),
+      );
+
+      if (response.statusCode == 200) {
+        return WorkingWithConsumersDetailModel.fromJson(response.data);
+      }
+      throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+    } on DioException catch (e) {
+      final error = e.response?.data;
+      String errorMessage =
+          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      debugPrint("вќЊ DioException: $errorMessage");
+      throw Exception(errorMessage);
+    } catch (e) {
+      debugPrint("вќЊ UNKNOWN ERROR: $e");
+      throw Exception("Kutilmagan xatolik: $e");
+    }
+  }
+
   Future<ConsumerFactoryExistResponse> checkFactoryExist({
     required String factory1,
     required String factory2,
   }) async {
     // Debug print uchun
-    debugPrint("🔹 Tekshirilayotgan fabrikalar: factory1=$factory1, factory2=$factory2");
+    debugPrint(
+      "🔹 Tekshirilayotgan fabrikalar: factory1=$factory1, factory2=$factory2",
+    );
 
     final response = await _base.dio.get(
       'consumer-relations-documents/factory-exist/',
@@ -311,4 +341,19 @@ class ConsumerRelationsApi {
       rethrow;
     }
   }
+}
+
+@visibleForTesting
+Map<String, dynamic> buildConsumerDocumentPatchPayload(
+  WorkingWithConsumersDetailModel document,
+) {
+  final payload = Map<String, dynamic>.from(document.toJson());
+
+  // Backend PATCH expects top-level relations as PK values, not GET objects.
+  payload['region'] = document.region?.id;
+  payload['district'] = document.district?.id;
+  payload['employee'] = document.employee?.id;
+  payload['consumers'] = document.consumers?.id;
+
+  return payload;
 }

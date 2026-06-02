@@ -15,7 +15,10 @@ class ConsumerDetailState extends Equatable {
     this.status = ConsumerDetailStatus.initial,
     this.errorMessage,
     this.document,
+    this.draftDocument,
     this.companyInfoExpanded = false,
+    this.expandedEgxuIds = const {},
+    this.isDirty = false,
     this.certsByEgxu = const {},
     this.technicalDocs = const [],
     this.contracts = const [],
@@ -29,7 +32,10 @@ class ConsumerDetailState extends Equatable {
   final ConsumerDetailStatus status;
   final String? errorMessage;
   final WorkingWithConsumersDetailModel? document;
+  final WorkingWithConsumersDetailModel? draftDocument;
   final bool companyInfoExpanded;
+  final Set<int> expandedEgxuIds;
+  final bool isDirty;
 
   // Mavjud (remote) fayllar
   final Map<int, List<ConsumerUploadFile>> certsByEgxu;
@@ -52,7 +58,9 @@ class ConsumerDetailState extends Equatable {
       pendingCertsByEgxu.values.any((l) => l.isNotEmpty);
 
   bool get canSave =>
-      status == ConsumerDetailStatus.loaded && hasPending && !isSaving;
+      status == ConsumerDetailStatus.loaded &&
+      (hasPending || isDirty) &&
+      !isSaving;
 
   /// EGHU uchun ko'rsatiladigan birlashgan ro'yxat (remote + pending).
   List<ConsumerUploadFile> certificatesFor(int egxuId) => [
@@ -74,7 +82,10 @@ class ConsumerDetailState extends Equatable {
     ConsumerDetailStatus? status,
     String? errorMessage,
     WorkingWithConsumersDetailModel? document,
+    WorkingWithConsumersDetailModel? draftDocument,
     bool? companyInfoExpanded,
+    Set<int>? expandedEgxuIds,
+    bool? isDirty,
     Map<int, List<ConsumerUploadFile>>? certsByEgxu,
     List<ConsumerUploadFile>? technicalDocs,
     List<ConsumerUploadFile>? contracts,
@@ -88,7 +99,10 @@ class ConsumerDetailState extends Equatable {
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
       document: document ?? this.document,
+      draftDocument: draftDocument ?? this.draftDocument,
       companyInfoExpanded: companyInfoExpanded ?? this.companyInfoExpanded,
+      expandedEgxuIds: expandedEgxuIds ?? this.expandedEgxuIds,
+      isDirty: isDirty ?? this.isDirty,
       certsByEgxu: certsByEgxu ?? this.certsByEgxu,
       technicalDocs: technicalDocs ?? this.technicalDocs,
       contracts: contracts ?? this.contracts,
@@ -105,7 +119,10 @@ class ConsumerDetailState extends Equatable {
     status,
     errorMessage,
     document,
+    draftDocument,
     companyInfoExpanded,
+    expandedEgxuIds,
+    isDirty,
     certsByEgxu,
     technicalDocs,
     contracts,

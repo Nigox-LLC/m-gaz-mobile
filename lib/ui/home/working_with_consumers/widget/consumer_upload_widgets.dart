@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/common/words.dart';
 import '../../../../core/models/working_with_consumers_document/consumer_file_models.dart';
@@ -41,7 +42,7 @@ TextStyle consumerText({
 enum ConsumerPickSource { camera, device }
 
 /// Fayl/sertifikat yuklash bo'limi: sarlavha + "Qo'shish" + dropzone yoki fayllar gridi.
-class ConsumerUploadSection extends StatelessWidget {
+class ConsumerUploadSection extends StatefulWidget {
   const ConsumerUploadSection({
     super.key,
     required this.title,
@@ -50,6 +51,7 @@ class ConsumerUploadSection extends StatelessWidget {
     required this.onRemove,
     required this.onView,
     this.helpText,
+    this.helpKey,
     this.sectionKey,
   });
 
@@ -59,10 +61,30 @@ class ConsumerUploadSection extends StatelessWidget {
   final ValueChanged<ConsumerUploadFile> onRemove;
   final ValueChanged<ConsumerUploadFile> onView;
   final String? helpText;
+  final Key? helpKey;
   final String? sectionKey;
 
   @override
+  State<ConsumerUploadSection> createState() => _ConsumerUploadSectionState();
+}
+
+class _ConsumerUploadSectionState extends State<ConsumerUploadSection> {
+  bool _showDetails = false;
+
+  @override
+  void didUpdateWidget(covariant ConsumerUploadSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.files != oldWidget.files) {
+      _showDetails = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final infoFile = _infoFile(widget.files);
+    final canShowInfo = widget.helpText != null && infoFile != null;
+    final keyName = widget.sectionKey ?? 'section';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,56 +97,157 @@ class ConsumerUploadSection extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      title,
+                      widget.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: consumerText(
                         fontSize: 15,
                         lineHeight: 24,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         color: ConsumerDetailColors.textStrong,
                       ),
                     ),
                   ),
-                  if (helpText != null) ...[
-                    const SizedBox(width: 6),
-                    Tooltip(
-                      message: helpText!,
-                      triggerMode: TooltipTriggerMode.tap,
+                  if (canShowInfo) ...[
+                    const SizedBox(width: 8),
+                    InkWell(
+                      key: widget.helpKey,
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => setState(() => _showDetails = !_showDetails),
                       child: const Icon(
                         Icons.help_outline_rounded,
                         size: 16,
-                        color: ConsumerDetailColors.textSub,
+                        color: ConsumerDetailColors.text,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            _AddChip(onTap: onAdd, keyName: sectionKey),
+            _AddChip(onTap: widget.onAdd, keyName: widget.sectionKey),
           ],
         ),
+        if (_showDetails && infoFile != null) ...[
+          const SizedBox(height: 8),
+          ConsumerUploadInfoPanel(keyName: keyName, file: infoFile),
+        ],
         const SizedBox(height: 10),
-        if (files.isEmpty)
-          _DropZone(
-            onTap: onAdd,
-            text: Words.addInformation.tr(),
-          )
+        if (widget.files.isEmpty)
+          _DropZone(onTap: widget.onAdd, text: Words.addInformation.tr())
         else
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
-              for (final file in files)
+              for (final file in widget.files)
                 _FileTile(
                   file: file,
-                  onRemove: file.isRemote ? null : () => onRemove(file),
-                  onTap: () => onView(file),
+                  onRemove: file.isRemote ? null : () => widget.onRemove(file),
+                  onTap: () => widget.onView(file),
                 ),
-              _AddTile(onTap: onAdd),
+              _AddTile(onTap: widget.onAdd),
             ],
           ),
       ],
+    );
+  }
+
+  ConsumerUploadFile? _infoFile(List<ConsumerUploadFile> files) {
+    if (files.isEmpty) return null;
+    final sorted = [...files]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sorted.first;
+  }
+}
+
+class ConsumerUploadInfoPanel extends StatelessWidget {
+  const ConsumerUploadInfoPanel({
+    super.key,
+    required this.keyName,
+    required this.file,
+    this.uploaderName,
+  });
+
+  final String keyName;
+  final ConsumerUploadFile file;
+  final String? uploaderName;
+
+  @override
+  Widget build(BuildContext context) {
+    final uploadedBy = uploaderName?.trim();
+    final date = DateFormat('dd.MM.yyyy HH:mm').format(file.createdAt);
+
+    return Container(
+      key: Key('consumer-upload-info-$keyName'),
+      width: 210,
+      padding: const EdgeInsets.fromLTRB(12, 9, 13, 11),
+      decoration: BoxDecoration(
+        color: ConsumerDetailColors.field,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F000000),
+            blurRadius: 15,
+            offset: Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 1.5,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _InfoLine(
+            label: '${Words.uploadedBy.tr()}:',
+            value: uploadedBy?.isNotEmpty == true
+                ? uploadedBy!
+                : Words.fallbackUser.tr(),
+          ),
+          _InfoLine(label: '${Words.fileDate.tr()}:', value: date),
+          _InfoLine(
+            label: '${Words.fileSizeLabel.tr()}:',
+            value: file.formattedSize.isEmpty ? '-' : file.formattedSize,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: consumerText(
+          fontSize: 11,
+          lineHeight: 16,
+          color: ConsumerDetailColors.text,
+          letterSpacing: 0.4,
+        ),
+        children: [
+          TextSpan(
+            text: '$label ',
+            style: consumerText(
+              fontSize: 11,
+              lineHeight: 16,
+              color: ConsumerDetailColors.textSub,
+              letterSpacing: 0.4,
+            ),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
     );
   }
 }
@@ -137,23 +260,155 @@ class _AddChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    return Container(
       key: keyName == null ? null : Key('consumer-upload-add-$keyName'),
-      color: ConsumerDetailColors.soft,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
+      decoration: BoxDecoration(
+        color: ConsumerDetailColors.soft,
         borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        border: Border.all(color: ConsumerDetailColors.stroke, width: 0.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.add_rounded,
+                  size: 12,
+                  color: ConsumerDetailColors.text,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  Words.add.tr(),
+                  style: consumerText(fontSize: 13, lineHeight: 20),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum ConsumerUnsavedChangesAction { discard, save }
+
+class ConsumerUnsavedChangesSheet extends StatelessWidget {
+  const ConsumerUnsavedChangesSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          key: const Key('consumer-unsaved-exit-sheet'),
+          constraints: const BoxConstraints(maxWidth: 390),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            24,
+            20,
+            MediaQuery.paddingOf(context).bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: ConsumerDetailColors.page,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Stack(
+            alignment: Alignment.topCenter,
             children: [
-              const Icon(Icons.add_rounded, size: 14, color: ConsumerDetailColors.text),
-              const SizedBox(width: 4),
-              Text(
-                Words.add.tr(),
-                style: consumerText(fontSize: 13, lineHeight: 20),
+              Container(
+                width: 24,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF1F7),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 24),
+                  Text(
+                    Words.unsavedChangesTitle.tr(),
+                    textAlign: TextAlign.center,
+                    style: consumerText(
+                      fontSize: 20,
+                      lineHeight: 24,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    Words.unsavedChangesDescription.tr(),
+                    textAlign: TextAlign.center,
+                    style: consumerText(
+                      fontSize: 15,
+                      lineHeight: 24,
+                      color: ConsumerDetailColors.textSub,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: TextButton.icon(
+                            key: const Key('consumer-unsaved-discard'),
+                            onPressed: () => Navigator.of(
+                              context,
+                            ).pop(ConsumerUnsavedChangesAction.discard),
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            label: Text(Words.logout.tr()),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFFFB3748),
+                              textStyle: consumerText(
+                                fontSize: 15,
+                                lineHeight: 24,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 52,
+                          child: ElevatedButton.icon(
+                            key: const Key('consumer-unsaved-save'),
+                            onPressed: () => Navigator.of(
+                              context,
+                            ).pop(ConsumerUnsavedChangesAction.save),
+                            icon: const Icon(Icons.check_rounded, size: 20),
+                            label: Text(Words.save.tr()),
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              backgroundColor: ConsumerDetailColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              textStyle: consumerText(
+                                fontSize: 17,
+                                lineHeight: 28,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -224,11 +479,7 @@ class _AddTile extends StatelessWidget {
 }
 
 class _FileTile extends StatelessWidget {
-  const _FileTile({
-    required this.file,
-    required this.onTap,
-    this.onRemove,
-  });
+  const _FileTile({required this.file, required this.onTap, this.onRemove});
 
   final ConsumerUploadFile file;
   final VoidCallback onTap;
@@ -405,15 +656,13 @@ class ConsumerSourceSheet extends StatelessWidget {
             _SourceTile(
               icon: Icons.photo_camera_rounded,
               label: Words.openCamera.tr(),
-              onTap: () =>
-                  Navigator.of(context).pop(ConsumerPickSource.camera),
+              onTap: () => Navigator.of(context).pop(ConsumerPickSource.camera),
             ),
             const SizedBox(height: 8),
             _SourceTile(
               icon: Icons.folder_open_rounded,
               label: Words.uploadFromPhone.tr(),
-              onTap: () =>
-                  Navigator.of(context).pop(ConsumerPickSource.device),
+              onTap: () => Navigator.of(context).pop(ConsumerPickSource.device),
             ),
           ],
         ),

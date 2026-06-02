@@ -392,6 +392,9 @@
   "eghuCertificate": "EGHU sertifikati",
   "technicalDocuments": "Loyiha texnik xujjatlari",
   "contract": "Shartnoma",
+  "uploadSectionHelp": "JPG, PNG yoki PDF fayllarni yuklash mumkin. Bir nechta fayl qo'shish uchun Qo'shish tugmasini bosing.",
+  "unsavedChangesTitle": "O'zgarishlar saqlanmagan.",
+  "unsavedChangesDescription": "Kiritilgan ma'lumotlar saqlanmaydi. Chiqishni tasdiqlaysizmi?",
   "addInformation": "Ma'lumot qo'shish",
   "detailsButton": "Batafsil",
   "facialLabel": "Hisob raqam (Лицевой)"
