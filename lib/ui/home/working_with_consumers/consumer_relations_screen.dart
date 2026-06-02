@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:m_gaz/global_widget/global_app_bar.dart';
-import 'package:m_gaz/ui/home/working_with_consumers/sub_page/create/create.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/sub_page/detail.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/widget/document_card.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/widget/filter_bottom_sheet.dart';
@@ -21,6 +20,13 @@ class ConsumerRelationsScreen extends StatefulWidget {
 }
 
 class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
+  static const Color _pageColor = Color(0xFFFCFCFC);
+  static const Color _fieldColor = Color(0xFFF9F9F9);
+  static const Color _strokeColor = Color(0xFFE8E8E8);
+  static const Color _textStrongColor = Color(0xFF1A1D2E);
+  static const Color _textSubColor = Color(0xFFBBBBBB);
+  static const Color _primaryColor = Color(0xFF526ED3);
+
   final _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
@@ -60,29 +66,52 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
     final isTablet = _isTablet(context);
 
     return Scaffold(
-      backgroundColor: AppColors.cF5F5F5,
-      appBar: _buildModernAppBar(),
-      body: BlocBuilder<ConsumerRelationsBloc, ConsumerRelationsState>(
-        builder: (context, state) {
-          return Column(
-            children: [
-              _buildSearchField(context, state),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _buildBody(state, isTablet),
+      backgroundColor: _pageColor,
+      body: SafeArea(
+        bottom: false,
+        child: BlocBuilder<ConsumerRelationsBloc, ConsumerRelationsState>(
+          builder: (context, state) {
+            return Column(
+              children: [
+                _buildHeader(context, state),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _buildBody(state, isTablet),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, ConsumerRelationsState state) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 36,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                Words.consumer.tr(),
+                style: GoogleFonts.manrope(
+                  color: _textStrongColor,
+                  fontSize: 17,
+                  height: 28 / 17,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: isTablet ? 24 : 90),
-        child: FloatingActionButton(
-          child: const Icon(Icons.add),
-          onPressed: () => push(EgxuCreateScreen()),
-        ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSearchField(context, state),
+        ],
       ),
     );
   }
@@ -93,59 +122,71 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
     final filterActive =
         state.regionFilterId != null || state.districtFilterId != null;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        children: [
-          Expanded(child: _buildSearchTextField(context, hasQuery)),
-          const SizedBox(width: 8),
-          _buildFilterButton(context, state, filterActive),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(child: _buildSearchTextField(context, hasQuery)),
+        const SizedBox(width: 12),
+        _buildFilterButton(context, state, filterActive),
+      ],
     );
   }
 
   Widget _buildSearchTextField(BuildContext context, bool hasQuery) {
-    return TextField(
-      controller: _searchController,
-      onChanged: (value) {
-        context.read<ConsumerRelationsBloc>().add(
-          ConsumerRelationsSearchChanged(value),
-        );
-      },
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        hintText: Words.search.tr(),
-        hintStyle: const TextStyle(color: Colors.black45),
-        prefixIcon: const Icon(Icons.search, color: Colors.black54),
-        suffixIcon: hasQuery
-            ? IconButton(
-                icon: const Icon(Icons.close, color: Colors.black54),
-                onPressed: () {
-                  _searchController.clear();
-                  context.read<ConsumerRelationsBloc>().add(
-                    const ConsumerRelationsSearchChanged(''),
-                  );
-                },
-              )
-            : null,
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+    return SizedBox(
+      height: 44,
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          context.read<ConsumerRelationsBloc>().add(
+            ConsumerRelationsSearchChanged(value),
+          );
+        },
+        style: GoogleFonts.manrope(
+          color: const Color(0xFF202020),
+          fontSize: 13,
+          height: 20 / 13,
+          fontWeight: FontWeight.w500,
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: AppColors.c181D27, width: 1.5),
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: Words.search.tr(),
+          hintStyle: GoogleFonts.manrope(
+            color: _textSubColor,
+            fontSize: 13,
+            height: 20 / 13,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: _textSubColor,
+            size: 24,
+          ),
+          suffixIcon: hasQuery
+              ? IconButton(
+                  icon: const Icon(Icons.close, color: _textSubColor),
+                  onPressed: () {
+                    _searchController.clear();
+                    context.read<ConsumerRelationsBloc>().add(
+                      const ConsumerRelationsSearchChanged(''),
+                    );
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: _fieldColor,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _strokeColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _strokeColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _primaryColor, width: 1.2),
+          ),
         ),
       ),
     );
@@ -160,20 +201,25 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: _fieldColor,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
           child: InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             onTap: () => _openFilterSheet(context, state),
             child: Container(
-              width: 52,
-              height: 52,
+              width: 44,
+              height: 44,
               alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: _strokeColor),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: SvgPicture.asset(
                 'assets/icons/filter-funnel.svg',
-                width: 22,
+                width: 16,
                 colorFilter: ColorFilter.mode(
-                  active ? AppColors.c1570EF : Colors.black87,
+                  active ? _primaryColor : _textSubColor,
                   BlendMode.srcIn,
                 ),
               ),
@@ -188,7 +234,7 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
               width: 10,
               height: 10,
               decoration: BoxDecoration(
-                color: AppColors.c1570EF,
+                color: _primaryColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
               ),
@@ -236,15 +282,6 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
   // ==================== HELPER ====================
   bool _isTablet(BuildContext context) {
     return MediaQuery.of(context).size.width > 600;
-  }
-
-  // ==================== UI COMPONENTS ====================
-  PreferredSizeWidget _buildModernAppBar() {
-    return CustomGlobalAppBar(
-      centerTitle: true,
-      title: Words.consumerRelations.tr(),
-      showBack: false,
-    );
   }
 
   Widget _buildBody(ConsumerRelationsState state, bool isTablet) {
@@ -451,7 +488,9 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
                   return _buildLoadingMoreIndicator(isTablet);
                 }
                 return DocumentCard(
-                  document: state.documents[index],
+                  document: DocumentCardData.fromConsumer(
+                    state.documents[index],
+                  ),
                   index: index,
                   onTap: () => push(
                     ConsumerRelationsDetailScreen(
@@ -463,16 +502,17 @@ class _ConsumerRelationsScreenState extends State<ConsumerRelationsScreen> {
             )
           : ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
               physics: const BouncingScrollPhysics(),
-              itemCount:
-                  state.documents.length + (state.isLoadingMore ? 1 : 0),
+              itemCount: state.documents.length + (state.isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == state.documents.length) {
                   return _buildLoadingMoreIndicator(isTablet);
                 }
                 return DocumentCard(
-                  document: state.documents[index],
+                  document: DocumentCardData.fromConsumer(
+                    state.documents[index],
+                  ),
                   index: index,
                   onTap: () => push(
                     ConsumerRelationsDetailScreen(

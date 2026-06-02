@@ -55,6 +55,7 @@ enum Words {
   connectionPoint,
   fillAllFields,
   stampStatus,
+  stampNotInstalled,
   notInstalled,
   accountNumber,
   contractNumber,

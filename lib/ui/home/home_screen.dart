@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/utils/locationService/location_service.dart';
-import 'package:m_gaz/features/actions/presentation/pages/actions_screen.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/home/main/dashboard_screen.dart';
 import 'package:m_gaz/ui/home/measurement_devices/measurement_devices_screen.dart';
@@ -46,11 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
       title: Words.consumer,
       iconPath: AppTools.icNavBarConsumer,
       screen: ConsumerRelationsScreen(),
-    ),
-    const BottomNavItemModel(
-      title: Words.actions,
-      iconPath: AppTools.icNavBarMovements,
-      screen: ActionsScreen(),
     ),
     const BottomNavItemModel(
       title: Words.device,
