@@ -1,14 +1,14 @@
 import 'dart:async';
+
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lottie/lottie.dart';
-import 'package:m_gaz/core/extension/navigator_extension.dart';
-import 'package:m_gaz/core/extension/size_extension.dart';
-import 'package:m_gaz/core/utils/app_date_formatter.dart';
-import 'package:m_gaz/global_widget/app_tools.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:m_gaz/ui/home/profile/profile_screen.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
+
 import '../../../core/common/words.dart';
 import '../../../core/models/task/task_analysis.dart';
 import '../../../core/utils/colors.dart';
@@ -17,8 +17,34 @@ import '../tasks/bloc/task_event.dart';
 import '../tasks/bloc/task_state.dart';
 import 'custom_drawer.dart';
 
+@visibleForTesting
+class DashboardDateRange {
+  const DashboardDateRange({required this.dateFrom, required this.dateTo});
+
+  final DateTime dateFrom;
+  final DateTime dateTo;
+}
+
+@visibleForTesting
+DateTime dashboardSubtractMonths(DateTime date, int months) {
+  final targetMonth = date.month - months;
+  final targetYear = date.year + ((targetMonth - 1) ~/ 12);
+  final normalizedMonth = ((targetMonth - 1) % 12) + 1;
+  final lastDay = DateUtils.getDaysInMonth(targetYear, normalizedMonth);
+  final day = date.day > lastDay ? lastDay : date.day;
+  return DateTime(targetYear, normalizedMonth, day);
+}
+
+enum _DashboardPeriod { oneDay, oneMonth, threeMonths, sixMonths, custom }
+
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  const DashboardPage({super.key, this.nowProvider, this.calendarBuilder});
+
+  @visibleForTesting
+  final DateTime Function()? nowProvider;
+
+  @visibleForTesting
+  final Widget Function(DashboardDateRange initialRange)? calendarBuilder;
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -27,6 +53,30 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   double xOffset = 0, yOffset = 0, scaleFactor = 1;
   bool isDrawerOpen = false;
+  _DashboardPeriod _period = _DashboardPeriod.oneMonth;
+  late DashboardDateRange _selectedRange;
+  late DateTime _analysisTime;
+
+  DateTime get _today =>
+      DateUtils.dateOnly(widget.nowProvider?.call() ?? DateTime.now());
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRange = _rangeFor(_DashboardPeriod.oneMonth);
+    _analysisTime = widget.nowProvider?.call() ?? DateTime.now();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<TaskBloc>().add(TaskProfileLoad());
+    });
+    _loadAnalysis();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
 
   void toggleDrawer() {
     setState(() {
@@ -37,17 +87,65 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
-  @override
-  void initState() {
-    super.initState();
-    context.read<TaskBloc>().add(TaskAnalysisLoad());
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.light,
+  DashboardDateRange _rangeFor(_DashboardPeriod period) {
+    final to = _today;
+    return switch (period) {
+      _DashboardPeriod.oneDay => DashboardDateRange(dateFrom: to, dateTo: to),
+      _DashboardPeriod.oneMonth => DashboardDateRange(
+        dateFrom: dashboardSubtractMonths(to, 1),
+        dateTo: to,
+      ),
+      _DashboardPeriod.threeMonths => DashboardDateRange(
+        dateFrom: dashboardSubtractMonths(to, 3),
+        dateTo: to,
+      ),
+      _DashboardPeriod.sixMonths => DashboardDateRange(
+        dateFrom: dashboardSubtractMonths(to, 6),
+        dateTo: to,
+      ),
+      _DashboardPeriod.custom => _selectedRange,
+    };
+  }
+
+  void _loadAnalysis() {
+    _analysisTime = widget.nowProvider?.call() ?? DateTime.now();
+    context.read<TaskBloc>().add(
+      TaskAnalysisLoad(
+        dateFrom: _selectedRange.dateFrom,
+        dateTo: _selectedRange.dateTo,
       ),
     );
+  }
+
+  void _selectPreset(_DashboardPeriod period) {
+    setState(() {
+      _period = period;
+      _selectedRange = _rangeFor(period);
+    });
+    _loadAnalysis();
+  }
+
+  Future<void> _openCalendar() async {
+    final range = await showDialog<DashboardDateRange>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.08),
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+        alignment: Alignment.center,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child:
+            widget.calendarBuilder?.call(_selectedRange) ??
+            _DashboardRangeCalendar(initialRange: _selectedRange),
+      ),
+    );
+    if (range == null || !mounted) return;
+
+    setState(() {
+      _period = _DashboardPeriod.custom;
+      _selectedRange = range;
+    });
+    _loadAnalysis();
   }
 
   @override
@@ -56,7 +154,7 @@ class _DashboardPageState extends State<DashboardPage> {
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarBrightness: Brightness.light,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
         body: Stack(
@@ -70,7 +168,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 transform: Matrix4.translationValues(xOffset, yOffset, 0)
                   ..scaleByDouble(scaleFactor, scaleFactor, scaleFactor, 1),
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: _DashboardColors.background,
                   borderRadius: isDrawerOpen
                       ? BorderRadius.circular(30)
                       : BorderRadius.zero,
@@ -89,32 +187,49 @@ class _DashboardPageState extends State<DashboardPage> {
                       ? BorderRadius.circular(30)
                       : BorderRadius.zero,
                   child: Scaffold(
-                    backgroundColor: AppColors.cF5F5F5,
-                    body: Column(
-                      children: [
-                        const SizedBox(height: 0),
-                        _ModernHeader(
-                          isDrawerOpen: isDrawerOpen,
-                          toggleDrawer: toggleDrawer,
-                        ),
-                        Expanded(
-                          child: RefreshIndicator(
-                            color: AppColors.c181D27,
-                            onRefresh: () async => context.read<TaskBloc>().add(
-                              TaskAnalysisLoad(),
-                            ),
-                            child: ListView(
-                              physics: const BouncingScrollPhysics(),
-                              padding: EdgeInsets.zero,
+                    backgroundColor: _DashboardColors.background,
+                    body: SafeArea(
+                      bottom: false,
+                      child: RefreshIndicator(
+                        color: _DashboardColors.textStrong,
+                        onRefresh: () async => _loadAnalysis(),
+                        child: BlocBuilder<TaskBloc, TaskState>(
+                          builder: (context, state) {
+                            return ListView(
+                              physics: const BouncingScrollPhysics(
+                                parent: AlwaysScrollableScrollPhysics(),
+                              ),
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                12,
+                                20,
+                                90,
+                              ),
                               children: [
-                                20.getH(),
-                                _TaskStatusSection(),
-                                80.getH(),
+                                _DashboardUserHeader(
+                                  profileUsername: state.profileUsername,
+                                ),
+                                const SizedBox(height: 32),
+                                _DashboardAiCard(
+                                  state: state,
+                                  analysisTime: _analysisTime,
+                                ),
+                                const SizedBox(height: 20),
+                                _PeriodSelector(
+                                  selectedPeriod: _period,
+                                  onSelect: _selectPreset,
+                                  onOpenCalendar: _openCalendar,
+                                ),
+                                const SizedBox(height: 20),
+                                _TaskBarChartCard(
+                                  analysis: state.taskAnalysis,
+                                  selectedRange: _selectedRange,
+                                ),
                               ],
-                            ),
-                          ),
+                            );
+                          },
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -127,594 +242,861 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-/// 🔹 Modern Glass Header
-class _ModernHeader extends StatelessWidget {
-  final bool isDrawerOpen;
-  final VoidCallback toggleDrawer;
+class _DashboardColors {
+  const _DashboardColors._();
 
-  const _ModernHeader({required this.isDrawerOpen, required this.toggleDrawer});
+  static const background = Color(0xFFFCFCFC);
+  static const cardSoft = Color(0xFFF9F9F9);
+  static const chartSoft = Color(0xFFF0F0F0);
+  static const stroke = Color(0xFFE8E8E8);
+  static const textStrong = Color(0xFF202020);
+  static const textSub = Color(0xFFBBBBBB);
+  static const avatar = Color(0xFF8A8A8A);
+  static const accentBlue = Color(0xFF3F57B3);
+  static const accentOrange = Color(0xFFED9121);
+  static const accentPurple = Color(0xFF8A008A);
+  static const calendarAccent = Color(0xFFF76B15);
+  static const success = Color(0xFF1FC16B);
+  static const successLight = Color(0xFFC2F5DA);
+  static const rangeMiddle = Color(0xFFE0E0E0);
+  static const weekend = Color(0xFFDD4C1E);
+}
+
+TextStyle _manrope({
+  required double size,
+  required FontWeight weight,
+  required double height,
+  Color color = _DashboardColors.textStrong,
+  double letterSpacing = 0,
+}) {
+  return GoogleFonts.manrope(
+    fontSize: size,
+    fontWeight: weight,
+    height: height / size,
+    color: color,
+    letterSpacing: letterSpacing,
+  );
+}
+
+class _DashboardUserHeader extends StatelessWidget {
+  const _DashboardUserHeader({required this.profileUsername});
+
+  final String? profileUsername;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 16,
-        left: 20,
-        right: 20,
-        bottom: 24,
-      ),
-      decoration: BoxDecoration(
-        gradient: AppColors.catalogGradient,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.c181D27,
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final profileName = profileUsername?.trim();
+    final displayName = (profileName == null || profileName.isEmpty)
+        ? Words.fallbackUser.tr()
+        : profileName;
+    final initial = displayName.characters.first.toUpperCase();
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
+      child: Row(
+        key: const Key('dashboard-user-header'),
         children: [
-          Row(
-            children: [
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => push(ProfileScreen()),
-                child: AppTools.svg(AppTools.person, width: 50, height: 50),
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: _DashboardColors.avatar,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              initial,
+              style: _manrope(
+                size: 17,
+                weight: FontWeight.w800,
+                height: 28,
+                color: Colors.white,
               ),
-              const Spacer(),
-              _GlassIconButton(
-                icon: Icons.notifications_none,
-                onPressed: () {},
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _manrope(size: 13, weight: FontWeight.w800, height: 20),
+              ),
+              Text(
+                Words.employee.tr(),
+                style: _manrope(
+                  size: 11,
+                  weight: FontWeight.w500,
+                  height: 16,
+                  color: _DashboardColors.textSub,
+                  letterSpacing: 0.4,
+                ),
               ),
             ],
           ),
-          16.getH(),
-          Text(
-            Words.departmentTitle.tr(),
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              height: 1.2,
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _GlassIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
+class _DashboardAiCard extends StatelessWidget {
+  const _DashboardAiCard({required this.state, required this.analysisTime});
 
-  const _GlassIconButton({required this.icon, required this.onPressed});
+  final TaskState state;
+  final DateTime analysisTime;
 
   @override
   Widget build(BuildContext context) {
+    final analysis = state.taskAnalysis;
+    final isLoading = state.status == TaskStatus.loading;
+    final analyzedCount = analysis?.allTask ?? 0;
+
     return Container(
+      key: const Key('dashboard-ai-card'),
+      height: 148,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        color: _DashboardColors.cardSoft,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _DashboardColors.stroke),
       ),
-      child: IconButton(
-        icon: Icon(icon, color: Colors.white, size: 22),
-        onPressed: onPressed,
-      ),
-    );
-  }
-}
-
-/// 🔹 Task Status Section - ALLOHIDA CARD
-class _TaskStatusSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<TaskBloc, TaskState>(
-      builder: (context, state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _SectionCard(
-              title: Words.aiAnalysis.tr(),
-              subtitle: Words.autoAnalysis.tr(),
-              icon: Icons.auto_awesome,
-              showLottie: true,
-              child: state.status == TaskStatus.loading
-                  ? const _AIAnalyzingWidget()
-                  : _AISummaryWidget(analysis: state.taskAnalysis),
-            ),
-
-            SizedBox(height: 20.h),
-
-            if (state.taskAnalysis != null &&
-                state.status == TaskStatus.success)
-              _SectionCard(
-                title: Words.activeTasks.tr(),
-                subtitle: Words.analyzedByAi.tr(),
-                icon: Icons.assignment,
-                child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    _PieChartWidget(tasks: state.taskAnalysis!),
-                    const SizedBox(height: 20),
-                    StatItemWidget(
-                      title: '${state.taskAnalysis!.consumerCount}',
-                      subtitle: Words.consumersCount.tr(),
-                      color: AppColors.c181D27,
+                    const Icon(
+                      Icons.auto_awesome,
+                      size: 20,
+                      color: Color(0xFF3438FF),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      Words.aiAnalysis.tr(),
+                      style: _manrope(
+                        size: 13,
+                        weight: FontWeight.w800,
+                        height: 20,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  Words.autoAnalysis.tr(),
+                  style: _manrope(
+                    size: 11,
+                    weight: FontWeight.w500,
+                    height: 16,
+                    color: _DashboardColors.textSub,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    isLoading
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(
+                            Icons.check_circle_outline,
+                            color: _DashboardColors.success,
+                            size: 16,
+                          ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        isLoading
+                            ? Words.aiAnalyzing.tr()
+                            : Words.aiAnalysisCompleted.tr(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _manrope(
+                          size: 13,
+                          weight: FontWeight.w800,
+                          height: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.work_outline,
+                      color: Color(0xFF959595),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$analyzedCount ${Words.tasksAnalyzed.tr()}',
+                      style: _manrope(
+                        size: 13,
+                        weight: FontWeight.w500,
+                        height: 20,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _DashboardColors.chartSoft,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Text(
+                    '${Words.analysisTime.tr()}: ${DateFormat('HH:mm').format(analysisTime)}',
+                    style: _manrope(
+                      size: 8,
+                      weight: FontWeight.w500,
+                      height: 12,
+                      color: _DashboardColors.textSub,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: _DashboardColors.cardSoft,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE1E1E1), width: .5),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                width: 72,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: _DashboardColors.successLight,
+                  borderRadius: BorderRadius.circular(27),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: _DashboardColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      Words.aiActive.tr(),
+                      style: _manrope(
+                        size: 8,
+                        weight: FontWeight.w600,
+                        height: 12,
+                        letterSpacing: 0.4,
+                      ),
                     ),
                   ],
                 ),
               ),
-          ],
-        );
-      },
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-// 🎯 AI Analyzing Widget (DOIM KO'RINADI)
-class _AIAnalyzingWidget extends StatefulWidget {
-  const _AIAnalyzingWidget();
+class _PeriodSelector extends StatelessWidget {
+  const _PeriodSelector({
+    required this.selectedPeriod,
+    required this.onSelect,
+    required this.onOpenCalendar,
+  });
+
+  final _DashboardPeriod selectedPeriod;
+  final ValueChanged<_DashboardPeriod> onSelect;
+  final VoidCallback onOpenCalendar;
 
   @override
-  State<_AIAnalyzingWidget> createState() => _AIAnalyzingWidgetState();
+  Widget build(BuildContext context) {
+    return Row(
+      key: const Key('dashboard-period-selector'),
+      children: [
+        Text(
+          Words.selectPeriod.tr(),
+          style: _manrope(size: 13, weight: FontWeight.w500, height: 20),
+        ),
+        const Spacer(),
+        Container(
+          height: 32,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: _DashboardColors.chartSoft,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              _PeriodButton(
+                key: const Key('dashboard-period-1-day'),
+                label: Words.oneDay.tr(),
+                selected: selectedPeriod == _DashboardPeriod.oneDay,
+                onTap: () => onSelect(_DashboardPeriod.oneDay),
+              ),
+              _PeriodButton(
+                key: const Key('dashboard-period-1-month'),
+                label: Words.oneMonth.tr(),
+                selected: selectedPeriod == _DashboardPeriod.oneMonth,
+                onTap: () => onSelect(_DashboardPeriod.oneMonth),
+              ),
+              _PeriodButton(
+                key: const Key('dashboard-period-3-months'),
+                label: Words.threeMonths.tr(),
+                selected: selectedPeriod == _DashboardPeriod.threeMonths,
+                onTap: () => onSelect(_DashboardPeriod.threeMonths),
+              ),
+              _PeriodButton(
+                key: const Key('dashboard-period-6-months'),
+                label: Words.sixMonths.tr(),
+                selected: selectedPeriod == _DashboardPeriod.sixMonths,
+                onTap: () => onSelect(_DashboardPeriod.sixMonths),
+              ),
+              InkWell(
+                key: const Key('dashboard-calendar-button'),
+                onTap: onOpenCalendar,
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: selectedPeriod == _DashboardPeriod.custom
+                        ? _DashboardColors.textStrong
+                        : _DashboardColors.textSub,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _AIAnalyzingWidgetState extends State<_AIAnalyzingWidget>
-    with TickerProviderStateMixin {
-  late AnimationController _dotsController;
-  late AnimationController _pulseController;
-  List<String> get _texts => [
-    Words.aiAnalyzing.tr(),
-    Words.preparingReport.tr(),
-    Words.processingData.tr(),
-    Words.calculatingStats.tr(),
-  ];
-  int _textIndex = 0;
+class _PeriodButton extends StatelessWidget {
+  const _PeriodButton({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        height: 24,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? _DashboardColors.background : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          style: _manrope(
+            size: 11,
+            weight: FontWeight.w800,
+            height: 16,
+            color: selected
+                ? _DashboardColors.textStrong
+                : _DashboardColors.textSub,
+            letterSpacing: 0.4,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskBarChartCard extends StatelessWidget {
+  const _TaskBarChartCard({
+    required this.analysis,
+    required this.selectedRange,
+  });
+
+  final TaskAnalysisModel? analysis;
+  final DashboardDateRange selectedRange;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      _ChartBarData(
+        label: Words.completed.tr(),
+        value: analysis?.doneTask ?? 0,
+        color: _DashboardColors.accentBlue,
+      ),
+      _ChartBarData(
+        label: Words.inProgress.tr(),
+        value: analysis?.notDoneTask ?? 0,
+        color: _DashboardColors.accentOrange,
+      ),
+      _ChartBarData(
+        label: Words.expiredTasks.tr(),
+        value: analysis?.expiredTask ?? 0,
+        color: _DashboardColors.accentPurple,
+      ),
+    ];
+    final maxValue = items
+        .map((item) => item.value)
+        .fold<int>(0, (max, value) => value > max ? value : max);
+    final tooltipItem = items.reduce(
+      (max, item) => item.value > max.value ? item : max,
+    );
+
+    return Container(
+      key: const Key('dashboard-task-chart-card'),
+      height: 240,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _DashboardColors.chartSoft,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                Words.dashboardTasks.tr(),
+                style: _manrope(size: 16, weight: FontWeight.w700, height: 24),
+              ),
+              const Spacer(),
+              Container(
+                height: 24,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: _DashboardColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _DashboardColors.stroke),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      _rangeLabel(context, selectedRange),
+                      style: _manrope(
+                        size: 13,
+                        weight: FontWeight.w500,
+                        height: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.keyboard_arrow_down, size: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: items.map((item) {
+                    return _TaskBar(
+                      item: item,
+                      maxValue: maxValue,
+                      chartHeight: constraints.maxHeight,
+                      showTooltip:
+                          identical(item, tooltipItem) && item.value > 0,
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: items
+                .map(
+                  (item) => _ChartLegend(label: item.label, color: item.color),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _rangeLabel(BuildContext context, DashboardDateRange range) {
+  final from = DateUtils.dateOnly(range.dateFrom);
+  final to = DateUtils.dateOnly(range.dateTo);
+  final sameMonth = from.year == to.year && from.month == to.month;
+  final isOneMonthPreset = from == dashboardSubtractMonths(to, 1);
+
+  if (sameMonth || isOneMonthPreset) {
+    return _monthLabel(context, to);
+  }
+
+  final fromLabel = from.year == to.year
+      ? _monthLabel(context, from)
+      : _monthYearLabel(context, from);
+  return '$fromLabel-${_monthYearLabel(context, to, includeYear: from.year != to.year)}';
+}
+
+String _monthLabel(BuildContext context, DateTime date) {
+  final locale = Localizations.localeOf(context).toLanguageTag();
+  final value = DateFormat.MMM(locale).format(date);
+  return _capitalizeLabel(value);
+}
+
+String _monthYearLabel(
+  BuildContext context,
+  DateTime date, {
+  bool includeYear = true,
+}) {
+  final month = _monthLabel(context, date);
+  return includeYear ? '$month ${date.year}' : month;
+}
+
+String _capitalizeLabel(String value) {
+  return value.isEmpty
+      ? value
+      : '${value[0].toUpperCase()}${value.substring(1)}';
+}
+
+class _ChartBarData {
+  const _ChartBarData({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+}
+
+class _TaskBar extends StatelessWidget {
+  const _TaskBar({
+    required this.item,
+    required this.maxValue,
+    required this.chartHeight,
+    required this.showTooltip,
+  });
+
+  final _ChartBarData item;
+  final int maxValue;
+  final double chartHeight;
+  final bool showTooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = maxValue == 0 ? 0.0 : item.value / maxValue;
+    final minHeight = item.value == 0 ? 0.0 : 32.0;
+    final availableHeight = chartHeight - 36;
+    final height = item.value == 0
+        ? 0.0
+        : (availableHeight * normalized).clamp(minHeight, availableHeight);
+
+    return SizedBox(
+      width: 72,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomCenter,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 56,
+            height: height,
+            decoration: BoxDecoration(
+              color: item.color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          if (showTooltip)
+            Positioned(
+              bottom: height + 10,
+              child: Container(
+                key: const Key('dashboard-chart-tooltip'),
+                width: 56,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: item.color,
+                  borderRadius: BorderRadius.circular(80),
+                ),
+                child: Text(
+                  item.value.toString(),
+                  style: _manrope(
+                    size: 15,
+                    weight: FontWeight.w500,
+                    height: 24,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChartLegend extends StatelessWidget {
+  const _ChartLegend({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 16,
+            height: 16,
+            alignment: Alignment.center,
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _manrope(size: 13, weight: FontWeight.w500, height: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardRangeCalendar extends StatefulWidget {
+  const _DashboardRangeCalendar({required this.initialRange});
+
+  final DashboardDateRange initialRange;
+
+  @override
+  State<_DashboardRangeCalendar> createState() =>
+      _DashboardRangeCalendarState();
+}
+
+class _DashboardRangeCalendarState extends State<_DashboardRangeCalendar> {
+  late List<DateTime?> _dates;
 
   @override
   void initState() {
     super.initState();
-
-    _dotsController = AnimationController(
-      duration: const Duration(seconds: 1, milliseconds: 500),
-      vsync: this,
-    )..repeat();
-
-    _pulseController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat();
-
-    // 3 soniyada bir matn o'zgaradi
-    Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (!mounted) return;
-      setState(() {
-        _textIndex = (_textIndex + 1) % _texts.length;
-      });
-    });
-
-    // ✅ 5 sekundlik minimal loading davomiyligi
-    Future.delayed(const Duration(seconds: 10), () {
-      if (!mounted) return;
-      // bu yerda hech narsa qilmaymiz
-      // faqat widget 5 sekunddan oldin yopilmasligiga kafolat beradi
-    });
-  }
-
-  @override
-  void dispose() {
-    _dotsController.dispose();
-    _pulseController.dispose();
-    super.dispose();
+    _dates = [widget.initialRange.dateFrom, widget.initialRange.dateTo];
   }
 
   @override
   Widget build(BuildContext context) {
+    final dayStyle = _manrope(size: 15, weight: FontWeight.w500, height: 24);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final calendarWidth = screenWidth.clamp(280.0, 320.0);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          /// 🔥 LOTTIE ANIMATION
-          SizedBox(
-            width: 120.w,
-            height: 120.w,
-            child: Lottie.asset(
-              'assets/anim/ai_animation.json',
-              repeat: true,
-              fit: BoxFit.contain,
-            ),
-          ),
-
-          SizedBox(height: 20.h),
-
-          /// 🧠 AI processing text
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
-            child: Text(
-              _texts[_textIndex],
-              key: ValueKey<int>(_textIndex),
-              style: TextStyle(
-                fontSize: 14.w,
-                color: AppColors.c1570EF,
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          SizedBox(height: 12.h),
-
-          /// ⏳ Status text
-          Text(
-            Words.pleaseWait.tr(),
-            style: TextStyle(
-              fontSize: 12.w,
-              color: AppColors.c181D27.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// AI Summary Widget (when analysis is complete)
-class _AISummaryWidget extends StatelessWidget {
-  final TaskAnalysisModel? analysis;
-
-  const _AISummaryWidget({required this.analysis});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 24),
-              SizedBox(width: 12.w),
-              Text(
-                '✅ ${Words.aiAnalysisCompleted.tr()}',
-                style: TextStyle(
-                  fontSize: 16.w,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.c181D27,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          if (analysis != null) ...[
-            Text(
-              '📊 ${analysis!.allTask} ${Words.tasksAnalyzed.tr()}',
-              style: TextStyle(
-                fontSize: 14.w,
-                color: AppColors.c181D27.withValues(alpha: 0.8),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              '⏱️ ${Words.analysisTime.tr()}: ${AppDateFormatter.time(DateTime.now())}',
-              style: TextStyle(
-                fontSize: 12.w,
-                color: AppColors.c181D27.withValues(alpha: 0.6),
-              ),
-            ),
-          ] else
-            Text(
-              Words.dataNotReady.tr(),
-              style: TextStyle(
-                fontSize: 14.w,
-                color: AppColors.c181D27.withValues(alpha: 0.6),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  final String title, subtitle;
-  final IconData icon;
-  final Widget child;
-  final bool showLottie;
-
-  const _SectionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.child,
-    this.showLottie = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      padding: EdgeInsets.all(20.w),
+      key: const Key('dashboard-range-calendar'),
+      width: calendarWidth,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE2E6F2)),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
           BoxShadow(
-            color: AppColors.c181D27.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-            spreadRadius: 2,
+            color: Color(0x0D000000),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 11,
+            offset: Offset(0, 11),
+          ),
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 15,
+            offset: Offset(0, 25),
           ),
         ],
-        border: Border.all(
-          color: AppColors.c181D27.withValues(alpha: 0.05),
-          width: 1,
+      ),
+      child: CalendarDatePicker2(
+        value: _dates,
+        onValueChanged: (dates) {
+          setState(() => _dates = dates);
+          final start = dates.isNotEmpty ? dates.first : null;
+          final end = dates.length > 1 ? dates[1] : null;
+          if (start == null || end == null) return;
+
+          final range = start.isBefore(end)
+              ? DashboardDateRange(dateFrom: start, dateTo: end)
+              : DashboardDateRange(dateFrom: end, dateTo: start);
+          final navigator = Navigator.of(context);
+          unawaited(
+            Future<void>.delayed(const Duration(milliseconds: 120), () {
+              if (mounted) navigator.pop(range);
+            }),
+          );
+        },
+        config: CalendarDatePicker2Config(
+          calendarType: CalendarDatePicker2Type.range,
+          rangeBidirectional: true,
+          firstDayOfWeek: 1,
+          dynamicCalendarRows: false,
+          dayMaxWidth: 36,
+          controlsHeight: 28,
+          centerAlignModePicker: true,
+          hideMonthPickerDividers: true,
+          hideYearPickerDividers: true,
+          modePickersGap: 6,
+          selectedDayHighlightColor: _DashboardColors.calendarAccent,
+          selectedDayTextStyle: dayStyle.copyWith(color: Colors.white),
+          selectedRangeDayTextStyle: dayStyle,
+          selectedRangeHighlightColor: _DashboardColors.rangeMiddle,
+          dayTextStyle: dayStyle,
+          todayTextStyle: dayStyle,
+          weekdayLabelTextStyle: _manrope(
+            size: 13,
+            weight: FontWeight.w500,
+            height: 20,
+            color: const Color(0xFFD9D9D9),
+          ),
+          weekdayLabels: const ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'],
+          lastMonthIcon: const Icon(Icons.chevron_left, size: 16),
+          nextMonthIcon: const Icon(Icons.chevron_right, size: 16),
+          modePickerBuilder:
+              ({required monthDate, required viewMode, isMonthPicker}) {
+                return _CalendarHeaderTitle(
+                  monthDate: monthDate,
+                  isMonthPicker: isMonthPicker == true,
+                );
+              },
+          dayTextStylePredicate: ({required date}) {
+            if (date.weekday == DateTime.saturday ||
+                date.weekday == DateTime.sunday) {
+              return dayStyle.copyWith(color: _DashboardColors.weekend);
+            }
+            return null;
+          },
+          dayBuilder:
+              ({
+                required date,
+                decoration,
+                isDisabled,
+                isSelected,
+                isToday,
+                textStyle,
+              }) {
+                final style = textStyle ?? dayStyle;
+                return Container(
+                  alignment: Alignment.center,
+                  decoration: isSelected == true
+                      ? BoxDecoration(
+                          color: _DashboardColors.calendarAccent,
+                          borderRadius: BorderRadius.circular(8),
+                        )
+                      : null,
+                  child: Text('${date.day}', style: style),
+                );
+              },
+          selectedRangeHighlightBuilder:
+              ({
+                required dayToBuild,
+                required isStartDate,
+                required isEndDate,
+              }) {
+                if (isStartDate || isEndDate) return const SizedBox.shrink();
+                return Container(
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: _DashboardColors.rangeMiddle,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                );
+              },
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title row with AI indicator and animation
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title and subtitle section
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(icon, size: 24.w, color: AppColors.c1570EF),
-                        SizedBox(width: 8.w),
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 20.w,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.c181D27,
-                          ),
-                        ),
-                        // 🟢 AI Active Indicator
-                        if (showLottie) ...[
-                          SizedBox(width: 8.w),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 4.w,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.green.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12.w),
-                              border: Border.all(
-                                color: AppColors.green,
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 6.w,
-                                  height: 6.w,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.green,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                SizedBox(width: 4.w),
-                                Text(
-                                  Words.aiActive.tr(),
-                                  style: TextStyle(
-                                    fontSize: 10.w,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.green,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    SizedBox(height: 4.w),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14.w,
-                        color: AppColors.c181D27.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 🤖 Robot Animation (optimized size and position)
-              if (showLottie) ...[
-                SizedBox(width: 6.w),
-                Container(
-                  width: 70.w, // Optimal size
-                  height: 70.w,
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.c1570EF.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16.w),
-                    border: Border.all(
-                      color: AppColors.c1570EF.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Lottie.asset(
-                    'assets/anim/robot_bot.json',
-                    repeat: true,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ],
-            ],
-          ),
-
-          SizedBox(height: 20.w),
-          child,
-        ],
-      ),
     );
   }
 }
 
-class _PieChartWidget extends StatelessWidget {
-  final TaskAnalysisModel tasks;
-
-  const _PieChartWidget({required this.tasks});
-
-  @override
-  Widget build(BuildContext context) {
-    final all = tasks.allTask.toDouble();
-    final done = tasks.doneTask.toDouble();
-    final notDone = tasks.notDoneTask.toDouble();
-    final expired = tasks.expiredTask.toDouble();
-
-    double donePercent = all == 0 ? 0 : (done / all) * 100;
-    double notDonePercent = all == 0 ? 0 : (notDone / all) * 100;
-    double expiredPercent = all == 0 ? 0 : (expired / all) * 100;
-
-    final data = [
-      ChartData(Words.completed.tr(), donePercent, AppColors.green),
-      ChartData(Words.notCompleted.tr(), notDonePercent, AppColors.red),
-      ChartData(Words.orderExpiredDate.tr(), expiredPercent, AppColors.c1570EF),
-    ];
-
-    return SizedBox(
-      height: 220,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: SfCircularChart(
-              series: [
-                DoughnutSeries<ChartData, String>(
-                  dataSource: data,
-                  xValueMapper: (d, _) => d.label,
-                  yValueMapper: (d, _) => d.value,
-                  pointColorMapper: (d, _) => d.color,
-                  innerRadius: '60%',
-                  radius: '90%',
-                  dataLabelSettings: const DataLabelSettings(
-                    isVisible: true,
-                    labelPosition: ChartDataLabelPosition.outside,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: data
-                  .where((d) => d.value > 0)
-                  .map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: item.color,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${item.label}: ${item.value.toStringAsFixed(1)}%',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.c181D27,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ChartData {
-  final String label;
-  final double value;
-  final Color color;
-
-  ChartData(this.label, this.value, this.color);
-}
-
-class StatItemWidget extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color color;
-
-  const StatItemWidget({
-    super.key,
-    required this.title,
-    required this.subtitle,
-    required this.color,
+class _CalendarHeaderTitle extends StatelessWidget {
+  const _CalendarHeaderTitle({
+    required this.monthDate,
+    required this.isMonthPicker,
   });
 
+  final DateTime monthDate;
+  final bool isMonthPicker;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.w),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 30.w,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final month = DateFormat.MMMM(locale).format(monthDate);
+    final monthLabel = month.isEmpty
+        ? month
+        : '${month[0].toUpperCase()}${month.substring(1)}';
+
+    final text = isMonthPicker ? monthLabel : '${monthDate.year}';
+    final color = isMonthPicker
+        ? _DashboardColors.textStrong
+        : _DashboardColors.calendarAccent;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: _manrope(
+            size: 17,
+            weight: FontWeight.w500,
+            height: 28,
+            color: color,
           ),
-          4.getH(),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

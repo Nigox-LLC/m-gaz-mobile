@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:m_gaz/core/models/task/task_analysis.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
 
@@ -7,9 +9,15 @@ import '../../models/paginated_response/paginated_response.dart';
 import '../base/base_api.dart';
 
 class TaskApi {
-  final ApiBase _base;
+  final ApiBase? _base;
+  final Dio? _dioOverride;
 
-  const TaskApi(this._base);
+  const TaskApi(ApiBase base) : _base = base, _dioOverride = null;
+
+  @visibleForTesting
+  const TaskApi.fromDio(Dio dio) : _base = null, _dioOverride = dio;
+
+  Dio get _dio => _dioOverride ?? _base!.dio;
 
   Future<PaginatedResponse<TaskModel>> getTasks({
     int limit = 20,
@@ -19,7 +27,7 @@ class TaskApi {
       debugPrint("🔹 Consumer Relations so'rov yuborilmoqda...");
       debugPrint("🔹 Limit: $limit, Offset: $offset");
 
-      final response = await _base.dio.get(
+      final response = await _dio.get(
         'task/list/',
         queryParameters: {'limit': limit, 'offset': offset},
       );
@@ -46,9 +54,22 @@ class TaskApi {
     }
   }
 
-  Future<TaskAnalysisModel> getTaskAnalysis() async {
+  Future<TaskAnalysisModel> getTaskAnalysis({
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
     try {
-      final response = await _base.dio.get("task/analysis");
+      final queryParameters = <String, dynamic>{};
+      if (dateFrom != null && dateTo != null) {
+        final formatter = DateFormat('yyyy-MM-dd');
+        queryParameters['from_date'] = formatter.format(dateFrom);
+        queryParameters['to_date'] = formatter.format(dateTo);
+      }
+
+      final response = await _dio.get(
+        "task/analysis/",
+        queryParameters: queryParameters.isEmpty ? null : queryParameters,
+      );
 
       // ❗ List bo‘lib kelsa 1-elementni olamiz
       if (response.data is List) {
@@ -75,7 +96,7 @@ class TaskApi {
       // /api/ prefiksini olib tashlash, chunki baseUrl allaqachon o'rnatilgan
       final endpoint = path.replaceFirst('/api/', '');
 
-      final response = await _base.dio.get(
+      final response = await _dio.get(
         endpoint,
         queryParameters: queryParameters,
       );
@@ -108,7 +129,7 @@ class TaskApi {
         "🔹 Consumer Relations Document ID:$id so'rov yuborilmoqda...",
       );
 
-      final response = await _base.dio.get('consumer-relations-documents/$id/');
+      final response = await _dio.get('consumer-relations-documents/$id/');
 
       debugPrint("🔹 Javob status code: ${response.statusCode}");
 
@@ -159,10 +180,7 @@ class TaskApi {
       final formData = FormData.fromMap(bodyMap);
       debugPrint("📎 Fayl biriktirildi: $formData");
 
-      final response = await _base.dio.patch(
-        'task/done/$taskId/',
-        data: formData,
-      );
+      final response = await _dio.patch('task/done/$taskId/', data: formData);
 
       debugPrint("🔹 Javob status code: ${response.statusCode}");
       debugPrint("🔹 Javob: ${response.data}");
@@ -197,7 +215,7 @@ class TaskApi {
       });
       debugPrint("рџ“Ћ Bekor qilish body tayyorlandi: $formData");
 
-      final response = await _base.dio.patch(
+      final response = await _dio.patch(
         'task/update-status/$taskId/',
         queryParameters: {'action': 'cancel'},
       );

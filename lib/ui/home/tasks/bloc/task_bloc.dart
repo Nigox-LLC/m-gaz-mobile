@@ -1,15 +1,27 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:m_gaz/core/api/user/user_api.dart';
+import 'package:m_gaz/core/models/user/user_model.dart' as legacy_user;
 import 'package:m_gaz/core/api/task/task_api.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_event.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_state.dart';
 import '../../../../di.dart';
 
 class TaskBloc extends Bloc<TaskEvent, TaskState> {
-  final TaskApi api = di.get<TaskApi>();
+  final TaskApi api;
+  final Duration minimumAnalysisDuration;
+  final Future<legacy_user.UserModel?> Function() _profileLoader;
 
-  TaskBloc() : super(const TaskState()) {
+  TaskBloc({
+    TaskApi? api,
+    Future<legacy_user.UserModel?> Function()? profileLoader,
+    this.minimumAnalysisDuration = const Duration(seconds: 5),
+  }) : api = api ?? di.get<TaskApi>(),
+       _profileLoader =
+           profileLoader ?? (() => di.get<UserApi>().loadUserProfile()),
+       super(const TaskState()) {
     on<TaskLoad>(_onFetched);
+    on<TaskProfileLoad>(_onProfileLoad);
     on<TaskAnalysisLoad>(_onFetchAnalysis);
     on<TaskLoadMore>(_onLoadMore);
     on<TaskDetailFetched>(_onDocumentFetched);
@@ -40,6 +52,20 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     }
   }
 
+  Future<void> _onProfileLoad(
+    TaskProfileLoad event,
+    Emitter<TaskState> emit,
+  ) async {
+    try {
+      final profile = await _profileLoader();
+      final username = profile?.username.trim();
+      if (username == null || username.isEmpty) return;
+      emit(state.copyWith(profileUsername: username));
+    } catch (e) {
+      debugPrint("Dashboard profile yuklanmadi: $e");
+    }
+  }
+
   Future<void> _onFetchAnalysis(
     TaskAnalysisLoad event,
     Emitter<TaskState> emit,
@@ -51,12 +77,17 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
 
       final startTime = DateTime.now();
 
-      final response = await api.getTaskAnalysis();
+      final response = await api.getTaskAnalysis(
+        dateFrom: event.dateFrom,
+        dateTo: event.dateTo,
+      );
       debugPrint("📦 RESPONSE BLOCDAN: $response");
 
       final diff = DateTime.now().difference(startTime).inMilliseconds;
-      if (diff < 5000) {
-        await Future.delayed(Duration(milliseconds: 5000 - diff));
+      if (diff < minimumAnalysisDuration.inMilliseconds) {
+        await Future.delayed(
+          Duration(milliseconds: minimumAnalysisDuration.inMilliseconds - diff),
+        );
       }
 
       emit(state.copyWith(status: TaskStatus.success, taskAnalysis: response));

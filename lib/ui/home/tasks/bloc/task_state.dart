@@ -12,6 +12,7 @@ class TaskState extends Equatable {
   final bool hasReachedMax;
   final bool isLoadingMore;
   final String? errorMessage;
+  final String? profileUsername;
 
   final TaskModel? selectedTask;
   final TaskModel? taskDetail;
@@ -27,6 +28,7 @@ class TaskState extends Equatable {
     this.hasReachedMax = false,
     this.isLoadingMore = false,
     this.errorMessage,
+    this.profileUsername,
     this.selectedTask,
     this.taskDetail,
     this.isCompletingTask = false,
@@ -41,6 +43,7 @@ class TaskState extends Equatable {
     bool? hasReachedMax,
     bool? isLoadingMore,
     String? errorMessage,
+    String? profileUsername,
     TaskModel? selectedTask,
     TaskModel? taskDetail,
     bool? isCompletingTask,
@@ -54,6 +57,7 @@ class TaskState extends Equatable {
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       errorMessage: errorMessage ?? this.errorMessage,
+      profileUsername: profileUsername ?? this.profileUsername,
       taskDetail: taskDetail ?? this.taskDetail,
       selectedTask: selectedTask ?? this.selectedTask,
       isCompletingTask: isCompletingTask ?? this.isCompletingTask,
@@ -70,6 +74,7 @@ class TaskState extends Equatable {
     hasReachedMax,
     isLoadingMore,
     errorMessage,
+    profileUsername,
     selectedTask,
     taskDetail,
     isCompletingTask,
