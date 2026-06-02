@@ -387,5 +387,12 @@
   "actionIndustrialCollectorsIndicatorUpload": "Sanoat kollektorlari ko’rsatkichi yuklash",
   "actionTechnologicalDevicesReinstall": "Texnologik qurulmalar qayta o’rnatish",
   "actionTechnologicalDevicesDetach": "Texnologik qurulmalar yechib olish",
-  "actionTechnologicalDevicesIndicatorUpload": "Texnologik qurulmalar ko’rsatkichi yuklash"
+  "actionTechnologicalDevicesIndicatorUpload": "Texnologik qurulmalar ko’rsatkichi yuklash",
+  "enterpriseInfo": "Korxona ma'lumotlari",
+  "eghuCertificate": "EGHU sertifikati",
+  "technicalDocuments": "Loyiha texnik xujjatlari",
+  "contract": "Shartnoma",
+  "addInformation": "Ma'lumot qo'shish",
+  "detailsButton": "Batafsil",
+  "facialLabel": "Hisob raqam (Лицевой)"
 }

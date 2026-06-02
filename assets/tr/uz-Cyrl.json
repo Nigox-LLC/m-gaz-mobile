@@ -387,5 +387,12 @@
     "actionIndustrialCollectorsIndicatorUpload": "Саноат коллекторлари кўрсаткичи юклаш",
     "actionTechnologicalDevicesReinstall": "Технологик қурилмалар қайта ўрнатиш",
     "actionTechnologicalDevicesDetach": "Технологик қурилмалар ечиб олиш",
-    "actionTechnologicalDevicesIndicatorUpload": "Технологик қурилмалар кўрсаткичи юклаш"
+    "actionTechnologicalDevicesIndicatorUpload": "Технологик қурилмалар кўрсаткичи юклаш",
+    "enterpriseInfo": "Корхона маълумотлари",
+    "eghuCertificate": "ЕГХУ сертификати",
+    "technicalDocuments": "Лойиҳа техник ҳужжатлари",
+    "contract": "Шартнома",
+    "addInformation": "Маълумот қўшиш",
+    "detailsButton": "Батафсил",
+    "facialLabel": "Ҳисоб рақам (Лицевой)"
 }

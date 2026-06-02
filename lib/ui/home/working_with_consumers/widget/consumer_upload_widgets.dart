@@ -1,0 +1,465 @@
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../core/common/words.dart';
+import '../../../../core/models/working_with_consumers_document/consumer_file_models.dart';
+
+class ConsumerDetailColors {
+  const ConsumerDetailColors._();
+
+  static const page = Color(0xFFFCFCFC);
+  static const field = Color(0xFFF9F9F9);
+  static const soft = Color(0xFFF0F0F0);
+  static const stroke = Color(0xFFE8E8E8);
+  static const strokeStrong = Color(0xFFD0D5E2);
+  static const textStrong = Color(0xFF1A1D2E);
+  static const text = Color(0xFF202020);
+  static const textSub = Color(0xFFBBBBBB);
+  static const primary = Color(0xFF526ED3);
+  static const blueChip = Color(0xFF1570EF);
+}
+
+TextStyle consumerText({
+  required double fontSize,
+  required double lineHeight,
+  FontWeight fontWeight = FontWeight.w500,
+  Color color = ConsumerDetailColors.text,
+  double letterSpacing = 0,
+}) {
+  return GoogleFonts.manrope(
+    fontSize: fontSize,
+    height: lineHeight / fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    letterSpacing: letterSpacing,
+  );
+}
+
+enum ConsumerPickSource { camera, device }
+
+/// Fayl/sertifikat yuklash bo'limi: sarlavha + "Qo'shish" + dropzone yoki fayllar gridi.
+class ConsumerUploadSection extends StatelessWidget {
+  const ConsumerUploadSection({
+    super.key,
+    required this.title,
+    required this.files,
+    required this.onAdd,
+    required this.onRemove,
+    required this.onView,
+    this.helpText,
+    this.sectionKey,
+  });
+
+  final String title;
+  final List<ConsumerUploadFile> files;
+  final VoidCallback onAdd;
+  final ValueChanged<ConsumerUploadFile> onRemove;
+  final ValueChanged<ConsumerUploadFile> onView;
+  final String? helpText;
+  final String? sectionKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: consumerText(
+                        fontSize: 15,
+                        lineHeight: 24,
+                        fontWeight: FontWeight.w700,
+                        color: ConsumerDetailColors.textStrong,
+                      ),
+                    ),
+                  ),
+                  if (helpText != null) ...[
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message: helpText!,
+                      triggerMode: TooltipTriggerMode.tap,
+                      child: const Icon(
+                        Icons.help_outline_rounded,
+                        size: 16,
+                        color: ConsumerDetailColors.textSub,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            _AddChip(onTap: onAdd, keyName: sectionKey),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (files.isEmpty)
+          _DropZone(
+            onTap: onAdd,
+            text: Words.addInformation.tr(),
+          )
+        else
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final file in files)
+                _FileTile(
+                  file: file,
+                  onRemove: file.isRemote ? null : () => onRemove(file),
+                  onTap: () => onView(file),
+                ),
+              _AddTile(onTap: onAdd),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _AddChip extends StatelessWidget {
+  const _AddChip({required this.onTap, this.keyName});
+
+  final VoidCallback onTap;
+  final String? keyName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      key: keyName == null ? null : Key('consumer-upload-add-$keyName'),
+      color: ConsumerDetailColors.soft,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.add_rounded, size: 14, color: ConsumerDetailColors.text),
+              const SizedBox(width: 4),
+              Text(
+                Words.add.tr(),
+                style: consumerText(fontSize: 13, lineHeight: 20),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DropZone extends StatelessWidget {
+  const _DropZone({required this.onTap, required this.text});
+
+  final VoidCallback onTap;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: const Key('consumer-upload-drop-zone'),
+      onTap: onTap,
+      child: CustomPaint(
+        painter: _DashedBorderPainter(),
+        child: Container(
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.attach_file_rounded,
+                size: 18,
+                color: ConsumerDetailColors.text,
+              ),
+              const SizedBox(width: 8),
+              Text(text, style: consumerText(fontSize: 15, lineHeight: 24)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddTile extends StatelessWidget {
+  const _AddTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: CustomPaint(
+        painter: _DashedBorderPainter(radius: 16),
+        child: const SizedBox(
+          width: 80,
+          height: 80,
+          child: Icon(
+            Icons.add_rounded,
+            size: 26,
+            color: ConsumerDetailColors.strokeStrong,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FileTile extends StatelessWidget {
+  const _FileTile({
+    required this.file,
+    required this.onTap,
+    this.onRemove,
+  });
+
+  final ConsumerUploadFile file;
+  final VoidCallback onTap;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 80,
+        height: 80,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: ConsumerDetailColors.field,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: ConsumerDetailColors.stroke),
+                  ),
+                  child: _preview(),
+                ),
+              ),
+            ),
+            if (onRemove != null)
+              Positioned(
+                right: -6,
+                top: -6,
+                child: GestureDetector(
+                  key: const Key('consumer-file-remove'),
+                  onTap: onRemove,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF3434),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _preview() {
+    if (file.isImage) {
+      if (file.isRemote) {
+        return CachedNetworkImage(
+          imageUrl: file.remoteUrl!,
+          fit: BoxFit.cover,
+          progressIndicatorBuilder: (_, __, progress) => Center(
+            child: CircularProgressIndicator(
+              value: progress.progress,
+              strokeWidth: 2,
+            ),
+          ),
+          errorWidget: (_, __, ___) => const _FileGlyph(),
+        );
+      }
+      if (file.existsLocal) {
+        return Image.file(File(file.localPath!), fit: BoxFit.cover);
+      }
+    }
+    return _FileGlyph(name: file.name);
+  }
+}
+
+class _FileGlyph extends StatelessWidget {
+  const _FileGlyph({this.name});
+
+  final String? name;
+
+  @override
+  Widget build(BuildContext context) {
+    final ext = _ext(name);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(
+          Icons.insert_drive_file_outlined,
+          size: 26,
+          color: ConsumerDetailColors.primary,
+        ),
+        if (ext != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            ext,
+            style: consumerText(
+              fontSize: 9,
+              lineHeight: 12,
+              fontWeight: FontWeight.w700,
+              color: ConsumerDetailColors.textSub,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String? _ext(String? name) {
+    if (name == null || !name.contains('.')) return null;
+    final ext = name.split('.').last.split('?').first.toUpperCase();
+    return ext.length > 5 ? null : ext;
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({this.radius = 20});
+
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = ConsumerDetailColors.strokeStrong
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(metric.extractPath(distance, distance + 5), paint);
+        distance += 9;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Kamera / telefondan yuklash tanlovi.
+class ConsumerSourceSheet extends StatelessWidget {
+  const ConsumerSourceSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: ConsumerDetailColors.stroke,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            _SourceTile(
+              icon: Icons.photo_camera_rounded,
+              label: Words.openCamera.tr(),
+              onTap: () =>
+                  Navigator.of(context).pop(ConsumerPickSource.camera),
+            ),
+            const SizedBox(height: 8),
+            _SourceTile(
+              icon: Icons.folder_open_rounded,
+              label: Words.uploadFromPhone.tr(),
+              onTap: () =>
+                  Navigator.of(context).pop(ConsumerPickSource.device),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SourceTile extends StatelessWidget {
+  const _SourceTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: ConsumerDetailColors.field,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Icon(icon, size: 22, color: ConsumerDetailColors.primary),
+              const SizedBox(width: 14),
+              Text(
+                label,
+                style: consumerText(
+                  fontSize: 15,
+                  lineHeight: 24,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

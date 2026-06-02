@@ -387,5 +387,12 @@
   "actionIndustrialCollectorsIndicatorUpload": "Загрузка показаний промышленных коллекторов",
   "actionTechnologicalDevicesReinstall": "Переустановка технологических устройств",
   "actionTechnologicalDevicesDetach": "Снятие технологических устройств",
-  "actionTechnologicalDevicesIndicatorUpload": "Загрузка показаний технологических устройств"
+  "actionTechnologicalDevicesIndicatorUpload": "Загрузка показаний технологических устройств",
+  "enterpriseInfo": "Информация о предприятии",
+  "eghuCertificate": "Сертификат ЕГХУ",
+  "technicalDocuments": "Проектная техническая документация",
+  "contract": "Договор",
+  "addInformation": "Добавить данные",
+  "detailsButton": "Подробнее",
+  "facialLabel": "Лицевой счёт"
 }

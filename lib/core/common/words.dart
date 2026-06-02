@@ -397,4 +397,11 @@ enum Words {
   actionTechnologicalDevicesReinstall,
   actionTechnologicalDevicesDetach,
   actionTechnologicalDevicesIndicatorUpload,
+  enterpriseInfo,
+  eghuCertificate,
+  technicalDocuments,
+  contract,
+  addInformation,
+  detailsButton,
+  facialLabel,
 }
