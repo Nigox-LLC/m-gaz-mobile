@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +8,7 @@ import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/utils/locationService/location_service.dart';
 import 'package:m_gaz/features/actions/presentation/pages/actions_screen.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
+import 'package:m_gaz/ui/home/daily_route_permission_gate.dart';
 import 'package:m_gaz/ui/home/main/dashboard_screen.dart';
 import 'package:m_gaz/ui/home/measurement_devices/measurement_devices_screen.dart';
 import 'package:m_gaz/ui/home/tasks/task_screen.dart';
@@ -28,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   static const double _navMaxWidth = 350;
 
   late int _currentIndex;
-  Locale? _dailyRouteLocale;
   bool _dailyRouteTrackingStartRequested = false;
 
   final List<BottomNavItemModel> _navItems = [
@@ -70,46 +69,23 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final locale = context.locale;
-    if (_dailyRouteLocale == locale && _dailyRouteTrackingStartRequested) {
-      return;
-    }
-
-    _dailyRouteLocale = locale;
-    _syncDailyRouteNotificationTexts();
+    unawaited(_startDailyRouteTrackingOnce());
   }
 
-  void _syncDailyRouteNotificationTexts() {
-    final notificationTexts = DailyRouteNotificationTexts(
-      title: Words.dailyRouteNotificationTitle.tr(),
-      preparing: Words.dailyRouteNotificationPreparing.tr(),
-      running30Min: Words.dailyRouteNotificationRunning30Min.tr(),
-      running30Sec: Words.dailyRouteNotificationRunning30Sec.tr(),
-    );
-    final service = DailyRouteLocationService();
-
-    if (_dailyRouteTrackingStartRequested) {
-      unawaited(
-        service.updateNotificationTexts(notificationTexts).catchError((
-          Object error,
-          StackTrace _,
-        ) {
-          debugPrint('DailyRoute updateNotificationTexts error: $error');
-        }),
-      );
-      return;
-    }
-
+  Future<void> _startDailyRouteTrackingOnce() async {
+    if (_dailyRouteTrackingStartRequested) return;
     _dailyRouteTrackingStartRequested = true;
-    unawaited(
-      service.ensureStarted(notificationTexts: notificationTexts).catchError((
-        Object error,
-        StackTrace _,
-      ) {
-        debugPrint('DailyRoute ensureStarted error: $error');
-        return false;
-      }),
-    );
+
+    try {
+      // Force "Allow all the time" + battery-optimization bypass before
+      // scheduling: without both, WorkManager stops sending location once the
+      // app is killed.
+      final granted = await DailyRoutePermissionGate.ensure(context);
+      if (!granted || !mounted) return;
+      await DailyRouteLocationService().ensureScheduled();
+    } catch (error) {
+      debugPrint('DailyRoute start error: $error');
+    }
   }
 
   void _onItemTapped(int index) {

@@ -209,24 +209,25 @@ void main() {
   });
 
   group('DailyRouteLocationPermissionPolicy', () {
-    test('accepts whileInUse and always when credentials and service ok', () {
+    test('accepts only always when credentials and service ok', () {
       expect(
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+        DailyRouteLocationPermissionPolicy.canTrack(
           credentials: _credentials(),
           serviceEnabled: true,
           permission: LocationPermission.always,
-          notificationPermissionGranted: true,
         ),
         isTrue,
       );
+    });
+
+    test('rejects whileInUse because killed-state GPS needs always', () {
       expect(
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+        DailyRouteLocationPermissionPolicy.canTrack(
           credentials: _credentials(),
           serviceEnabled: true,
           permission: LocationPermission.whileInUse,
-          notificationPermissionGranted: true,
         ),
-        isTrue,
+        isFalse,
       );
     });
 
@@ -234,34 +235,31 @@ void main() {
       'rejects denied / deniedForever / disabled service / no credentials',
       () {
         expect(
-          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+          DailyRouteLocationPermissionPolicy.canTrack(
             credentials: _credentials(),
             serviceEnabled: true,
             permission: LocationPermission.denied,
-            notificationPermissionGranted: true,
           ),
           isFalse,
         );
         expect(
-          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+          DailyRouteLocationPermissionPolicy.canTrack(
             credentials: _credentials(),
             serviceEnabled: true,
             permission: LocationPermission.deniedForever,
-            notificationPermissionGranted: true,
           ),
           isFalse,
         );
         expect(
-          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+          DailyRouteLocationPermissionPolicy.canTrack(
             credentials: _credentials(),
             serviceEnabled: false,
             permission: LocationPermission.always,
-            notificationPermissionGranted: true,
           ),
           isFalse,
         );
         expect(
-          DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+          DailyRouteLocationPermissionPolicy.canTrack(
             credentials: const DailyRouteCredentials(
               accessToken: 'access-token',
               refreshToken: 'refresh-token',
@@ -269,58 +267,21 @@ void main() {
             ),
             serviceEnabled: true,
             permission: LocationPermission.always,
-            notificationPermissionGranted: true,
           ),
           isFalse,
         );
       },
     );
 
-    test('rejects denied notification permission', () {
+    test('does not require notification permission', () {
+      // WorkManager has no notification, so tracking is allowed regardless.
       expect(
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
+        DailyRouteLocationPermissionPolicy.canTrack(
           credentials: _credentials(),
           serviceEnabled: true,
           permission: LocationPermission.always,
-          notificationPermissionGranted: false,
         ),
-        isFalse,
-      );
-    });
-  });
-
-  group('DailyRouteNotificationTexts', () {
-    test('uses 30 minute content for release tracking interval', () {
-      const texts = DailyRouteNotificationTexts(
-        title: 'M-Gaz',
-        preparing: 'Preparing',
-        running30Min: 'Every 30 minutes',
-        running30Sec: 'Every 30 seconds',
-      );
-
-      expect(kDailyRouteDebugFastInterval, isFalse);
-      expect(texts.runningContent, 'Every 30 minutes');
-    });
-
-    test('fills blank values from fallback text', () {
-      const texts = DailyRouteNotificationTexts(
-        title: '',
-        preparing: '',
-        running30Min: 'Every 30 minutes',
-        running30Sec: '',
-      );
-
-      final normalized = texts.copyWithFallback();
-
-      expect(normalized.title, DailyRouteNotificationTexts.fallback.title);
-      expect(
-        normalized.preparing,
-        DailyRouteNotificationTexts.fallback.preparing,
-      );
-      expect(normalized.running30Min, 'Every 30 minutes');
-      expect(
-        normalized.running30Sec,
-        DailyRouteNotificationTexts.fallback.running30Sec,
+        isTrue,
       );
     });
   });

@@ -1,19 +1,20 @@
-import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
+import 'package:workmanager/workmanager.dart';
 
 /// Toggle for QA: when `true`, tick fires every 30 seconds instead of
 /// 30 minutes. MUST be `false` for any commit that ships to users.
+///
+/// NOTE: WorkManager periodic tasks have a hard 15-minute minimum on Android,
+/// so this fast interval only affects manual/one-off testing, not the periodic
+/// schedule.
 const bool kDailyRouteDebugFastInterval = false;
 
 /// Toggle for QA/debug: when `true`, working-hours gate (09:00-18:00) is
@@ -33,56 +34,24 @@ const String _queueBoxName = 'daily_route_location_queue';
 const String _accessTokenKey = 'access_token';
 const String _refreshTokenKey = 'refresh_token';
 const String _employeeIdKey = 'employee_id';
-const String _notificationTitleKey = 'daily_route_notification_title';
-const String _notificationPreparingKey = 'daily_route_notification_preparing';
-const String _notificationRunning30MinKey =
-    'daily_route_notification_running_30_min';
-const String _notificationRunning30SecKey =
-    'daily_route_notification_running_30_sec';
-const String _notificationChannelId = 'm_gaz_daily_route_location';
-const int _notificationId = 1001;
-const String _stopMethod = 'dailyRouteStop';
-const String _syncNowMethod = 'dailyRouteSyncNow';
-const String _updateNotificationMethod = 'dailyRouteUpdateNotification';
 
-class DailyRouteNotificationTexts {
-  const DailyRouteNotificationTexts({
-    required this.title,
-    required this.preparing,
-    required this.running30Min,
-    required this.running30Sec,
+/// WorkManager identifiers. The periodic task drives the recurring 30-minute
+/// sync; the one-off task triggers an immediate first sync on start.
+const String _workPeriodicUniqueName = 'daily_route_location_periodic';
+const String _workOneOffUniqueName = 'daily_route_location_oneoff';
+const String _workTaskName = 'dailyRouteLocationTick';
+
+/// Top-level WorkManager entry point. Runs in a background isolate, so plugins
+/// must be re-registered before use.
+@pragma('vm:entry-point')
+void dailyRouteCallbackDispatcher() {
+  Workmanager().executeTask((taskName, inputData) async {
+    DartPluginRegistrant.ensureInitialized();
+    await DailyRouteLocationService.runBackgroundSyncTick();
+    // Always report success so the periodic chain keeps running; transient
+    // failures are handled internally (queue + retry next tick).
+    return true;
   });
-
-  static const fallback = DailyRouteNotificationTexts(
-    title: 'M-Gaz',
-    preparing: 'Lokatsiya kuzatuvi tayyorlanmoqda',
-    running30Min: 'Lokatsiya har 30 daqiqada yuborilmoqda',
-    running30Sec: 'Lokatsiya har 30 soniyada yuborilmoqda',
-  );
-
-  final String title;
-  final String preparing;
-  final String running30Min;
-  final String running30Sec;
-
-  String get runningContent =>
-      kDailyRouteDebugFastInterval ? running30Sec : running30Min;
-
-  DailyRouteNotificationTexts copyWithFallback() {
-    final fallbackTexts = DailyRouteNotificationTexts.fallback;
-    return DailyRouteNotificationTexts(
-      title: title.trim().isEmpty ? fallbackTexts.title : title.trim(),
-      preparing: preparing.trim().isEmpty
-          ? fallbackTexts.preparing
-          : preparing.trim(),
-      running30Min: running30Min.trim().isEmpty
-          ? fallbackTexts.running30Min
-          : running30Min.trim(),
-      running30Sec: running30Sec.trim().isEmpty
-          ? fallbackTexts.running30Sec
-          : running30Sec.trim(),
-    );
-  }
 }
 
 class DailyRouteLocationService {
@@ -93,56 +62,17 @@ class DailyRouteLocationService {
 
   factory DailyRouteLocationService() => _instance;
 
-  bool _configured = false;
-
-  Future<void> configureBackgroundService({
-    DailyRouteNotificationTexts? notificationTexts,
-  }) async {
-    if (_configured) return;
-
-    final texts = (notificationTexts ?? DailyRouteNotificationTexts.fallback)
-        .copyWithFallback();
-    await _createNotificationChannel(texts);
-
-    final service = FlutterBackgroundService();
-    await service.configure(
-      iosConfiguration: IosConfiguration(
-        autoStart: false,
-        onForeground: dailyRouteBackgroundServiceOnStart,
-        onBackground: dailyRouteIosBackground,
-      ),
-      androidConfiguration: AndroidConfiguration(
-        onStart: dailyRouteBackgroundServiceOnStart,
-        autoStart: false,
-        autoStartOnBoot: true,
-        isForegroundMode: true,
-        notificationChannelId: _notificationChannelId,
-        foregroundServiceNotificationId: _notificationId,
-        initialNotificationTitle: texts.title,
-        initialNotificationContent: texts.preparing,
-        foregroundServiceTypes: const [AndroidForegroundType.location],
-      ),
-    );
-
-    _configured = true;
+  /// Initializes the WorkManager dispatcher. Call once during app start
+  /// (Android only). Safe to call multiple times.
+  static Future<void> initializeWorkManager() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    await Workmanager().initialize(dailyRouteCallbackDispatcher);
   }
 
-  Future<bool> ensureStarted({
-    DailyRouteNotificationTexts? notificationTexts,
-  }) async {
-    final texts = (notificationTexts ?? DailyRouteNotificationTexts.fallback)
-        .copyWithFallback();
-    await _saveNotificationTexts(texts);
-    await configureBackgroundService(notificationTexts: texts);
-
-    final notificationPermissionGranted =
-        await _requestNotificationPermissionIfNeeded();
-    if (!notificationPermissionGranted) {
-      _log(
-        'ensureStarted: notification permission denied, service not started',
-      );
-      return false;
-    }
+  /// Registers the periodic background location sync via WorkManager. No
+  /// foreground service / notification is used.
+  Future<bool> ensureScheduled() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
 
     await flushPending();
 
@@ -153,51 +83,45 @@ class DailyRouteLocationService {
     final permission = await _requestLocationPermission();
 
     _log(
-      'ensureStarted: tokenSet=${credentials.accessToken.isNotEmpty}, '
+      'ensureScheduled: tokenSet=${credentials.accessToken.isNotEmpty}, '
       'employeeId=${credentials.employeeId}, serviceEnabled=$serviceEnabled, '
-      'permission=$permission, '
-      'notificationPermissionGranted=$notificationPermissionGranted',
+      'permission=$permission',
     );
 
-    final canStart =
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-          credentials: credentials,
-          serviceEnabled: serviceEnabled,
-          permission: permission,
-          notificationPermissionGranted: notificationPermissionGranted,
-        );
-    if (!canStart) {
-      _log('ensureStarted: gate failed, service not started');
+    final canTrack = DailyRouteLocationPermissionPolicy.canTrack(
+      credentials: credentials,
+      serviceEnabled: serviceEnabled,
+      permission: permission,
+    );
+    if (!canTrack) {
+      _log('ensureScheduled: gate failed, work not scheduled');
       return false;
     }
 
-    final service = FlutterBackgroundService();
-    if (await service.isRunning()) {
-      _log('ensureStarted: service already running -> syncNow');
-      service.invoke(_syncNowMethod);
-      return true;
-    }
+    await Workmanager().registerPeriodicTask(
+      _workPeriodicUniqueName,
+      _workTaskName,
+      frequency: dailyRouteLocationInterval,
+      initialDelay: Duration.zero,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      constraints: Constraints(networkType: NetworkType.connected),
+    );
 
-    final started = await service.startService();
-    _log('ensureStarted: startService() = $started');
-    return started;
-  }
+    // Kick off an immediate first sync without waiting a full interval.
+    await Workmanager().registerOneOffTask(
+      _workOneOffUniqueName,
+      _workTaskName,
+      existingWorkPolicy: ExistingWorkPolicy.keep,
+      constraints: Constraints(networkType: NetworkType.connected),
+    );
 
-  Future<void> updateNotificationTexts(
-    DailyRouteNotificationTexts notificationTexts,
-  ) async {
-    await _saveNotificationTexts(notificationTexts.copyWithFallback());
-    final service = FlutterBackgroundService();
-    if (await service.isRunning()) {
-      service.invoke(_updateNotificationMethod);
-    }
+    _log('ensureScheduled: periodic + one-off work registered');
+    return true;
   }
 
   Future<void> stop() async {
-    final service = FlutterBackgroundService();
-    if (await service.isRunning()) {
-      service.invoke(_stopMethod);
-    }
+    await Workmanager().cancelByUniqueName(_workPeriodicUniqueName);
+    await Workmanager().cancelByUniqueName(_workOneOffUniqueName);
   }
 
   Future<int> flushPending() async {
@@ -211,6 +135,18 @@ class DailyRouteLocationService {
   }
 
   static Future<bool> runBackgroundSyncTick() async {
+    try {
+      return await _runBackgroundSyncTick();
+    } catch (e) {
+      // Any failure in the killed-state isolate (path_provider, Hive, etc.)
+      // must not bubble out of executeTask, otherwise WorkManager treats the
+      // tick as failed and can back off / stop the periodic chain.
+      _log('tick: unexpected error: $e');
+      return true;
+    }
+  }
+
+  static Future<bool> _runBackgroundSyncTick() async {
     final store = DailyRouteHiveLocalStore();
     await store.init();
 
@@ -230,19 +166,15 @@ class DailyRouteLocationService {
 
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     final permission = await Geolocator.checkPermission();
-    final notificationPermissionGranted = await _hasNotificationPermission();
-    final canTrack =
-        DailyRouteLocationPermissionPolicy.canStartForegroundTracking(
-          credentials: credentials,
-          serviceEnabled: serviceEnabled,
-          permission: permission,
-          notificationPermissionGranted: notificationPermissionGranted,
-        );
+    final canTrack = DailyRouteLocationPermissionPolicy.canTrack(
+      credentials: credentials,
+      serviceEnabled: serviceEnabled,
+      permission: permission,
+    );
     if (!canTrack) {
       _log(
         'tick: gate failed (serviceEnabled=$serviceEnabled, '
-        'permission=$permission, '
-        'notificationPermissionGranted=$notificationPermissionGranted)',
+        'permission=$permission)',
       );
       return false;
     }
@@ -279,64 +211,33 @@ class DailyRouteLocationService {
     }
   }
 
-  Future<bool> _requestNotificationPermissionIfNeeded() async {
+  /// Requests foreground then background (`always`) location permission and
+  /// returns the resolved permission after escalation. Used by the UI gate so
+  /// it can decide whether scheduling is allowed.
+  Future<LocationPermission> requestAlwaysLocationPermission() {
+    return _requestLocationPermission();
+  }
+
+  /// Requests exemption from OEM battery optimization (Doze) so WorkManager
+  /// keeps firing after the app is swiped away. Android-only; returns true on
+  /// other platforms where the concept does not apply.
+  Future<bool> requestBatteryOptimizationBypass() async {
     if (defaultTargetPlatform != TargetPlatform.android) return true;
-    try {
-      final status = await ph.Permission.notification.status;
-      _log('notification permission status: $status');
-      if (status.isGranted) return true;
-
-      final res = await ph.Permission.notification.request();
-      _log('notification permission requested -> $res');
-      return res.isGranted;
-    } catch (e) {
-      _log('notification permission request error: $e');
-      return false;
-    }
+    final status = await ph.Permission.ignoreBatteryOptimizations.status;
+    if (status.isGranted) return true;
+    final result = await ph.Permission.ignoreBatteryOptimizations.request();
+    _log('ignoreBatteryOptimizations.request() = $result');
+    return result.isGranted;
   }
 
-  static Future<bool> _hasNotificationPermission() async {
+  /// Read-only check (no prompts) that BOTH `always` location and the battery
+  /// optimization exemption are granted. Returns true off-Android.
+  Future<bool> hasAlwaysLocationAndBatteryBypass() async {
     if (defaultTargetPlatform != TargetPlatform.android) return true;
-    try {
-      return (await ph.Permission.notification.status).isGranted;
-    } catch (e) {
-      _log('notification permission status error: $e');
-      return false;
-    }
-  }
-
-  Future<void> _createNotificationChannel(
-    DailyRouteNotificationTexts notificationTexts,
-  ) async {
-    if (defaultTargetPlatform != TargetPlatform.android) return;
-
-    final plugin = FlutterLocalNotificationsPlugin();
-    await plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(
-          AndroidNotificationChannel(
-            _notificationChannelId,
-            notificationTexts.title,
-            description: notificationTexts.preparing,
-            importance: Importance.low,
-          ),
-        );
-  }
-
-  static Future<void> _saveNotificationTexts(
-    DailyRouteNotificationTexts notificationTexts,
-  ) async {
-    final store = DailyRouteHiveLocalStore();
-    await store.init();
-    await store.saveNotificationTexts(notificationTexts);
-  }
-
-  static Future<DailyRouteNotificationTexts> _readNotificationTexts() async {
-    final store = DailyRouteHiveLocalStore();
-    await store.init();
-    return store.readNotificationTexts();
+    final permission = await Geolocator.checkPermission();
+    if (permission != LocationPermission.always) return false;
+    final battery = await ph.Permission.ignoreBatteryOptimizations.status;
+    return battery.isGranted;
   }
 
   static Future<LocationPermission> _requestLocationPermission() async {
@@ -361,104 +262,26 @@ class DailyRouteLocationService {
   }
 }
 
-@pragma('vm:entry-point')
-Future<bool> dailyRouteIosBackground(ServiceInstance service) async {
-  DartPluginRegistrant.ensureInitialized();
-  return DailyRouteLocationService.runBackgroundSyncTick();
-}
-
-@pragma('vm:entry-point')
-void dailyRouteBackgroundServiceOnStart(ServiceInstance service) {
-  DartPluginRegistrant.ensureInitialized();
-
-  Timer? timer;
-  StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
-  var isSyncing = false;
-
-  Future<void> runTick() async {
-    if (isSyncing) return;
-    isSyncing = true;
-    try {
-      await _updateForegroundNotification(service);
-
-      final shouldContinue =
-          await DailyRouteLocationService.runBackgroundSyncTick();
-      if (!shouldContinue) {
-        timer?.cancel();
-        await connectivitySubscription?.cancel();
-        await service.stopSelf();
-      }
-    } finally {
-      isSyncing = false;
-    }
-  }
-
-  service.on(_stopMethod).listen((_) async {
-    timer?.cancel();
-    await connectivitySubscription?.cancel();
-    await service.stopSelf();
-  });
-
-  service.on(_syncNowMethod).listen((_) {
-    unawaited(runTick());
-  });
-
-  service.on(_updateNotificationMethod).listen((_) {
-    unawaited(_updateForegroundNotification(service));
-  });
-
-  connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-    results,
-  ) {
-    final hasNetwork = results.any(
-      (result) => result != ConnectivityResult.none,
-    );
-    if (hasNetwork) unawaited(_flushPendingFromBackground());
-  });
-
-  unawaited(runTick());
-  timer = Timer.periodic(dailyRouteLocationInterval, (_) {
-    unawaited(runTick());
-  });
-}
-
-Future<void> _updateForegroundNotification(ServiceInstance service) async {
-  if (service is! AndroidServiceInstance) return;
-  final texts = await DailyRouteLocationService._readNotificationTexts();
-  await service.setForegroundNotificationInfo(
-    title: texts.title,
-    content: texts.runningContent,
-  );
-}
-
-Future<void> _flushPendingFromBackground() async {
-  final store = DailyRouteHiveLocalStore();
-  await store.init();
-  final engine = DailyRouteSyncEngine(
-    localStore: store,
-    remoteClient: DailyRouteDioRemoteClient(),
-  );
-  await engine.flushPending();
-}
-
 class DailyRouteLocationPermissionPolicy {
   const DailyRouteLocationPermissionPolicy._();
 
-  /// Foreground service starts when the user has at least `whileInUse`.
-  /// Background continuation requires `always`, but we don't block startup
-  /// on it, without `always` the service still ticks while the app is in
-  /// the foreground, and the user can grant `always` later.
-  static bool canStartForegroundTracking({
+  /// Tracking is allowed only when credentials are present, location services
+  /// are enabled, and location permission is strictly `always`.
+  ///
+  /// `whileInUse` is intentionally rejected: once the app is killed/swiped from
+  /// recents, Android's privacy gate blocks GPS access unless permission is
+  /// `always`, so `getCurrentPosition` would fail silently in the background
+  /// isolate. Requiring `always` up front avoids scheduling work that can never
+  /// produce a fix after kill. No notification permission is required
+  /// (WorkManager has no notification).
+  static bool canTrack({
     required DailyRouteCredentials credentials,
     required bool serviceEnabled,
     required LocationPermission permission,
-    required bool notificationPermissionGranted,
   }) {
     return credentials.canSend &&
         serviceEnabled &&
-        notificationPermissionGranted &&
-        (permission == LocationPermission.always ||
-            permission == LocationPermission.whileInUse);
+        permission == LocationPermission.always;
   }
 }
 
@@ -602,38 +425,6 @@ class DailyRouteHiveLocalStore implements DailyRouteLocalStore {
   Future<void> saveTokens(DailyRouteTokenPair tokens) async {
     await _api.put(_accessTokenKey, tokens.accessToken);
     await _api.put(_refreshTokenKey, tokens.refreshToken);
-  }
-
-  Future<void> saveNotificationTexts(
-    DailyRouteNotificationTexts notificationTexts,
-  ) async {
-    final texts = notificationTexts.copyWithFallback();
-    await _api.put(_notificationTitleKey, texts.title);
-    await _api.put(_notificationPreparingKey, texts.preparing);
-    await _api.put(_notificationRunning30MinKey, texts.running30Min);
-    await _api.put(_notificationRunning30SecKey, texts.running30Sec);
-  }
-
-  DailyRouteNotificationTexts readNotificationTexts() {
-    final fallbackTexts = DailyRouteNotificationTexts.fallback;
-    return DailyRouteNotificationTexts(
-      title: _readString(
-        _notificationTitleKey,
-        defaultValue: fallbackTexts.title,
-      ),
-      preparing: _readString(
-        _notificationPreparingKey,
-        defaultValue: fallbackTexts.preparing,
-      ),
-      running30Min: _readString(
-        _notificationRunning30MinKey,
-        defaultValue: fallbackTexts.running30Min,
-      ),
-      running30Sec: _readString(
-        _notificationRunning30SecKey,
-        defaultValue: fallbackTexts.running30Sec,
-      ),
-    ).copyWithFallback();
   }
 
   @override
