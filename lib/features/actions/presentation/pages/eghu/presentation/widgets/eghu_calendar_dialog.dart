@@ -3,7 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import 'create/eghu_action_form_fields.dart';
+import '../../../../../../../core/common/words.dart';
+
+const _fieldColor = Color(0xFFF9F9F9);
+const _strokeColor = Color(0xFFE8E8E8);
+const _textColor = Color(0xFF202020);
+const _primaryColor = Color(0xFF526ED3);
 
 Future<DateTime?> pickEghuDate(
   BuildContext context, {
@@ -30,6 +35,51 @@ Future<DateTime?> pickEghuDate(
       dialogKey: dialogKey,
     ),
   );
+}
+
+Future<DateTime?> pickEghuStampDateTime(
+  BuildContext context, {
+  DateTime? currentStampDateTime,
+}) async {
+  final now = DateTime.now();
+  final today = _dateOnly(now);
+  final initialDate = _clampDate(
+    _dateOnly(currentStampDateTime ?? now),
+    min: DateTime(2020),
+    max: today,
+  );
+
+  final date = await pickEghuDate(
+    context,
+    initialDate: initialDate,
+    firstDate: DateTime(2020),
+    lastDate: today,
+    dialogKey: const Key('eghu-stamp-calendar-dialog'),
+  );
+  if (!context.mounted || date == null) return null;
+
+  final initialTime = _initialStampTimeForDate(
+    selectedDate: date,
+    currentStampDateTime: currentStampDateTime,
+    now: now,
+  );
+  final time = await showDialog<TimeOfDay>(
+    context: context,
+    builder: (_) => _EghuStampTimeDialog(
+      selectedDate: date,
+      initialTime: initialTime,
+      now: now,
+    ),
+  );
+  if (!context.mounted || time == null) return null;
+
+  final latestNow = DateTime.now();
+  if (_isSameDate(date, latestNow) &&
+      _isTimeAfter(time, TimeOfDay.fromDateTime(latestNow))) {
+    return null;
+  }
+
+  return DateTime(date.year, date.month, date.day, time.hour, time.minute);
 }
 
 class EghuCalendarDialog extends StatefulWidget {
@@ -217,6 +267,263 @@ class _EghuCalendarDialogState extends State<EghuCalendarDialog> {
   }
 }
 
+class _EghuStampTimeDialog extends StatefulWidget {
+  const _EghuStampTimeDialog({
+    required this.selectedDate,
+    required this.initialTime,
+    required this.now,
+  });
+
+  final DateTime selectedDate;
+  final TimeOfDay initialTime;
+  final DateTime now;
+
+  @override
+  State<_EghuStampTimeDialog> createState() => _EghuStampTimeDialogState();
+}
+
+class _EghuStampTimeDialogState extends State<_EghuStampTimeDialog> {
+  late int _hour;
+  late int _minute;
+
+  @override
+  void initState() {
+    super.initState();
+    final clamped = _clampTimeForDate(
+      widget.initialTime,
+      selectedDate: widget.selectedDate,
+      now: widget.now,
+    );
+    _hour = clamped.hour;
+    _minute = clamped.minute;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      backgroundColor: Colors.transparent,
+      child: Container(
+        key: const Key('eghu-stamp-time-dialog'),
+        width: 320,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E6F2)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 11,
+              offset: Offset(0, 11),
+            ),
+            BoxShadow(
+              color: Color(0x08000000),
+              blurRadius: 15,
+              offset: Offset(0, 25),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              Words.chooseTime.tr(),
+              style: GoogleFonts.manrope(
+                fontSize: 17,
+                height: 28 / 17,
+                fontWeight: FontWeight.w500,
+                color: _textColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${_twoDigits(_hour)}:${_twoDigits(_minute)}',
+              key: const Key('eghu-selected-time-label'),
+              style: GoogleFonts.manrope(
+                fontSize: 28,
+                height: 36 / 28,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF314692),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _TimeColumn(
+                    title: Words.hour.tr(),
+                    itemCount: 24,
+                    selectedValue: _hour,
+                    itemKeyPrefix: 'eghu-time-hour',
+                    isEnabled: _isHourEnabled,
+                    onSelected: (value) {
+                      setState(() {
+                        _hour = value;
+                        if (!_isMinuteEnabled(_minute)) {
+                          _minute = _maxMinuteForHour(_hour);
+                        }
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _TimeColumn(
+                    title: Words.minute.tr(),
+                    itemCount: 60,
+                    selectedValue: _minute,
+                    itemKeyPrefix: 'eghu-time-minute',
+                    isEnabled: _isMinuteEnabled,
+                    onSelected: (value) => setState(() => _minute = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                key: const Key('eghu-time-confirm'),
+                onPressed: () => Navigator.of(
+                  context,
+                ).pop(TimeOfDay(hour: _hour, minute: _minute)),
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: _primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  Words.select.tr(),
+                  style: GoogleFonts.manrope(
+                    fontSize: 15,
+                    height: 24 / 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isHourEnabled(int hour) {
+    if (!_isSameDate(widget.selectedDate, widget.now)) return true;
+    return hour <= widget.now.hour;
+  }
+
+  bool _isMinuteEnabled(int minute) {
+    if (!_isSameDate(widget.selectedDate, widget.now)) return true;
+    if (_hour < widget.now.hour) return true;
+    if (_hour > widget.now.hour) return false;
+    return minute <= widget.now.minute;
+  }
+
+  int _maxMinuteForHour(int hour) {
+    if (!_isSameDate(widget.selectedDate, widget.now)) return 59;
+    if (hour < widget.now.hour) return 59;
+    if (hour == widget.now.hour) return widget.now.minute;
+    return 0;
+  }
+}
+
+class _TimeColumn extends StatelessWidget {
+  const _TimeColumn({
+    required this.title,
+    required this.itemCount,
+    required this.selectedValue,
+    required this.itemKeyPrefix,
+    required this.isEnabled,
+    required this.onSelected,
+  });
+
+  final String title;
+  final int itemCount;
+  final int selectedValue;
+  final String itemKeyPrefix;
+  final bool Function(int value) isEnabled;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          title,
+          style: _calendarTextStyle(
+            13,
+            const Color(0xFFD9D9D9),
+            lineHeight: 20,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 160,
+          decoration: BoxDecoration(
+            color: _fieldColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _strokeColor),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              children: List.generate(itemCount, (index) {
+                final enabled = isEnabled(index);
+                final selected = index == selectedValue;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  child: InkWell(
+                    key: Key('$itemKeyPrefix-${_twoDigits(index)}'),
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: enabled ? () => onSelected(index) : null,
+                    child: Container(
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? _primaryColor
+                            : enabled
+                            ? Colors.transparent
+                            : const Color(0xFFE0E0E0),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _twoDigits(index),
+                        style: _calendarTextStyle(
+                          15,
+                          selected
+                              ? Colors.white
+                              : enabled
+                              ? _textColor
+                              : const Color(0xFFD9D9D9),
+                          lineHeight: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _EghuCalendarHeader extends StatelessWidget {
   const _EghuCalendarHeader({
     required this.focusedDay,
@@ -253,7 +560,7 @@ class _EghuCalendarHeader extends StatelessWidget {
                 fontSize: 17,
                 height: 28 / 17,
                 fontWeight: FontWeight.w500,
-                color: EghuActionCreateColors.text,
+                color: _textColor,
               ),
               children: [
                 TextSpan(text: '${_capitalize(month)} '),
@@ -294,9 +601,7 @@ class _CalendarNavButton extends StatelessWidget {
       icon: Icon(
         icon,
         size: 20,
-        color: onPressed == null
-            ? const Color(0xFFD9D9D9)
-            : EghuActionCreateColors.text,
+        color: onPressed == null ? const Color(0xFFD9D9D9) : _textColor,
       ),
     );
   }
@@ -327,19 +632,17 @@ class _EghuCalendarDayCell extends StatelessWidget {
     final Color textColor;
 
     if (isSelected) {
-      backgroundColor = EghuActionCreateColors.primary;
+      backgroundColor = _primaryColor;
       textColor = Colors.white;
     } else if (isDisabled) {
       backgroundColor = Colors.transparent;
       textColor = const Color(0xFFD9D9D9);
     } else if (isToday) {
       backgroundColor = const Color(0xFFE0E0E0);
-      textColor = EghuActionCreateColors.text;
+      textColor = _textColor;
     } else {
       backgroundColor = Colors.transparent;
-      textColor = isWeekend || isOutside
-          ? EghuActionCreateColors.primary
-          : EghuActionCreateColors.text;
+      textColor = isWeekend || isOutside ? _primaryColor : _textColor;
     }
 
     return GestureDetector(
@@ -404,6 +707,34 @@ String _dateKey(DateTime day) =>
     '${day.year}-${_twoDigits(day.month)}-${_twoDigits(day.day)}';
 
 String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+TimeOfDay _initialStampTimeForDate({
+  required DateTime selectedDate,
+  required DateTime? currentStampDateTime,
+  required DateTime now,
+}) {
+  final time =
+      currentStampDateTime != null &&
+          _isSameDate(currentStampDateTime, selectedDate)
+      ? TimeOfDay.fromDateTime(currentStampDateTime)
+      : TimeOfDay.fromDateTime(now);
+  return _clampTimeForDate(time, selectedDate: selectedDate, now: now);
+}
+
+TimeOfDay _clampTimeForDate(
+  TimeOfDay time, {
+  required DateTime selectedDate,
+  required DateTime now,
+}) {
+  if (!_isSameDate(selectedDate, now)) return time;
+  final nowTime = TimeOfDay.fromDateTime(now);
+  return _isTimeAfter(time, nowTime) ? nowTime : time;
+}
+
+bool _isTimeAfter(TimeOfDay value, TimeOfDay limit) {
+  if (value.hour != limit.hour) return value.hour > limit.hour;
+  return value.minute > limit.minute;
+}
 
 String _capitalize(String value) {
   if (value.isEmpty) return value;

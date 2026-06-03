@@ -361,7 +361,7 @@ class GlobalApi {
 
       final response = await _base.dio.get(
         'directory/directory/all-list/',
-        queryParameters: {'entity_type': 'GRPturlari'},
+        queryParameters: {'entity_type': 'GRPturlar'},
       );
 
       debugPrint("🔹 GRP Types javob status code: ${response.statusCode}");
@@ -417,7 +417,9 @@ class GlobalApi {
         queryParameters: {'entity_type': 'Tamgaornatishnuqtalari'},
       );
 
-      debugPrint("🔹 Tamga ornatish nuqtalari Types javob status code: ${response.statusCode}");
+      debugPrint(
+        "🔹 Tamga ornatish nuqtalari Types javob status code: ${response.statusCode}",
+      );
       debugPrint("Respomse data: ${response.data}");
 
       if (response.statusCode == 200) {
@@ -432,6 +434,63 @@ class GlobalApi {
       rethrow;
     }
   }
+
+  Future<PaginatedResponse<GlobalModel>> getStampInstallationPlaces({
+    int limit = 20,
+    int offset = 0,
+    String? search,
+  }) async {
+    try {
+      final query = <String, dynamic>{
+        'entity_type': 'Tamgaornatishjoyi',
+        'limit': limit,
+        'offset': offset,
+      };
+      final trimmed = search?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) query['search'] = trimmed;
+
+      final response = await _base.dio.get(
+        'directory/directory/',
+        queryParameters: query,
+      );
+
+      if (response.statusCode == 200) {
+        return PaginatedResponse<GlobalModel>.fromJson(
+          response.data,
+          GlobalModel.fromJson,
+        );
+      }
+      throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+    } on DioException catch (e) {
+      final error = e.response?.data;
+      final message = error is Map
+          ? (error['message'] ??
+                error['error'] ??
+                error['detail'] ??
+                "So'rov bajarilmadi")
+          : "So'rov bajarilmadi";
+      throw Exception(message.toString());
+    }
+  }
+
+  Future<PaginatedResponse<GlobalModel>> getStampInstallationPlacesNextPage(
+    String url,
+  ) async {
+    final uri = Uri.parse(url);
+    final endpoint = uri.path.replaceFirst('/api/', '');
+    final response = await _base.dio.get(
+      endpoint,
+      queryParameters: uri.queryParameters,
+    );
+    if (response.statusCode == 200) {
+      return PaginatedResponse<GlobalModel>.fromJson(
+        response.data,
+        GlobalModel.fromJson,
+      );
+    }
+    throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+  }
+
   Future<PaginatedResponse<GrsGasEquipment>> getGasEquipment({
     int limit = 10,
     int offset = 0,
@@ -468,9 +527,7 @@ class GlobalApi {
   }
 
   // Keyingi sahifani "next" URL orqali olish
-  Future<PaginatedResponse<GrsGasEquipment>> getNextPage(
-      String url,
-      ) async {
+  Future<PaginatedResponse<GrsGasEquipment>> getNextPage(String url) async {
     try {
       debugPrint("🔹 Keyingi sahifa so'rov yuborilmoqda...");
       debugPrint("🔹 URL: $url");
@@ -509,5 +566,4 @@ class GlobalApi {
       throw Exception("Kutilmagan xatolik: $e");
     }
   }
-
 }

@@ -27,12 +27,14 @@ class EghuIndicatorCreatePage extends StatefulWidget {
     this.consumerApi,
     this.consumerSource,
     this.bloc,
+    this.preselection,
   });
 
   final EghuIndicatorSubmitApi? api;
   final ConsumerRelationsApi? consumerApi;
   final EghuActionConsumerSource? consumerSource;
   final EghuIndicatorCreateBloc? bloc;
+  final EghuActionPreselection? preselection;
 
   @override
   State<EghuIndicatorCreatePage> createState() =>
@@ -45,6 +47,7 @@ class _EghuIndicatorCreatePageState extends State<EghuIndicatorCreatePage> {
   EghuIndicatorCreateBloc? _bloc;
   EghuActionConsumerSource? _consumerSource;
   bool _profileLoadRequested = false;
+  bool _preselectionApplied = false;
 
   @override
   void didChangeDependencies() {
@@ -68,6 +71,22 @@ class _EghuIndicatorCreatePageState extends State<EghuIndicatorCreatePage> {
     } else {
       _syncProfile(profile!);
     }
+
+    _applyPreselection();
+  }
+
+  void _applyPreselection() {
+    final preselection = widget.preselection;
+    if (_preselectionApplied || preselection == null) return;
+    _preselectionApplied = true;
+    _bloc!
+      ..add(EghuIndicatorConsumerSelected(preselection.consumer))
+      ..add(
+        EghuIndicatorEghuSelected(
+          preselection.eghu,
+          consumerDetail: preselection.detail,
+        ),
+      );
   }
 
   @override

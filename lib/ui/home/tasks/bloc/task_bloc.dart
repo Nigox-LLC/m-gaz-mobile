@@ -1,3 +1,4 @@
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/core/api/user/user_api.dart';
@@ -24,32 +25,19 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     on<TaskProfileLoad>(_onProfileLoad);
     on<TaskAnalysisLoad>(_onFetchAnalysis);
     on<TaskLoadMore>(_onLoadMore);
+    on<TaskSearchChanged>(_onSearchChanged, transformer: restartable());
+    on<TaskFilterChanged>(_onFilterChanged, transformer: restartable());
     on<TaskDetailFetched>(_onDocumentFetched);
     on<TaskComplete>(_onTaskComplete);
     on<TaskCancel>(_onTaskCancel);
   }
 
   Future<void> _onFetched(TaskLoad event, Emitter<TaskState> emit) async {
-    emit(state.copyWith(status: TaskStatus.loading));
-    try {
-      final response = await api.getTasks(limit: 20);
-
-      emit(
-        state.copyWith(
-          status: TaskStatus.success,
-          tasks: response.results,
-          nextUrl: response.next,
-          hasReachedMax: response.next == null,
-        ),
-      );
-    } catch (e) {
-      emit(
-        state.copyWith(
-          status: TaskStatus.fail,
-          errorMessage: e.toString().replaceAll('Exception: ', ''),
-        ),
-      );
-    }
+    await _loadFirstPage(
+      emit,
+      searchQuery: state.searchQuery,
+      filterType: state.filterType,
+    );
   }
 
   Future<void> _onProfileLoad(
@@ -110,6 +98,83 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
           status: TaskStatus.success,
           tasks: [...state.tasks, ...response.results],
           nextUrl: response.next,
+          clearNextUrl: response.next == null,
+          hasReachedMax: response.next == null,
+          isLoadingMore: false,
+        ),
+      );
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: TaskStatus.fail,
+          errorMessage: e.toString().replaceAll('Exception: ', ''),
+          isLoadingMore: false,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onSearchChanged(
+    TaskSearchChanged event,
+    Emitter<TaskState> emit,
+  ) async {
+    emit(state.copyWith(searchQuery: event.query));
+
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (emit.isDone) return;
+
+    await _loadFirstPage(
+      emit,
+      searchQuery: event.query,
+      filterType: state.filterType,
+    );
+  }
+
+  Future<void> _onFilterChanged(
+    TaskFilterChanged event,
+    Emitter<TaskState> emit,
+  ) async {
+    final filterType = event.clearFilter ? null : event.type;
+    emit(
+      state.copyWith(
+        filterType: filterType,
+        clearFilterType: event.clearFilter,
+      ),
+    );
+
+    await _loadFirstPage(
+      emit,
+      searchQuery: state.searchQuery,
+      filterType: filterType,
+    );
+  }
+
+  Future<void> _loadFirstPage(
+    Emitter<TaskState> emit, {
+    required String searchQuery,
+    required String? filterType,
+  }) async {
+    emit(
+      state.copyWith(
+        status: TaskStatus.loading,
+        isLoadingMore: false,
+        hasReachedMax: false,
+        clearNextUrl: true,
+      ),
+    );
+    try {
+      final response = await api.getTasks(
+        limit: 20,
+        search: searchQuery,
+        type: filterType,
+      );
+
+      emit(
+        state.copyWith(
+          status: TaskStatus.success,
+          tasks: response.results,
+          nextUrl: response.next,
+          clearNextUrl: response.next == null,
           hasReachedMax: response.next == null,
           isLoadingMore: false,
         ),

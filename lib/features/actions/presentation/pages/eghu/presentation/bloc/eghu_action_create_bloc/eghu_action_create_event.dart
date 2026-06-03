@@ -78,6 +78,30 @@ class EghuActionStampDateChanged extends EghuActionCreateEvent {
   List<Object?> get props => [value, localId];
 }
 
+class EghuActionStampPlaceChanged extends EghuActionCreateEvent {
+  const EghuActionStampPlaceChanged({
+    required this.localId,
+    required this.placeId,
+    required this.placeName,
+  });
+
+  final String localId;
+  final int placeId;
+  final String placeName;
+
+  @override
+  List<Object?> get props => [localId, placeId, placeName];
+}
+
+class EghuActionStampPlaceCleared extends EghuActionCreateEvent {
+  const EghuActionStampPlaceCleared(this.localId);
+
+  final String localId;
+
+  @override
+  List<Object?> get props => [localId];
+}
+
 class EghuActionProfileChanged extends EghuActionCreateEvent {
   const EghuActionProfileChanged({
     this.employeeId,

@@ -30,6 +30,7 @@ class EghuDetachCreatePage extends StatefulWidget {
     this.consumerApi,
     this.consumerSource,
     this.bloc,
+    this.preselection,
   });
 
   final EghuActionSubmitApi? api;
@@ -38,6 +39,7 @@ class EghuDetachCreatePage extends StatefulWidget {
   final ConsumerRelationsApi? consumerApi;
   final EghuActionConsumerSource? consumerSource;
   final EghuDetachCreateBloc? bloc;
+  final EghuActionPreselection? preselection;
 
   @override
   State<EghuDetachCreatePage> createState() => _EghuDetachCreatePageState();
@@ -49,6 +51,7 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
   EghuDetachCreateBloc? _bloc;
   EghuActionConsumerSource? _consumerSource;
   bool _profileLoadRequested = false;
+  bool _preselectionApplied = false;
   _DetachDropdown? _openDropdown;
 
   @override
@@ -80,6 +83,24 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
     } else {
       _syncProfile(profile!);
     }
+
+    _applyPreselection();
+  }
+
+  void _applyPreselection() {
+    final preselection = widget.preselection;
+    if (_preselectionApplied || preselection == null || widget.detail != null) {
+      return;
+    }
+    _preselectionApplied = true;
+    _bloc!
+      ..add(EghuDetachConsumerSelected(preselection.consumer))
+      ..add(
+        EghuDetachEghuSelected(
+          preselection.eghu,
+          consumerDetail: preselection.detail,
+        ),
+      );
   }
 
   @override
@@ -279,6 +300,13 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
                                   onNumberChanged: (localId, value) =>
                                       context.read<EghuDetachCreateBloc>().add(
                                         EghuDetachStampNumberChanged(
+                                          value,
+                                          localId: localId,
+                                        ),
+                                      ),
+                                  onDateChanged: (localId, value) =>
+                                      context.read<EghuDetachCreateBloc>().add(
+                                        EghuDetachStampDateChanged(
                                           value,
                                           localId: localId,
                                         ),

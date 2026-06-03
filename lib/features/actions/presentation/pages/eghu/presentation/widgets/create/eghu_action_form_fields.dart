@@ -5,6 +5,8 @@ import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/features/actions/data/models/eghu_action_stamp_entry.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
+import '../eghu_calendar_dialog.dart';
+
 class EghuActionCreateColors {
   const EghuActionCreateColors._();
 
@@ -107,15 +109,26 @@ class EghuStampSection extends StatefulWidget {
     required this.stamps,
     required this.onAdd,
     required this.onNumberChanged,
+    required this.onDateChanged,
     required this.onRemoveUnsaved,
     this.employeeName,
+    this.showInstallationPlace = false,
+    this.onSelectPlace,
+    this.onPlaceCleared,
   });
 
   final List<EghuActionStampEntry> stamps;
   final VoidCallback onAdd;
   final void Function(String localId, String value) onNumberChanged;
+  final void Function(String localId, DateTime value) onDateChanged;
   final ValueChanged<String> onRemoveUnsaved;
   final String? employeeName;
+
+  /// When true, each stamp row shows a "stamp installation place" selector
+  /// (reinstall flow only).
+  final bool showInstallationPlace;
+  final ValueChanged<String>? onSelectPlace;
+  final ValueChanged<String>? onPlaceCleared;
 
   @override
   State<EghuStampSection> createState() => _EghuStampSectionState();
@@ -179,8 +192,17 @@ class _EghuStampSectionState extends State<EghuStampSection> {
               stamp: stamp,
               controller: _controllers[stamp.localId]!,
               employeeName: stamp.employeeName ?? widget.employeeName,
+              showInstallationPlace: widget.showInstallationPlace,
               onChanged: (value) =>
                   widget.onNumberChanged(stamp.localId, value),
+              onDateChanged: (value) =>
+                  widget.onDateChanged(stamp.localId, value),
+              onSelectPlace: widget.onSelectPlace == null
+                  ? null
+                  : () => widget.onSelectPlace!(stamp.localId),
+              onClearPlace: widget.onPlaceCleared == null
+                  ? null
+                  : () => widget.onPlaceCleared!(stamp.localId),
               onRemove: stamp.isNew
                   ? () => widget.onRemoveUnsaved(stamp.localId)
                   : null,
@@ -198,6 +220,10 @@ class _StampListItem extends StatelessWidget {
     required this.controller,
     required this.employeeName,
     required this.onChanged,
+    required this.onDateChanged,
+    this.showInstallationPlace = false,
+    this.onSelectPlace,
+    this.onClearPlace,
     this.onRemove,
   });
 
@@ -205,6 +231,10 @@ class _StampListItem extends StatelessWidget {
   final TextEditingController controller;
   final String? employeeName;
   final ValueChanged<String> onChanged;
+  final ValueChanged<DateTime> onDateChanged;
+  final bool showInstallationPlace;
+  final VoidCallback? onSelectPlace;
+  final VoidCallback? onClearPlace;
   final VoidCallback? onRemove;
 
   @override
@@ -254,6 +284,10 @@ class _StampListItem extends StatelessWidget {
               ),
             ),
           ),
+          if (showInstallationPlace) ...[
+            const SizedBox(height: 4),
+            _buildPlaceField(context),
+          ],
           const SizedBox(height: 4),
           Container(
             height: 44,
@@ -286,30 +320,97 @@ class _StampListItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Container(
+          Material(
             key: Key('eghu-stamp-date-field-${stamp.localId}'),
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: EghuActionCreateColors.field,
+            color: EghuActionCreateColors.field,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: EghuActionCreateColors.stroke),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    displayDate,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: eghuText(fontSize: 13, lineHeight: 20),
-                  ),
+              onTap: () async {
+                final value = await pickEghuStampDateTime(
+                  context,
+                  currentStampDateTime: stamp.installedAt,
+                );
+                if (value != null) onDateChanged(value);
+              },
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: EghuActionCreateColors.stroke),
                 ),
-                AppTools.svg(AppTools.icCalendar),
-              ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayDate,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: eghuText(fontSize: 13, lineHeight: 20),
+                      ),
+                    ),
+                    AppTools.svg(AppTools.icCalendar),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceField(BuildContext context) {
+    final name = stamp.installationPlaceName?.trim();
+    final hasValue = name != null && name.isNotEmpty;
+
+    return Material(
+      key: Key('eghu-stamp-place-field-${stamp.localId}'),
+      color: EghuActionCreateColors.field,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onSelectPlace,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: EghuActionCreateColors.stroke),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  hasValue ? name : Words.stampInstallationPlace.tr(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: eghuText(
+                    fontSize: 13,
+                    lineHeight: 20,
+                    color: hasValue
+                        ? EghuActionCreateColors.text
+                        : EghuActionCreateColors.textSub,
+                  ),
+                ),
+              ),
+              if (hasValue && onClearPlace != null)
+                InkWell(
+                  key: Key('eghu-stamp-place-clear-${stamp.localId}'),
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: onClearPlace,
+                  child: const Icon(Icons.close_rounded, size: 18),
+                )
+              else
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 20,
+                  color: EghuActionCreateColors.text,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

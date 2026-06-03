@@ -65,6 +65,30 @@ class WorkingWithConsumersDetailModel {
       'excel_id': excelId,
     };
   }
+
+  WorkingWithConsumersDetailModel copyWith({
+    int? id,
+    List<ConsumersEgxuItem>? egxuList,
+    Region? region,
+    District? district,
+    Employee? employee,
+    Consumers? consumers,
+    String? facial,
+    String? datetime,
+    int? excelId,
+  }) {
+    return WorkingWithConsumersDetailModel(
+      id: id ?? this.id,
+      egxuList: egxuList ?? this.egxuList,
+      region: region ?? this.region,
+      district: district ?? this.district,
+      employee: employee ?? this.employee,
+      consumers: consumers ?? this.consumers,
+      facial: facial ?? this.facial,
+      datetime: datetime ?? this.datetime,
+      excelId: excelId ?? this.excelId,
+    );
+  }
 }
 
 class ConsumersEgxuItem {
@@ -163,6 +187,46 @@ class ConsumersEgxuItem {
       'to_date': toDate,
       'is_active': isActive,
     };
+  }
+
+  ConsumersEgxuItem copyWith({
+    int? id,
+    ConsumerRelationEgxu? consumerRelationEgxu,
+    ConsumersCompanyInfo? companyInfo,
+    List<ConsumersGasEquipmentItem>? gasEquipmentList,
+    List<ConsumersRealItem>? real,
+    String? realRaw,
+    String? hourlyListIndicator,
+    List<ConsumersIndicatorImage>? indicatorImages,
+    String? indicatorImagesRaw,
+    String? hourlyFiles,
+    String? certificates,
+    ConsumersEgxuType? egxuType,
+    String? oneFactory,
+    String? twoFactory,
+    String? fromDate,
+    String? toDate,
+    bool? isActive,
+  }) {
+    return ConsumersEgxuItem(
+      id: id ?? this.id,
+      consumerRelationEgxu: consumerRelationEgxu ?? this.consumerRelationEgxu,
+      companyInfo: companyInfo ?? this.companyInfo,
+      gasEquipmentList: gasEquipmentList ?? this.gasEquipmentList,
+      real: real ?? this.real,
+      realRaw: realRaw ?? this.realRaw,
+      hourlyListIndicator: hourlyListIndicator ?? this.hourlyListIndicator,
+      indicatorImages: indicatorImages ?? this.indicatorImages,
+      indicatorImagesRaw: indicatorImagesRaw ?? this.indicatorImagesRaw,
+      hourlyFiles: hourlyFiles ?? this.hourlyFiles,
+      certificates: certificates ?? this.certificates,
+      egxuType: egxuType ?? this.egxuType,
+      oneFactory: oneFactory ?? this.oneFactory,
+      twoFactory: twoFactory ?? this.twoFactory,
+      fromDate: fromDate ?? this.fromDate,
+      toDate: toDate ?? this.toDate,
+      isActive: isActive ?? this.isActive,
+    );
   }
 }
 
@@ -287,6 +351,59 @@ class ConsumerRelationEgxu {
     };
   }
 
+  ConsumerRelationEgxu copyWith({
+    int? id,
+    String? typeOfActivity,
+    int? typeOfActivityId,
+    String? gasNetworks,
+    int? gasNetworksId,
+    String? egxuConnectionPoint,
+    int? egxuConnectionPointId,
+    double? monthStartReading,
+    double? additionalGas,
+    double? violationGas,
+    double? additionalBalance,
+    double? monthEndReading,
+    double? readingDifference,
+    double? totalGas,
+    String? reasonsForViolations,
+    bool? grpExists,
+    double? grpLoss,
+    int? ghuIdNumber,
+    String? movGrpAfterEgxu,
+    String? gaz,
+    String? counterStatus,
+    bool? workActivity,
+    bool? isActive,
+  }) {
+    return ConsumerRelationEgxu(
+      id: id ?? this.id,
+      typeOfActivity: typeOfActivity ?? this.typeOfActivity,
+      typeOfActivityId: typeOfActivityId ?? this.typeOfActivityId,
+      gasNetworks: gasNetworks ?? this.gasNetworks,
+      gasNetworksId: gasNetworksId ?? this.gasNetworksId,
+      egxuConnectionPoint: egxuConnectionPoint ?? this.egxuConnectionPoint,
+      egxuConnectionPointId:
+          egxuConnectionPointId ?? this.egxuConnectionPointId,
+      monthStartReading: monthStartReading ?? this.monthStartReading,
+      additionalGas: additionalGas ?? this.additionalGas,
+      violationGas: violationGas ?? this.violationGas,
+      additionalBalance: additionalBalance ?? this.additionalBalance,
+      monthEndReading: monthEndReading ?? this.monthEndReading,
+      readingDifference: readingDifference ?? this.readingDifference,
+      totalGas: totalGas ?? this.totalGas,
+      reasonsForViolations: reasonsForViolations ?? this.reasonsForViolations,
+      grpExists: grpExists ?? this.grpExists,
+      grpLoss: grpLoss ?? this.grpLoss,
+      ghuIdNumber: ghuIdNumber ?? this.ghuIdNumber,
+      movGrpAfterEgxu: movGrpAfterEgxu ?? this.movGrpAfterEgxu,
+      gaz: gaz ?? this.gaz,
+      counterStatus: counterStatus ?? this.counterStatus,
+      workActivity: workActivity ?? this.workActivity,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
   static int? _intOrNull(Object? value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -313,6 +430,10 @@ class ConsumersLookup {
 
   Map<String, dynamic> toJson() {
     return {'id': id, 'name': name};
+  }
+
+  ConsumersLookup copyWith({int? id, String? name}) {
+    return ConsumersLookup(id: id ?? this.id, name: name ?? this.name);
   }
 }
 
@@ -448,6 +569,70 @@ class ConsumersCompanyInfo {
       'grp_types_id': grpTypesId,
       'neighborhood_id': neighborhoodId,
     };
+  }
+
+  ConsumersCompanyInfo copyWith({
+    int? id,
+    ConsumersLookup? direction,
+    ConsumersLookup? grs,
+    ConsumersLookup? egxuIndustrialCollector,
+    ConsumersLookup? grsMeasurementDevices,
+    ConsumersLookup? grpTypes,
+    ConsumersLookup? neighborhood,
+    String? accountNumber,
+    String? contractNumber,
+    String? companyDirector,
+    Ministry? ministry,
+    String? contractDate,
+    String? contractEndDate,
+    String? companyTin,
+    String? phone,
+    String? email,
+    String? address,
+    String? typeConsumers,
+    String? season,
+    bool? isActive,
+    int? directionId,
+    int? ministryId,
+    int? grsId,
+    int? egxuIndustrialCollectorId,
+    int? grsMeasurementDevicesId,
+    int? grpTypesId,
+    int? neighborhoodId,
+  }) {
+    return ConsumersCompanyInfo(
+      id: id ?? this.id,
+      direction: direction ?? this.direction,
+      grs: grs ?? this.grs,
+      egxuIndustrialCollector:
+          egxuIndustrialCollector ?? this.egxuIndustrialCollector,
+      grsMeasurementDevices:
+          grsMeasurementDevices ?? this.grsMeasurementDevices,
+      grpTypes: grpTypes ?? this.grpTypes,
+      neighborhood: neighborhood ?? this.neighborhood,
+      accountNumber: accountNumber ?? this.accountNumber,
+      contractNumber: contractNumber ?? this.contractNumber,
+      companyDirector: companyDirector ?? this.companyDirector,
+      ministry: ministry ?? this.ministry,
+      contractDate: contractDate ?? this.contractDate,
+      contractEndDate: contractEndDate ?? this.contractEndDate,
+      companyTin: companyTin ?? this.companyTin,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      address: address ?? this.address,
+      typeConsumers: typeConsumers ?? this.typeConsumers,
+      season: season ?? this.season,
+      isActive: isActive ?? this.isActive,
+      directionId: directionId ?? this.directionId,
+      ministryId: ministryId ?? this.ministryId,
+      grsId: grsId ?? this.grsId,
+      egxuIndustrialCollectorId:
+          egxuIndustrialCollectorId ?? this.egxuIndustrialCollectorId,
+      grsMeasurementDevicesId:
+          grsMeasurementDevicesId ?? this.grsMeasurementDevicesId,
+      grpTypesId: grpTypesId ?? this.grpTypesId,
+      neighborhoodId: neighborhoodId ?? this.neighborhoodId,
+    );
   }
 }
 

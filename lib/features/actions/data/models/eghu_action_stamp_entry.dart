@@ -7,6 +7,8 @@ class EghuActionStampEntry extends Equatable {
     required this.installedAt,
     this.realId,
     this.employeeName,
+    this.installationPlaceId,
+    this.installationPlaceName,
     this.isNew = true,
     this.isDirty = true,
   });
@@ -30,6 +32,8 @@ class EghuActionStampEntry extends Equatable {
     required String number,
     required DateTime installedAt,
     String? employeeName,
+    int? installationPlaceId,
+    String? installationPlaceName,
   }) {
     return EghuActionStampEntry(
       localId: realId != null
@@ -39,6 +43,8 @@ class EghuActionStampEntry extends Equatable {
       number: number,
       installedAt: _truncateToMinute(installedAt),
       employeeName: employeeName,
+      installationPlaceId: installationPlaceId,
+      installationPlaceName: installationPlaceName,
       isNew: false,
       isDirty: false,
     );
@@ -49,6 +55,8 @@ class EghuActionStampEntry extends Equatable {
   final String number;
   final DateTime installedAt;
   final String? employeeName;
+  final int? installationPlaceId;
+  final String? installationPlaceName;
   final bool isNew;
   final bool isDirty;
 
@@ -60,7 +68,10 @@ class EghuActionStampEntry extends Equatable {
     String? number,
     DateTime? installedAt,
     String? employeeName,
+    int? installationPlaceId,
+    String? installationPlaceName,
     bool? isDirty,
+    bool clearInstallationPlace = false,
   }) {
     return EghuActionStampEntry(
       localId: localId,
@@ -70,6 +81,12 @@ class EghuActionStampEntry extends Equatable {
           ? this.installedAt
           : _truncateToMinute(installedAt),
       employeeName: employeeName ?? this.employeeName,
+      installationPlaceId: clearInstallationPlace
+          ? null
+          : (installationPlaceId ?? this.installationPlaceId),
+      installationPlaceName: clearInstallationPlace
+          ? null
+          : (installationPlaceName ?? this.installationPlaceName),
       isNew: isNew,
       isDirty: isDirty ?? this.isDirty,
     );
@@ -80,6 +97,8 @@ class EghuActionStampEntry extends Equatable {
       'id': realId,
       'real_number_value': number.trim(),
       'installed_date': _dateOnly(installedAt),
+      if (installationPlaceId != null)
+        'seal_initalled_location': installationPlaceId,
     };
   }
 
@@ -107,6 +126,8 @@ class EghuActionStampEntry extends Equatable {
     number,
     installedAt,
     employeeName,
+    installationPlaceId,
+    installationPlaceName,
     isNew,
     isDirty,
   ];

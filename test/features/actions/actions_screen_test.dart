@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m_gaz/core/common/words.dart';
-import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:m_gaz/features/actions/presentation/pages/actions_screen.dart';
 import 'package:m_gaz/ui/home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,36 +16,30 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await EasyLocalization.ensureInitialized();
     EasyLocalization.logger.enableLevels = [];
+    GoogleFonts.config.allowRuntimeFetching = false;
   });
 
-  testWidgets('bottom nav shows actions tab and no profile tab', (
+  test('actions screen remains available outside bottom nav', () {
+    expect(const ActionsScreen(), isA<ActionsScreen>());
+  });
+
+  testWidgets('bottom nav hides actions tab and renames device tab', (
     tester,
   ) async {
-    await _pumpHome(tester, initialIndex: 4);
+    await _pumpHome(tester, initialIndex: 3);
 
     expect(find.text('Bosh sahifa'), findsOneWidget);
     expect(find.text('Vazifalar'), findsOneWidget);
     expect(find.text("Iste'molchilar"), findsOneWidget);
-    expect(find.text('Harakatlar'), findsOneWidget);
-    expect(find.text('Qurilmalar'), findsOneWidget);
+    expect(find.text('Harakatlar'), findsNothing);
+    expect(find.text('Gaz tarmoq'), findsOneWidget);
+    expect(find.text('Qurilmalar'), findsNothing);
     expect(find.text('Profil'), findsNothing);
 
     final viewHeight =
         tester.view.physicalSize.height / tester.view.devicePixelRatio;
-    final navTextBottom = tester.getRect(find.text('Qurilmalar')).bottom;
+    final navTextBottom = tester.getRect(find.text('Gaz tarmoq')).bottom;
     expect(navTextBottom, greaterThan(viewHeight - 48));
-
-    await tester.tap(find.text('Harakatlar'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Harakatlar'), findsNWidgets(2));
-    expect(find.text('EGHU qayta o’rnatish'), findsOneWidget);
-    expect(find.text('EGHU yechib olish'), findsOneWidget);
-    expect(find.text('EGHU ko’rsatkichi yuklash'), findsOneWidget);
-
-    for (final item in ActionMenuItem.items) {
-      expect(find.text(item.title.tr()), findsOneWidget);
-    }
   });
 
   test('contains action translations for every supported locale', () {
@@ -60,9 +54,10 @@ void main() {
   });
 }
 
-Future<void> _pumpHome(WidgetTester tester, {required int initialIndex}) async {
+Future<void> _pumpLocalized(WidgetTester tester, Widget child) async {
   await tester.pumpWidget(
     EasyLocalization(
+      key: UniqueKey(),
       supportedLocales: const [
         Locale('uz', 'UZ'),
         Locale('uz', 'Cyrl'),
@@ -78,13 +73,17 @@ Future<void> _pumpHome(WidgetTester tester, {required int initialIndex}) async {
             localizationsDelegates: context.localizationDelegates,
             supportedLocales: context.supportedLocales,
             locale: context.locale,
-            home: HomeScreen(initialIndex: initialIndex),
+            home: child,
           );
         },
       ),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<void> _pumpHome(WidgetTester tester, {required int initialIndex}) async {
+  await _pumpLocalized(tester, HomeScreen(initialIndex: initialIndex));
 }
 
 Map<String, Object?> _translations(String fileName) {

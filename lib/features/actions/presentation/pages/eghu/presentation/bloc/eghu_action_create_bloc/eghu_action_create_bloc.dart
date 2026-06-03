@@ -62,6 +62,8 @@ class EghuActionCreateBloc
     on<EghuActionStampRemoved>(_onStampRemoved);
     on<EghuActionStampNumberChanged>(_onStampNumberChanged);
     on<EghuActionStampDateChanged>(_onStampDateChanged);
+    on<EghuActionStampPlaceChanged>(_onStampPlaceChanged);
+    on<EghuActionStampPlaceCleared>(_onStampPlaceCleared);
     on<EghuActionProfileChanged>(_onProfileChanged);
     on<EghuActionSubmitted>(_onSubmitted);
   }
@@ -161,6 +163,44 @@ class EghuActionCreateBloc
             .map(
               (stamp) => stamp.localId == stampId
                   ? stamp.copyWith(installedAt: event.value, isDirty: true)
+                  : stamp,
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  void _onStampPlaceChanged(
+    EghuActionStampPlaceChanged event,
+    Emitter<EghuActionCreateState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .map(
+              (stamp) => stamp.localId == event.localId
+                  ? stamp.copyWith(
+                      installationPlaceId: event.placeId,
+                      installationPlaceName: event.placeName,
+                      isDirty: true,
+                    )
+                  : stamp,
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  void _onStampPlaceCleared(
+    EghuActionStampPlaceCleared event,
+    Emitter<EghuActionCreateState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        stamps: state.stamps
+            .map(
+              (stamp) => stamp.localId == event.localId
+                  ? stamp.copyWith(clearInstallationPlace: true, isDirty: true)
                   : stamp,
             )
             .toList(),

@@ -58,9 +58,9 @@ class GenericSelectableField<T> extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: AppColors.cF9F9F9,
               borderRadius: BorderRadius.circular(20.w),
-              border: Border.all(color: AppColors.white),
+              border: Border.all(color: const Color(0xFFE8E8E8)),
             ),
             child: Row(
               children: [

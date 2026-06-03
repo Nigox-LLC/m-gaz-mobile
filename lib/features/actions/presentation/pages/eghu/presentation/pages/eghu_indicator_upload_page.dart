@@ -25,6 +25,8 @@ class EghuIndicatorUploadPage extends StatefulWidget {
     this.consumerApi,
     this.consumerSource,
     this.filterSource,
+    this.facial,
+    this.preselection,
   });
 
   final EghuIndicatorApi? api;
@@ -32,6 +34,8 @@ class EghuIndicatorUploadPage extends StatefulWidget {
   final ConsumerRelationsApi? consumerApi;
   final EghuActionConsumerSource? consumerSource;
   final EghuActionFilterDataSource? filterSource;
+  final String? facial;
+  final EghuActionPreselection? preselection;
 
   @override
   State<EghuIndicatorUploadPage> createState() =>
@@ -46,8 +50,18 @@ class _EghuIndicatorUploadPageState extends State<EghuIndicatorUploadPage> {
   @override
   void initState() {
     super.initState();
+    final facial = widget.facial?.trim() ?? '';
+    if (facial.isNotEmpty) {
+      _searchController.text = facial;
+    }
     _api = widget.api ?? di.get<EghuIndicatorApi>();
-    _bloc = widget.bloc ?? EghuIndicatorListBloc(api: _api!, limit: 10)
+    _bloc =
+        widget.bloc ??
+        EghuIndicatorListBloc(
+          api: _api!,
+          limit: 10,
+          facial: facial.isEmpty ? null : facial,
+        )
       ..add(const EghuIndicatorListStarted());
   }
 
@@ -111,6 +125,7 @@ class _EghuIndicatorUploadPageState extends State<EghuIndicatorUploadPage> {
           api: _api,
           consumerApi: widget.consumerApi,
           consumerSource: widget.consumerSource,
+          preselection: widget.preselection,
         ),
       ),
     );

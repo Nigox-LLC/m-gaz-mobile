@@ -16,26 +16,15 @@ import 'package:m_gaz/ui/home/tasks/bloc/task_state.dart';
 
 import '../../../../core/utils/colors.dart';
 import '../../../../global_widget/app_tools.dart';
+import '../../working_with_consumers/sub_page/consumer_detail.dart';
 import 'task_display_status.dart';
 import 'task_location_picker_screen.dart';
 
 enum TaskActionModalMode { action, detail }
 
-typedef TaskCompletionCallback =
-    void Function({
-      required int taskId,
-      String? filePath,
-      double? latitude,
-      double? longitude,
-    });
-typedef TaskCancelCallback =
-    void Function({
-      required int taskId,
-      required String description,
-      required String filePath,
-    });
-typedef TaskLocationAddressResolver =
-    Future<String?> Function(Position position);
+typedef TaskCompletionCallback = void Function({required int taskId, String? filePath, double? latitude, double? longitude});
+typedef TaskCancelCallback = void Function({required int taskId, required String description, required String filePath});
+typedef TaskLocationAddressResolver = Future<String?> Function(Position position);
 
 class TaskActionModal extends StatefulWidget {
   final TaskModel task;
@@ -72,6 +61,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
   bool _isCanceling = false;
 
   bool get _requiresAnswerFile => widget.task.isAnswerFile == true;
+
   bool get _isDetailMode => widget.mode == TaskActionModalMode.detail;
 
   @override
@@ -90,16 +80,11 @@ class _TaskActionModalState extends State<TaskActionModal> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final windowHeight = MediaQuery.sizeOf(context).height;
-            final maxWidth = constraints.maxWidth > 520
-                ? 480.0
-                : double.infinity;
+            final maxWidth = constraints.maxWidth > 520 ? 480.0 : double.infinity;
             final maxHeight = windowHeight * 0.88;
 
             return ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: maxWidth,
-                maxHeight: maxHeight,
-              ),
+              constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
               child: Container(
                 key: const Key('task-action-modal'),
                 decoration: const BoxDecoration(
@@ -117,48 +102,26 @@ class _TaskActionModalState extends State<TaskActionModal> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _ModalHeader(
-                              title: _isDetailMode
-                                  ? Words.taskDetails.tr()
-                                  : Words.taskAction.tr(),
+                              title: _isDetailMode ? Words.taskDetails.tr() : Words.taskAction.tr(),
                               showInfoBadge: !_isDetailMode,
                               onClose: () => Navigator.of(context).maybePop(),
+                              consumerId: widget.task.consumerDocument?.documentId??0,
                             ),
                             const SizedBox(height: 20),
                             if (_isDetailMode) ...[
-                              _TaskDetailSection(
-                                task: widget.task,
-                                displayStatus: displayStatus,
-                              ),
+                              _TaskDetailSection(task: widget.task, displayStatus: displayStatus),
                             ] else ...[
-                              _InfoTile(
-                                label: Words.taskSituation.tr(),
-                                value: _readable(widget.task.situation),
-                              ),
+                              _InfoTile(label: Words.taskSituation.tr(), value: _readable(widget.task.situation)),
                               const SizedBox(height: 12),
-                              _InfoTile(
-                                label: Words.taskType.tr(),
-                                value: _readable(
-                                  widget.task.typeTask ?? widget.task.status,
-                                ),
-                              ),
+                              _InfoTile(label: Words.taskType.tr(), value: _readable(widget.task.status)),
                               const SizedBox(height: 12),
-                              _ReadOnlyComment(
-                                text: _readable(widget.task.description),
-                              ),
+                              _ReadOnlyComment(text: _readable(widget.task.description)),
                               if (_requiresAnswerFile) ...[
                                 const SizedBox(height: 12),
-                                _LocationSection(
-                                  position: _position,
-                                  address: _locationAddress,
-                                  onTap: _openLocationPicker,
-                                ),
+                                _LocationSection(position: _position, address: _locationAddress, onTap: _openLocationPicker),
                                 if (_attachment != null) ...[
                                   const SizedBox(height: 12),
-                                  _SelectedAttachmentSummary(
-                                    attachment: _attachment!,
-                                    onRemove: () =>
-                                        setState(() => _attachment = null),
-                                  ),
+                                  _SelectedAttachmentSummary(attachment: _attachment!, onRemove: () => setState(() => _attachment = null)),
                                 ],
                               ],
                             ],
@@ -166,12 +129,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
                         ),
                       ),
                     ),
-                    if (!_isDetailMode)
-                      _BottomActions(
-                        isCompleting: _isCompleting,
-                        onDone: _handleDone,
-                        onCancel: () => _handleCancelTodo(),
-                      ),
+                    if (!_isDetailMode) _BottomActions(isCompleting: _isCompleting, onDone: _handleDone, onCancel: () => _handleCancelTodo()),
                   ],
                 ),
               ),
@@ -185,10 +143,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
       return content;
     }
 
-    return BlocListener<TaskBloc, TaskState>(
-      listener: _onTaskStateChanged,
-      child: content,
-    );
+    return BlocListener<TaskBloc, TaskState>(listener: _onTaskStateChanged, child: content);
   }
 
   void _onTaskStateChanged(BuildContext context, TaskState state) {
@@ -206,24 +161,14 @@ class _TaskActionModalState extends State<TaskActionModal> {
     if (state.status == TaskStatus.success) {
       setState(() => _isCompleting = false);
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(Words.taskCompleted.tr()),
-          backgroundColor: _TaskActionColors.success,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Words.taskCompleted.tr()), backgroundColor: _TaskActionColors.success));
       return;
     }
 
     if (state.status == TaskStatus.fail) {
       setState(() => _isCompleting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            state.errorMessage ?? "Vazifani bajarishda xatolik yuz berdi",
-          ),
-          backgroundColor: _TaskActionColors.error,
-        ),
+        SnackBar(content: Text(state.errorMessage ?? "Vazifani bajarishda xatolik yuz berdi"), backgroundColor: _TaskActionColors.error),
       );
     }
   }
@@ -236,24 +181,14 @@ class _TaskActionModalState extends State<TaskActionModal> {
       final navigator = Navigator.of(context);
       if (navigator.canPop()) navigator.pop();
       if (navigator.canPop()) navigator.pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(Words.taskCanceled.tr()),
-          backgroundColor: _TaskActionColors.success,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Words.taskCanceled.tr()), backgroundColor: _TaskActionColors.success));
       return;
     }
 
     if (state.status == TaskStatus.fail) {
       setState(() => _isCanceling = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            state.errorMessage ?? "Vazifani bekor qilishda xatolik yuz berdi",
-          ),
-          backgroundColor: _TaskActionColors.error,
-        ),
+        SnackBar(content: Text(state.errorMessage ?? "Vazifani bekor qilishda xatolik yuz berdi"), backgroundColor: _TaskActionColors.error),
       );
     }
   }
@@ -280,23 +215,13 @@ class _TaskActionModalState extends State<TaskActionModal> {
   void _completeTask() {
     final onComplete = widget.onComplete;
     if (onComplete != null) {
-      onComplete(
-        taskId: widget.task.id,
-        filePath: _attachment?.path,
-        latitude: _position?.latitude,
-        longitude: _position?.longitude,
-      );
+      onComplete(taskId: widget.task.id, filePath: _attachment?.path, latitude: _position?.latitude, longitude: _position?.longitude);
       return;
     }
 
     setState(() => _isCompleting = true);
     context.read<TaskBloc>().add(
-      TaskComplete(
-        taskId: widget.task.id,
-        filePath: _attachment?.path,
-        latitude: _position?.latitude,
-        longitude: _position?.longitude,
-      ),
+      TaskComplete(taskId: widget.task.id, filePath: _attachment?.path, latitude: _position?.latitude, longitude: _position?.longitude),
     );
   }
 
@@ -326,9 +251,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
     );
   }
 
-  Future<_TaskAttachment?> _pickAttachmentViaSource({
-    bool updateMainAttachment = true,
-  }) async {
+  Future<_TaskAttachment?> _pickAttachmentViaSource({bool updateMainAttachment = true}) async {
     final source = await showModalBottomSheet<_AttachmentSource>(
       context: context,
       isScrollControlled: true,
@@ -339,9 +262,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
     if (source == null) return null;
 
     try {
-      final picked = source == _AttachmentSource.camera
-          ? await _pickFromCamera()
-          : await _pickFromDevice();
+      final picked = source == _AttachmentSource.camera ? await _pickFromCamera() : await _pickFromDevice();
 
       if (picked == null) return null;
       if (picked.sizeBytes > _maxAttachmentBytes) {
@@ -354,28 +275,17 @@ class _TaskActionModalState extends State<TaskActionModal> {
       }
       return picked;
     } catch (e) {
-      _showSnackBar(
-        "Faylni tanlab bo'lmadi: ${_cleanError(e)}",
-        _TaskActionColors.error,
-      );
+      _showSnackBar("Faylni tanlab bo'lmadi: ${_cleanError(e)}", _TaskActionColors.error);
       return null;
     }
   }
 
   Future<_TaskAttachment?> _pickFromCamera() async {
-    final image = await _imagePicker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-    );
+    final image = await _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85);
     if (image == null) return null;
 
     final size = await image.length();
-    return _TaskAttachment(
-      path: image.path,
-      name: _fileNameFromPath(image.path),
-      sizeBytes: size,
-      isImage: true,
-    );
+    return _TaskAttachment(path: image.path, name: _fileNameFromPath(image.path), sizeBytes: size, isImage: true);
   }
 
   Future<_TaskAttachment?> _pickFromDevice() async {
@@ -389,12 +299,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
     final path = file?.path;
     if (file == null || path == null) return null;
 
-    return _TaskAttachment(
-      path: path,
-      name: file.name,
-      sizeBytes: file.size,
-      isImage: _isImagePath(path),
-    );
+    return _TaskAttachment(path: path, name: file.name, sizeBytes: file.size, isImage: _isImagePath(path));
   }
 
   Future<void> _openLocationPicker() async {
@@ -432,38 +337,23 @@ class _TaskActionModalState extends State<TaskActionModal> {
     );
   }
 
-  Future<void> _cancelTask(
-    String description,
-    _TaskAttachment attachment,
-  ) async {
+  Future<void> _cancelTask(String description, _TaskAttachment attachment) async {
     _cancelSubmitting.value = true;
 
     final onCancelTask = widget.onCancelTask;
     if (onCancelTask != null) {
-      onCancelTask(
-        taskId: widget.task.id,
-        description: description,
-        filePath: attachment.path,
-      );
+      onCancelTask(taskId: widget.task.id, description: description, filePath: attachment.path);
       _cancelSubmitting.value = false;
       return;
     }
 
     setState(() => _isCanceling = true);
-    context.read<TaskBloc>().add(
-      TaskCancel(
-        taskId: widget.task.id,
-        description: description,
-        filePath: attachment.path,
-      ),
-    );
+    context.read<TaskBloc>().add(TaskCancel(taskId: widget.task.id, description: description, filePath: attachment.path));
   }
 
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   String _readable(String value) {
@@ -478,47 +368,40 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
 class _ModalHeader extends StatelessWidget {
   final String title;
+  final int consumerId;
   final bool showInfoBadge;
   final VoidCallback onClose;
 
-  const _ModalHeader({
-    required this.title,
-    required this.onClose,
-    this.showInfoBadge = true,
-  });
+  const _ModalHeader({required this.title, required this.onClose, this.showInfoBadge = true, required this.consumerId});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _TaskTextStyles.heading,
-          ),
+          child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: _TaskTextStyles.heading),
         ),
         const SizedBox(width: 12),
         if (showInfoBadge) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: _TaskActionColors.soft,
-              border: Border.all(color: _TaskActionColors.stroke, width: 0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("Batafsil", style: _TaskTextStyles.bodyS),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.help_outline,
-                  size: 12,
-                  color: _TaskActionColors.strong,
-                ),
-              ],
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => ConsumerRelationsDetailScreen(documentId: consumerId)));
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: _TaskActionColors.soft,
+                border: Border.all(color: _TaskActionColors.stroke, width: 0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(Words.detailsButton.tr(), style: _TaskTextStyles.bodyS),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.help_outline, size: 12, color: _TaskActionColors.strong),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -526,11 +409,7 @@ class _ModalHeader extends StatelessWidget {
         InkResponse(
           onTap: onClose,
           radius: 22,
-          child: const Icon(
-            Icons.close,
-            size: 24,
-            color: _TaskActionColors.strong,
-          ),
+          child: const Icon(Icons.close, size: 24, color: _TaskActionColors.strong),
         ),
       ],
     );
@@ -548,35 +427,18 @@ class _InfoTile extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: _TaskActionColors.soft,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: _TaskActionColors.soft, borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 20,
-            color: _TaskActionColors.strong,
-          ),
+          const Icon(Icons.error_outline, size: 20, color: _TaskActionColors.strong),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _TaskTextStyles.bodyS,
-                ),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: _TaskTextStyles.bodyS),
                 const SizedBox(height: 2),
-                Text(
-                  value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: _TaskTextStyles.bodyMBold,
-                ),
+                Text(value, style: _TaskTextStyles.bodyMBold),
               ],
             ),
           ),
@@ -604,27 +466,16 @@ class _TaskDetailSection extends StatelessWidget {
         const SizedBox(height: 12),
         _InfoTile(label: Words.status.tr(), value: _readable(task.status)),
         const SizedBox(height: 12),
-        _InfoTile(
-          label: Words.taskSituation.tr(),
-          value: displayStatus.label.tr(),
-        ),
+        _InfoTile(label: Words.taskSituation.tr(), value: displayStatus.label.tr()),
         const SizedBox(height: 12),
-        _InfoTile(
-          label: Words.situation.tr(),
-          value: _readable(task.situation),
-        ),
+        _InfoTile(label: Words.situation.tr(), value: _readable(task.situation)),
         const SizedBox(height: 12),
-        _InfoTile(
-          label: Words.taskType.tr(),
-          value: _readable(task.typeTask ?? task.status),
-        ),
-        const SizedBox(height: 12),
-        _InfoTile(
-          label: Words.date.tr(),
-          value: DateFormat(
-            'd MMM, HH:mm',
-          ).format(displayStatus.displayDateFor(task)),
-        ),
+        // _InfoTile(
+        //   label: Words.taskType.tr(),
+        //   value: _readable(task.typeTask ?? task.status),
+        // ),
+        // const SizedBox(height: 12),
+        _InfoTile(label: Words.date.tr(), value: DateFormat('dd.MM.yyyy HH:mm:ss').format(displayStatus.displayDateFor(task))),
         if (documentName != null && documentName.isNotEmpty) ...[
           const SizedBox(height: 12),
           _InfoTile(label: Words.document.tr(), value: documentName),
@@ -664,8 +515,7 @@ class _ReadOnlyComment extends StatelessWidget {
           ),
           child: Text(
             text,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
+            // overflow: TextOverflow.ellipsis,
             style: _TaskTextStyles.bodySBold,
           ),
         ),
@@ -679,19 +529,13 @@ class _LocationSection extends StatelessWidget {
   final String? address;
   final VoidCallback onTap;
 
-  const _LocationSection({
-    required this.position,
-    required this.address,
-    required this.onTap,
-  });
+  const _LocationSection({required this.position, required this.address, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final hasLocation = position != null;
     final locationText = hasLocation
-        ? (address?.trim().isNotEmpty == true
-              ? address!.trim()
-              : Words.locationUnavailable.tr())
+        ? (address?.trim().isNotEmpty == true ? address!.trim() : Words.locationUnavailable.tr())
         : Words.enterLocation.tr();
 
     return Column(
@@ -719,9 +563,7 @@ class _LocationSection extends StatelessWidget {
                     locationText,
                     maxLines: hasLocation ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
-                    style: hasLocation
-                        ? _TaskTextStyles.bodyM
-                        : _TaskTextStyles.bodyS,
+                    style: hasLocation ? _TaskTextStyles.bodyM : _TaskTextStyles.bodyS,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -729,37 +571,20 @@ class _LocationSection extends StatelessWidget {
                   Container(
                     width: 40,
                     height: 40,
-                    decoration: BoxDecoration(
-                      color: _TaskActionColors.infoLighter,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.navigation,
-                      size: 18,
-                      color: _TaskActionColors.info,
-                    ),
+                    decoration: BoxDecoration(color: _TaskActionColors.infoLighter, borderRadius: BorderRadius.circular(20)),
+                    child: const Icon(Icons.navigation, size: 18, color: _TaskActionColors.info),
                   )
                 else
                   Container(
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: _TaskActionColors.infoLight,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    decoration: BoxDecoration(color: _TaskActionColors.infoLight, borderRadius: BorderRadius.circular(20)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.navigation,
-                          size: 16,
-                          color: Colors.white,
-                        ),
+                        const Icon(Icons.navigation, size: 16, color: Colors.white),
                         const SizedBox(width: 4),
-                        Text(
-                          Words.chooseFromMap.tr(),
-                          style: _TaskTextStyles.buttonXS,
-                        ),
+                        Text(Words.chooseFromMap.tr(), style: _TaskTextStyles.buttonXS),
                       ],
                     ),
                   ),
@@ -776,10 +601,7 @@ class _SelectedAttachmentSummary extends StatelessWidget {
   final _TaskAttachment attachment;
   final VoidCallback onRemove;
 
-  const _SelectedAttachmentSummary({
-    required this.attachment,
-    required this.onRemove,
-  });
+  const _SelectedAttachmentSummary({required this.attachment, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -798,25 +620,13 @@ class _SelectedAttachmentSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  attachment.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _TaskTextStyles.bodySBold,
-                ),
+                Text(attachment.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: _TaskTextStyles.bodySBold),
                 const SizedBox(height: 2),
-                Text(
-                  _formatBytes(attachment.sizeBytes),
-                  style: _TaskTextStyles.bodyXSSub,
-                ),
+                Text(_formatBytes(attachment.sizeBytes), style: _TaskTextStyles.bodyXSSub),
               ],
             ),
           ),
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(Icons.close, size: 18),
-            visualDensity: VisualDensity.compact,
-          ),
+          IconButton(onPressed: onRemove, icon: const Icon(Icons.close, size: 18), visualDensity: VisualDensity.compact),
         ],
       ),
     );
@@ -828,30 +638,15 @@ class _BottomActions extends StatelessWidget {
   final VoidCallback onDone;
   final VoidCallback onCancel;
 
-  const _BottomActions({
-    required this.isCompleting,
-    required this.onDone,
-    required this.onCancel,
-  });
+  const _BottomActions({required this.isCompleting, required this.onDone, required this.onCancel});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        16,
-        20,
-        12 + MediaQuery.paddingOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 12 + MediaQuery.paddingOf(context).bottom),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        color: Colors.transparent,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, -4))],
       ),
       child: Row(
         children: [
@@ -888,14 +683,7 @@ class _PrimaryActionButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onTap;
 
-  const _PrimaryActionButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-    this.isLoading = false,
-  });
+  const _PrimaryActionButton({super.key, required this.icon, required this.label, required this.color, required this.onTap, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -909,26 +697,14 @@ class _PrimaryActionButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Center(
             child: isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(icon, color: Colors.white, size: 20),
                       const SizedBox(width: 6),
                       Flexible(
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: _TaskTextStyles.buttonL,
-                        ),
+                        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: _TaskTextStyles.buttonL),
                       ),
                     ],
                   ),
@@ -955,8 +731,7 @@ class _AttachmentRequiredDialog extends StatefulWidget {
   });
 
   @override
-  State<_AttachmentRequiredDialog> createState() =>
-      _AttachmentRequiredDialogState();
+  State<_AttachmentRequiredDialog> createState() => _AttachmentRequiredDialogState();
 }
 
 class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
@@ -978,10 +753,7 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
         constraints: const BoxConstraints(maxWidth: 350),
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -990,9 +762,7 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
               Text(
                 Words.confirmBeforeBasis.tr(),
                 textAlign: TextAlign.center,
-                style: _TaskTextStyles.heading.copyWith(
-                  color: _TaskActionColors.textPrimary,
-                ),
+                style: _TaskTextStyles.heading.copyWith(color: _TaskActionColors.textPrimary),
               ),
               const SizedBox(height: 16),
               AnimatedSwitcher(
@@ -1012,18 +782,11 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: _SecondaryDialogButton(
-                      key: const Key('task-dialog-back-button'),
-                      label: Words.back.tr(),
-                      onTap: widget.onBack,
-                    ),
+                    child: _SecondaryDialogButton(key: const Key('task-dialog-back-button'), label: Words.back.tr(), onTap: widget.onBack),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _DialogConfirmButton(
-                      enabled: _attachment != null,
-                      onTap: widget.onConfirm,
-                    ),
+                    child: _DialogConfirmButton(enabled: _attachment != null, onTap: widget.onConfirm),
                   ),
                 ],
               ),
@@ -1047,15 +810,9 @@ class _CancelTaskDialog extends StatefulWidget {
   final ValueListenable<bool> isSubmittingListenable;
   final Future<_TaskAttachment?> Function() onPick;
   final VoidCallback onBack;
-  final Future<void> Function(String description, _TaskAttachment attachment)
-  onSubmit;
+  final Future<void> Function(String description, _TaskAttachment attachment) onSubmit;
 
-  const _CancelTaskDialog({
-    required this.isSubmittingListenable,
-    required this.onPick,
-    required this.onBack,
-    required this.onSubmit,
-  });
+  const _CancelTaskDialog({required this.isSubmittingListenable, required this.onPick, required this.onBack, required this.onSubmit});
 
   @override
   State<_CancelTaskDialog> createState() => _CancelTaskDialogState();
@@ -1083,12 +840,7 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final availableHeight =
-        mediaQuery.size.height -
-        mediaQuery.viewInsets.bottom -
-        mediaQuery.padding.top -
-        mediaQuery.padding.bottom -
-        48;
+    final availableHeight = mediaQuery.size.height - mediaQuery.viewInsets.bottom - mediaQuery.padding.top - mediaQuery.padding.bottom - 48;
     final maxDialogHeight = availableHeight < 280 ? 280.0 : availableHeight;
 
     return Dialog(
@@ -1098,10 +850,7 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 350, maxHeight: maxDialogHeight),
         child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
           child: SingleChildScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -1113,9 +862,7 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
                 Text(
                   Words.cancelBeforeBasis.tr(),
                   textAlign: TextAlign.center,
-                  style: _TaskTextStyles.heading.copyWith(
-                    color: _TaskActionColors.textPrimary,
-                  ),
+                  style: _TaskTextStyles.heading.copyWith(color: _TaskActionColors.textPrimary),
                 ),
                 const SizedBox(height: 16),
                 AnimatedSwitcher(
@@ -1136,8 +883,7 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
                 ValueListenableBuilder<bool>(
                   valueListenable: widget.isSubmittingListenable,
                   builder: (context, isSubmitting, _) {
-                    final canSubmit =
-                        _attachment != null && _hasReason && !isSubmitting;
+                    final canSubmit = _attachment != null && _hasReason && !isSubmitting;
                     return Row(
                       children: [
                         Expanded(
@@ -1149,11 +895,7 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _CancelConfirmButton(
-                            enabled: canSubmit,
-                            isLoading: isSubmitting,
-                            onTap: () => _submit(canSubmit),
-                          ),
+                          child: _CancelConfirmButton(enabled: canSubmit, isLoading: isSubmitting, onTap: () => _submit(canSubmit)),
                         ),
                       ],
                     );
@@ -1201,14 +943,10 @@ class _CancelReasonField extends StatelessWidget {
       minLines: 3,
       maxLines: 4,
       textInputAction: TextInputAction.newline,
-      style: _TaskTextStyles.bodyS.copyWith(
-        color: _TaskActionColors.fieldLabel,
-      ),
+      style: _TaskTextStyles.bodyS.copyWith(color: _TaskActionColors.fieldLabel),
       decoration: InputDecoration(
         hintText: Words.cancelReasonHint.tr(),
-        hintStyle: _TaskTextStyles.bodyS.copyWith(
-          color: _TaskActionColors.fieldLabel,
-        ),
+        hintStyle: _TaskTextStyles.bodyS.copyWith(color: _TaskActionColors.fieldLabel),
         filled: true,
         fillColor: _TaskActionColors.field,
         contentPadding: const EdgeInsets.fromLTRB(14, 9, 14, 10),
@@ -1240,18 +978,10 @@ class _UploadBasisTile extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // const Icon(Icons.attach_file, size: 18, color: Colors.black),
-          AppTools.svg(
-            AppTools.icPaperclip,
-            colorFilter: ColorFilter.mode(AppColors.c717680, BlendMode.srcIn),
-          ),
+          AppTools.svg(AppTools.icPaperclip, colorFilter: ColorFilter.mode(AppColors.c717680, BlendMode.srcIn)),
           const SizedBox(width: 8),
           Flexible(
-            child: Text(
-              Words.uploadBasis.tr(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _TaskTextStyles.bodyM,
-            ),
+            child: Text(Words.uploadBasis.tr(), maxLines: 1, overflow: TextOverflow.ellipsis, style: _TaskTextStyles.bodyM),
           ),
         ],
       ),
@@ -1263,10 +993,7 @@ class _UploadBasisTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: dashed
           ? CustomPaint(
-              painter: const _DashedRoundedBorderPainter(
-                color: _TaskActionColors.strokeStrong,
-                radius: 20,
-              ),
+              painter: const _DashedRoundedBorderPainter(color: _TaskActionColors.strokeStrong, radius: 20),
               child: content,
             )
           : DecoratedBox(
@@ -1284,17 +1011,11 @@ class _DashedRoundedBorderPainter extends CustomPainter {
   final Color color;
   final double radius;
 
-  const _DashedRoundedBorderPainter({
-    required this.color,
-    required this.radius,
-  });
+  const _DashedRoundedBorderPainter({required this.color, required this.radius});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      (Offset.zero & size).deflate(0.5),
-      Radius.circular(radius),
-    );
+    final rrect = RRect.fromRectAndRadius((Offset.zero & size).deflate(0.5), Radius.circular(radius));
     final path = Path()..addRRect(rrect);
     final paint = Paint()
       ..color = color
@@ -1307,10 +1028,7 @@ class _DashedRoundedBorderPainter extends CustomPainter {
       const gapWidth = 4.0;
       while (distance < metric.length) {
         final next = distance + dashWidth;
-        canvas.drawPath(
-          metric.extractPath(distance, next.clamp(0, metric.length)),
-          paint,
-        );
+        canvas.drawPath(metric.extractPath(distance, next.clamp(0, metric.length)), paint);
         distance = next + gapWidth;
       }
     }
@@ -1327,11 +1045,7 @@ class _AttachmentPreviewGrid extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onRemove;
 
-  const _AttachmentPreviewGrid({
-    required this.attachment,
-    required this.onAdd,
-    required this.onRemove,
-  });
+  const _AttachmentPreviewGrid({required this.attachment, required this.onAdd, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -1353,10 +1067,7 @@ class _AttachmentPreviewTile extends StatelessWidget {
   final _TaskAttachment attachment;
   final VoidCallback onRemove;
 
-  const _AttachmentPreviewTile({
-    required this.attachment,
-    required this.onRemove,
-  });
+  const _AttachmentPreviewTile({required this.attachment, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -1380,8 +1091,7 @@ class _AttachmentPreviewTile extends StatelessWidget {
                     ? Image.file(
                         File(attachment.path),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            _AttachmentIcon(attachment: attachment),
+                        errorBuilder: (_, __, ___) => _AttachmentIcon(attachment: attachment),
                       )
                     : Center(child: _AttachmentIcon(attachment: attachment)),
               ),
@@ -1397,10 +1107,7 @@ class _AttachmentPreviewTile extends StatelessWidget {
               child: Container(
                 width: 24,
                 height: 24,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
                 child: const Icon(Icons.close, color: Colors.red, size: 16),
               ),
             ),
@@ -1431,18 +1138,9 @@ class _AddMoreBasisTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AppTools.svg(
-              AppTools.icPaperclip,
-              colorFilter: ColorFilter.mode(AppColors.c717680, BlendMode.srcIn),
-            ),
+            AppTools.svg(AppTools.icPaperclip, colorFilter: ColorFilter.mode(AppColors.c717680, BlendMode.srcIn)),
             const SizedBox(height: 8),
-            Text(
-              Words.uploadBasis.tr(),
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: _TaskTextStyles.bodyM,
-            ),
+            Text(Words.uploadBasis.tr(), maxLines: 2, textAlign: TextAlign.center, overflow: TextOverflow.ellipsis, style: _TaskTextStyles.bodyM),
           ],
         ),
       ),
@@ -1462,12 +1160,7 @@ class _AttachmentSourceSheet extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
           child: Container(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              8,
-              16,
-              12 + MediaQuery.paddingOf(context).bottom,
-            ),
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 12 + MediaQuery.paddingOf(context).bottom),
             decoration: const BoxDecoration(
               color: _TaskActionColors.sheet,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1502,11 +1195,7 @@ class _SourceOptionTile extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _SourceOptionTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  const _SourceOptionTile({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1524,12 +1213,7 @@ class _SourceOptionTile extends StatelessWidget {
               Icon(icon, size: 24, color: Colors.black),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _TaskTextStyles.bodyM,
-                ),
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: _TaskTextStyles.bodyM),
               ),
             ],
           ),
@@ -1543,11 +1227,7 @@ class _SecondaryDialogButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _SecondaryDialogButton({
-    super.key,
-    required this.label,
-    required this.onTap,
-  });
+  const _SecondaryDialogButton({super.key, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1555,10 +1235,7 @@ class _SecondaryDialogButton extends StatelessWidget {
       height: 52,
       child: TextButton.icon(
         onPressed: onTap,
-        icon: const Icon(
-          Icons.chevron_left,
-          color: _TaskActionColors.textPrimary,
-        ),
+        icon: const Icon(Icons.chevron_left, color: _TaskActionColors.textPrimary),
         label: Text(label, style: _TaskTextStyles.bodyMBold),
       ),
     );
@@ -1576,9 +1253,7 @@ class _DialogConfirmButton extends StatelessWidget {
     return _PrimaryActionButton(
       icon: Icons.check,
       label: Words.confirm.tr(),
-      color: enabled
-          ? _TaskActionColors.success
-          : _TaskActionColors.successLight,
+      color: enabled ? _TaskActionColors.success : _TaskActionColors.successLight,
       onTap: enabled ? onTap : () {},
     );
   }
@@ -1589,11 +1264,7 @@ class _CancelConfirmButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onTap;
 
-  const _CancelConfirmButton({
-    required this.enabled,
-    required this.isLoading,
-    required this.onTap,
-  });
+  const _CancelConfirmButton({required this.enabled, required this.isLoading, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1619,10 +1290,7 @@ class _SheetHandle extends StatelessWidget {
       child: Container(
         width: width,
         height: 3,
-        decoration: BoxDecoration(
-          color: _TaskActionColors.handle,
-          borderRadius: BorderRadius.circular(3),
-        ),
+        decoration: BoxDecoration(color: _TaskActionColors.handle, borderRadius: BorderRadius.circular(3)),
       ),
     );
   }
@@ -1635,13 +1303,7 @@ class _AttachmentIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      attachment.isImage
-          ? Icons.image_outlined
-          : Icons.insert_drive_file_outlined,
-      size: 24,
-      color: _TaskActionColors.strong,
-    );
+    return Icon(attachment.isImage ? Icons.image_outlined : Icons.insert_drive_file_outlined, size: 24, color: _TaskActionColors.strong);
   }
 }
 
@@ -1651,12 +1313,7 @@ class _TaskAttachment {
   final int sizeBytes;
   final bool isImage;
 
-  const _TaskAttachment({
-    required this.path,
-    required this.name,
-    required this.sizeBytes,
-    required this.isImage,
-  });
+  const _TaskAttachment({required this.path, required this.name, required this.sizeBytes, required this.isImage});
 }
 
 enum _AttachmentSource { camera, device }
@@ -1682,47 +1339,17 @@ class _TaskActionColors {
 }
 
 class _TaskTextStyles {
-  static final TextStyle heading = GoogleFonts.manrope(
-    fontSize: 20,
-    height: 24 / 20,
-    fontWeight: FontWeight.w800,
-    color: Colors.black,
-  );
+  static final TextStyle heading = GoogleFonts.manrope(fontSize: 20, height: 24 / 20, fontWeight: FontWeight.w800, color: Colors.black);
 
-  static final TextStyle bodyM = GoogleFonts.manrope(
-    fontSize: 15,
-    height: 24 / 15,
-    fontWeight: FontWeight.w500,
-    color: _TaskActionColors.strong,
-  );
+  static final TextStyle bodyM = GoogleFonts.manrope(fontSize: 15, height: 24 / 15, fontWeight: FontWeight.w500, color: _TaskActionColors.strong);
 
-  static final TextStyle bodyMBold = GoogleFonts.manrope(
-    fontSize: 15,
-    height: 24 / 15,
-    fontWeight: FontWeight.w800,
-    color: _TaskActionColors.strong,
-  );
+  static final TextStyle bodyMBold = GoogleFonts.manrope(fontSize: 15, height: 24 / 15, fontWeight: FontWeight.w800, color: _TaskActionColors.strong);
 
-  static final TextStyle bodyS = GoogleFonts.manrope(
-    fontSize: 13,
-    height: 20 / 13,
-    fontWeight: FontWeight.w500,
-    color: _TaskActionColors.strong,
-  );
+  static final TextStyle bodyS = GoogleFonts.manrope(fontSize: 13, height: 20 / 13, fontWeight: FontWeight.w500, color: _TaskActionColors.strong);
 
-  static final TextStyle bodySBold = GoogleFonts.manrope(
-    fontSize: 13,
-    height: 20 / 13,
-    fontWeight: FontWeight.w700,
-    color: _TaskActionColors.strong,
-  );
+  static final TextStyle bodySBold = GoogleFonts.manrope(fontSize: 13, height: 20 / 13, fontWeight: FontWeight.w700, color: _TaskActionColors.strong);
 
-  static final TextStyle labelSub = GoogleFonts.manrope(
-    fontSize: 13,
-    height: 20 / 13,
-    fontWeight: FontWeight.w500,
-    color: _TaskActionColors.textSub,
-  );
+  static final TextStyle labelSub = GoogleFonts.manrope(fontSize: 13, height: 20 / 13, fontWeight: FontWeight.w500, color: _TaskActionColors.textSub);
 
   static final TextStyle fieldLabel = GoogleFonts.manrope(
     fontSize: 11,
@@ -1748,12 +1375,7 @@ class _TaskTextStyles {
     color: Colors.white,
   );
 
-  static final TextStyle buttonL = GoogleFonts.manrope(
-    fontSize: 17,
-    height: 28 / 17,
-    fontWeight: FontWeight.w800,
-    color: Colors.white,
-  );
+  static final TextStyle buttonL = GoogleFonts.manrope(fontSize: 17, height: 28 / 17, fontWeight: FontWeight.w800, color: Colors.white);
 }
 
 String _fileNameFromPath(String path) {
@@ -1763,9 +1385,7 @@ String _fileNameFromPath(String path) {
 
 bool _isImagePath(String path) {
   final lower = path.toLowerCase();
-  return lower.endsWith('.jpg') ||
-      lower.endsWith('.jpeg') ||
-      lower.endsWith('.png');
+  return lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png');
 }
 
 String _formatBytes(int bytes) {

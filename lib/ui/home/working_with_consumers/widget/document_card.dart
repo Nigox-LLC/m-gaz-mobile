@@ -1,12 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/common/words.dart';
-import 'package:m_gaz/core/utils/colors.dart';
+import 'package:m_gaz/core/models/working_with_consumers_document/working_with_consumers_list.dart';
+import 'package:m_gaz/global_widget/app_tools.dart';
+
+class DocumentCardData {
+  const DocumentCardData({
+    required this.id,
+    required this.region,
+    required this.district,
+    required this.consumerName,
+    required this.accountNumber,
+  });
+
+  factory DocumentCardData.fromConsumer(WorkingWithConsumersList document) {
+    return DocumentCardData(
+      id: document.id,
+      region: document.region,
+      district: document.district,
+      consumerName: document.consumers,
+      accountNumber: document.facial,
+    );
+  }
+
+  final int id;
+  final String region;
+  final String district;
+  final String consumerName;
+  final String accountNumber;
+}
 
 class DocumentCard extends StatelessWidget {
-  final dynamic document;
-  final int index;
-  final VoidCallback? onTap; // 🔥 qo‘shildi
-
   const DocumentCard({
     super.key,
     required this.document,
@@ -14,129 +38,79 @@ class DocumentCard extends StatelessWidget {
     this.onTap,
   });
 
+  final DocumentCardData document;
+  final int index;
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 300 + (index * 50)),
-      curve: Curves.easeOut,
-      transform: Matrix4.translationValues(0, 0, 0),
+    final location = [
+      document.region,
+      document.district,
+    ].where((value) => value.trim().isNotEmpty).join(', ');
 
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: const Color(0xFFF0F0F0),
         borderRadius: BorderRadius.circular(16),
-        onTap: onTap, // 🔥 bosilganda ishlaydi
-        child: Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 2,
-          shadowColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.c1570EF, width: 1),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: AppColors.white,
-            ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ------------------ HEADER ------------------
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.catalogGradient,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC0D5FF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: EdgeInsets.all(8),
+                      child: AppTools.svg(AppTools.icApartment, width: 24, height: 24),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.business_center_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          document.consumers ?? "",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildConsumerTitle(document.consumerName)),
+                  ],
                 ),
-
-                // ------------------ CONTENT ------------------
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _buildDetailRow(
-                        icon: Icons.person_outline,
-                        label: Words.attachedWorker.tr(),
-                        value: document.employee,
-                        color: AppColors.c1570EF,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildDetailRow(
-                        icon: Icons.location_on_outlined,
-                        label: Words.area.tr(),
-                        value: '${document.region}, ${document.district}',
-                        color: AppColors.c1570EF,
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: AppTools.svg(AppTools.icUser),
+                  label: Words.status.tr(),
+                  value: Words.stampNotInstalled.tr(),
+                  emphasizeValue: true,
                 ),
-
-                // ------------------ FOOTER ------------------
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.c181D27.withValues(alpha: 0.05),
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(16),
-                    ),
-                    border: Border(
-                      top: BorderSide(color: AppColors.c1570EF, width: 1),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'ID: ${document.id}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.black,
-                          fontWeight: FontWeight.w500,
+                const SizedBox(height: 8),
+                _buildDetailRow(
+                  icon: AppTools.svg(AppTools.icMap),
+                  label: Words.area.tr(),
+                  value: location.isEmpty ? '-' : location,
+                ),
+                const SizedBox(height: 10),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxChipWidth = constraints.maxWidth;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        _InfoChip(
+                          text: 'ID: ${document.id}',
+                          maxWidth: maxChipWidth,
                         ),
-                      ),
-                      Text(
-                        '${Words.accountNumber.tr()}: ${document.facial}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.black,
-                          fontWeight: FontWeight.w500,
+                        _InfoChip(
+                          text:
+                              '${Words.accountNumber.tr()}: ${document.accountNumber}',
+                          maxWidth: maxChipWidth,
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -146,52 +120,115 @@ class DocumentCard extends StatelessWidget {
     );
   }
 
-  // ------------------ DETAIL ITEM ------------------
+  Widget _buildConsumerTitle(String value) {
+    final trimmed = value.trim();
+    final parts = trimmed.split(RegExp(r'\s+'));
+    final first = parts.isNotEmpty ? parts.first : '';
+    final rest = parts.length > 1
+        ? trimmed.substring(first.length).trimLeft()
+        : '';
+
+    return RichText(
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: GoogleFonts.manrope(
+          color: const Color(0xFF202020),
+          fontSize: 15,
+          height: 24 / 15,
+          fontWeight: FontWeight.w500,
+        ),
+        children: [
+          TextSpan(
+            text: first,
+            style: GoogleFonts.manrope(
+              color: const Color(0xFF202020),
+              fontSize: 15,
+              height: 24 / 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (rest.isNotEmpty) TextSpan(text: ' $rest'),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDetailRow({
-    required IconData icon,
+    required Widget icon,
     required String label,
     required String value,
-    required Color color,
+    bool emphasizeValue = false,
   }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 20, color: color),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: icon/*Icon(icon, size: 16, color: const Color(0xFFBBBBBB))*/,
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.black,
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFFBBBBBB),
+                  fontSize: 11,
+                  height: 16 / 11,
+                  letterSpacing: 0.4,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 value,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.black,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.manrope(
+                  color: const Color(0xFF202020),
+                  fontSize: 13,
+                  height: 20 / 13,
+                  fontWeight: emphasizeValue
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.text, required this.maxWidth});
+
+  final String text;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8E8E8),
+        borderRadius: BorderRadius.circular(21),
+      ),
+      child: Text(
+        text,
+        softWrap: true,
+        style: GoogleFonts.manrope(
+          color: const Color(0xFF202020),
+          fontSize: 13,
+          height: 20 / 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }

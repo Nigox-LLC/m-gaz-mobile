@@ -15,8 +15,9 @@ class EghuActionListBloc
     required EghuActionListApi api,
     this.limit = 10,
     this.actionType,
+    String? facial,
   }) : _api = api,
-       super(const EghuActionListState()) {
+       super(EghuActionListState(searchQuery: facial?.trim() ?? '')) {
     on<EghuActionListStarted>(_onStarted);
     on<EghuActionListRefreshed>(_onRefreshed);
     on<EghuActionListLoadMoreRequested>(_onLoadMoreRequested);

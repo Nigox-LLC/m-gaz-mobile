@@ -29,6 +29,7 @@ class EghuActionListPage extends StatefulWidget {
     this.api,
     this.filterSource,
     this.bloc,
+    this.facial,
   });
 
   final String title;
@@ -39,6 +40,7 @@ class EghuActionListPage extends StatefulWidget {
   final EghuActionApi? api;
   final EghuActionFilterDataSource? filterSource;
   final EghuActionListBloc? bloc;
+  final String? facial;
 
   @override
   State<EghuActionListPage> createState() => _EghuActionListPageState();
@@ -52,12 +54,18 @@ class _EghuActionListPageState extends State<EghuActionListPage> {
   @override
   void initState() {
     super.initState();
+    final facial = widget.facial?.trim() ?? '';
+    if (facial.isNotEmpty) {
+      _searchController.text = facial;
+      _searchQuery = facial;
+    }
     if (widget.useRemoteList) {
       _bloc =
           widget.bloc ??
           EghuActionListBloc(
             api: widget.api ?? di.get<EghuActionApi>(),
             actionType: widget.actionType,
+            facial: facial.isEmpty ? null : facial,
           );
       _bloc!.add(const EghuActionListStarted());
     }

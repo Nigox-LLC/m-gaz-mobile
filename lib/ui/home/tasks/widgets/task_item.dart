@@ -18,7 +18,7 @@ class TaskItemWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayStatus = TaskDisplayStatus.fromTask(task);
     final formattedDate = DateFormat(
-      'd MMM, HH:mm',
+      'dd.MM.yyyy, HH:mm:ss',
     ).format(displayStatus.displayDateFor(task));
 
     return Padding(
@@ -274,8 +274,6 @@ class _TaskInfoBlock extends StatelessWidget {
         ),
         Text(
           value,
-          maxLines: maxLines,
-          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.manrope(
             fontSize: 13,
             height: 20 / 13,

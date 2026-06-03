@@ -77,7 +77,6 @@ class _WorkingWithStampScreenState extends State<WorkingWithStampScreen> {
     return MediaQuery.of(context).size.width > 600;
   }
 
-
   Widget _buildBody(WorkingWithStampState state, bool isTablet) {
     switch (state.status) {
       case WorkingWithStampStatus.initial:
@@ -278,7 +277,13 @@ class _WorkingWithStampScreenState extends State<WorkingWithStampScreen> {
                   return _buildLoadingMoreIndicator(isTablet);
                 }
                 return DocumentCard(
-                  document: state.documents[index],
+                  document: DocumentCardData(
+                    id: state.documents[index].id,
+                    region: state.documents[index].region,
+                    district: state.documents[index].district,
+                    consumerName: state.documents[index].consumers ?? '-',
+                    accountNumber: '-',
+                  ),
                   index: index,
                   onTap: () => push(
                     WorkingWithStampsDetailScreen(
@@ -301,7 +306,13 @@ class _WorkingWithStampScreenState extends State<WorkingWithStampScreen> {
                     return _buildLoadingMoreIndicator(isTablet);
                   }
                   return DocumentCard(
-                    document: state.documents[index],
+                    document: DocumentCardData(
+                      id: state.documents[index].id,
+                      region: state.documents[index].region,
+                      district: state.documents[index].district,
+                      consumerName: state.documents[index].consumers ?? '-',
+                      accountNumber: '-',
+                    ),
                     index: index,
                     onTap: () => push(
                       WorkingWithStampsDetailScreen(

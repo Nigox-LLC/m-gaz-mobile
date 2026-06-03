@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../../../../../core/api/global/global_api.dart';
 import '../../../../../../../../core/api/working_with_consumers_api/consumer_relations_api.dart';
 import '../../../../../../../../core/common/words.dart';
+import '../../../../../../../../core/models/global/global_model.dart';
 import '../../../../../../../../core/models/paginated_response/paginated_response.dart';
 import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
 import '../../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
+import '../../../../../../../../di.dart';
 import 'eghu_action_form_fields.dart';
 
 enum EghuAttachmentSource { camera, device }
@@ -64,6 +67,59 @@ class EghuDeviceSelection {
   final WorkingWithConsumersDetailModel detail;
   final ConsumersEgxuItem item;
 }
+
+/// Consumer + EGHU pre-selection forwarded from the consumer detail screen so
+/// the create form opens with both already chosen.
+class EghuActionPreselection {
+  const EghuActionPreselection({
+    required this.consumer,
+    required this.eghu,
+    required this.detail,
+  });
+
+  final WorkingWithConsumersList consumer;
+  final ConsumersEgxuItem eghu;
+  final WorkingWithConsumersDetailModel detail;
+}
+
+/// Source for the stamp installation place directory
+/// (`entity_type=Tamgaornatishjoyi`).
+abstract class EghuStampPlaceSource {
+  Future<PaginatedResponse<GlobalModel>> getPlaces({
+    int limit = 20,
+    int offset = 0,
+    String? search,
+  });
+
+  Future<PaginatedResponse<GlobalModel>> getNextPage(String url);
+}
+
+class GlobalApiStampPlaceSource implements EghuStampPlaceSource {
+  const GlobalApiStampPlaceSource(this._api);
+
+  final GlobalApi _api;
+
+  @override
+  Future<PaginatedResponse<GlobalModel>> getPlaces({
+    int limit = 20,
+    int offset = 0,
+    String? search,
+  }) {
+    return _api.getStampInstallationPlaces(
+      limit: limit,
+      offset: offset,
+      search: search,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<GlobalModel>> getNextPage(String url) {
+    return _api.getStampInstallationPlacesNextPage(url);
+  }
+}
+
+EghuStampPlaceSource defaultStampPlaceSource() =>
+    GlobalApiStampPlaceSource(di.get<GlobalApi>());
 
 class EghuConsumerPickerSheet extends StatefulWidget {
   const EghuConsumerPickerSheet({
@@ -321,6 +377,155 @@ class _EghuDevicePickerSheetState extends State<EghuDevicePickerSheet> {
         _loading = false;
         _error = e.toString().replaceAll('Exception: ', '');
       });
+    }
+  }
+}
+
+class EghuStampPlacePickerSheet extends StatefulWidget {
+  const EghuStampPlacePickerSheet({
+    super.key,
+    required this.source,
+    this.selectedId,
+  });
+
+  final EghuStampPlaceSource source;
+  final int? selectedId;
+
+  @override
+  State<EghuStampPlacePickerSheet> createState() =>
+      _EghuStampPlacePickerSheetState();
+}
+
+class _EghuStampPlacePickerSheetState extends State<EghuStampPlacePickerSheet> {
+  final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+  final _items = <GlobalModel>[];
+  Timer? _debounce;
+  String? _nextUrl;
+  String? _error;
+  bool _loading = true;
+  bool _loadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _fetch();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _PickerFrame(
+      child: Column(
+        children: [
+          _SearchField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+          ),
+          const SizedBox(height: 12),
+          Expanded(child: _body()),
+        ],
+      ),
+    );
+  }
+
+  Widget _body() {
+    if (_loading) return const _PickerShimmer();
+    if (_error != null) return _PickerError(message: _error!, onRetry: _fetch);
+    if (_items.isEmpty) {
+      return _PickerEmpty(message: Words.noInformationFound.tr());
+    }
+
+    return ListView.separated(
+      controller: _scrollController,
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: _items.length + (_loadingMore ? 1 : 0),
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        if (index >= _items.length) return const _LoadingMoreTile();
+        final item = _items[index];
+        return _PickerTile(
+          selected: widget.selectedId != null && widget.selectedId == item.id,
+          onTap: () => Navigator.of(context).pop(item),
+          children: [
+            _RichTileLine(
+              label: '${Words.stampInstallationPlace.tr()}:',
+              value: item.name ?? '-',
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      _fetch();
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 260) {
+      _fetchMore();
+    }
+  }
+
+  Future<void> _fetch() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _items.clear();
+      _nextUrl = null;
+    });
+
+    try {
+      final response = await widget.source.getPlaces(
+        limit: 20,
+        search: _searchController.text,
+      );
+      if (!mounted) return;
+      setState(() {
+        _items
+          ..clear()
+          ..addAll(response.results);
+        _nextUrl = response.next;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString().replaceAll('Exception: ', '');
+      });
+    }
+  }
+
+  Future<void> _fetchMore() async {
+    if (_loadingMore || _nextUrl == null) return;
+    setState(() => _loadingMore = true);
+
+    try {
+      final response = await widget.source.getNextPage(_nextUrl!);
+      if (!mounted) return;
+      setState(() {
+        _items.addAll(response.results);
+        _nextUrl = response.next;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingMore = false);
     }
   }
 }

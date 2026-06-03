@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_action_modal.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_display_status.dart';
+import 'package:m_gaz/ui/home/tasks/widgets/task_filter_bottom_sheet.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_item.dart';
 import 'bloc/task_bloc.dart';
 import 'bloc/task_event.dart';
@@ -271,61 +273,183 @@ class _TaskHeader extends StatelessWidget {
   }
 }
 
-class _TaskSearchAndFilterBar extends StatelessWidget {
+class _TaskSearchAndFilterBar extends StatefulWidget {
   const _TaskSearchAndFilterBar();
 
   @override
+  State<_TaskSearchAndFilterBar> createState() =>
+      _TaskSearchAndFilterBarState();
+}
+
+class _TaskSearchAndFilterBarState extends State<_TaskSearchAndFilterBar> {
+  static const Color _fieldColor = Color(0xFFF9F9F9);
+  static const Color _strokeColor = Color(0xFFE8E8E8);
+  static const Color _textSubColor = Color(0xFFBBBBBB);
+  static const Color _textStrongColor = Color(0xFF202020);
+  static const Color _primaryColor = Color(0xFF526ED3);
+
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.text = context.read<TaskBloc>().state.searchQuery;
+    _searchController.addListener(_onSearchControllerChanged);
+  }
+
+  void _onSearchControllerChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchControllerChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // TODO: Search va filter ishlashini TaskBloc/API bilan keyin ulash.
+    final hasQuery = _searchController.text.isNotEmpty;
+
     return Row(
       children: [
-        Expanded(
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.only(left: 12, right: 8),
-            decoration: BoxDecoration(
-              color: AppColors.cF9F9F9,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE8E8E8)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.search, size: 24, color: Color(0xFFBBBEC5)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    Words.search.tr().replaceAll('...', ''),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      height: 20 / 13,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFFBBBBBB),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        Expanded(child: _buildSearchTextField(context, hasQuery)),
         const SizedBox(width: 12),
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.cF9F9F9,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE8E8E8)),
-          ),
-          child: const Icon(
-            Icons.filter_alt_outlined,
-            size: 20,
-            color: Color(0xFFBBBBBB),
-          ),
+        BlocSelector<TaskBloc, TaskState, String?>(
+          selector: (state) => state.filterType,
+          builder: (context, filterType) {
+            return _buildFilterButton(context, filterType);
+          },
         ),
       ],
     );
+  }
+
+  Widget _buildSearchTextField(BuildContext context, bool hasQuery) {
+    return SizedBox(
+      height: 44,
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          context.read<TaskBloc>().add(TaskSearchChanged(value));
+        },
+        style: GoogleFonts.manrope(
+          color: _textStrongColor,
+          fontSize: 13,
+          height: 20 / 13,
+          fontWeight: FontWeight.w500,
+        ),
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: Words.search.tr(),
+          hintStyle: GoogleFonts.manrope(
+            color: _textSubColor,
+            fontSize: 13,
+            height: 20 / 13,
+            fontWeight: FontWeight.w500,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: _textSubColor,
+            size: 24,
+          ),
+          suffixIcon: hasQuery
+              ? IconButton(
+                  icon: const Icon(Icons.close, color: _textSubColor),
+                  onPressed: () {
+                    _searchController.clear();
+                    context.read<TaskBloc>().add(const TaskSearchChanged(''));
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: _fieldColor,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _strokeColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _strokeColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: _primaryColor, width: 1.2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterButton(BuildContext context, String? filterType) {
+    final active = filterType != null;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: _fieldColor,
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _openFilterSheet(context, filterType),
+            child: Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: _strokeColor),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: SvgPicture.asset(
+                'assets/icons/filter-funnel.svg',
+                width: 16,
+                colorFilter: ColorFilter.mode(
+                  active ? _primaryColor : _textSubColor,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (active)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: _primaryColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _openFilterSheet(
+    BuildContext context,
+    String? filterType,
+  ) async {
+    final result = await showModalBottomSheet<FilterResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => TaskFilterBottomSheet(initialType: filterType),
+    );
+
+    if (result == null || !context.mounted) return;
+
+    if (result.cleared || result.type == null) {
+      context.read<TaskBloc>().add(const TaskFilterChanged(clearFilter: true));
+    } else {
+      context.read<TaskBloc>().add(TaskFilterChanged(type: result.type));
+    }
   }
 }
