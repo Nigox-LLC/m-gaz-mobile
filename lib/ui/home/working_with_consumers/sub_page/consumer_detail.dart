@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -15,6 +16,7 @@ import '../../../../core/mocdata/map_select_item.dart';
 import '../../../../core/models/global/global_model.dart';
 import '../../../../core/models/working_with_consumers_document/consumer_file_models.dart';
 import '../../../../core/models/working_with_consumers_document/working_with_consumers_document_detail.dart';
+import '../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
 import '../../../../core/utils/app_date_formatter.dart';
 import '../../../../features/actions/presentation/pages/eghu/presentation/pages/eghu_indicator_upload_page.dart';
 import '../../../../features/actions/presentation/pages/eghu/presentation/pages/eghu_reset.dart';
@@ -31,17 +33,12 @@ class ConsumerRelationsDetailScreen extends StatelessWidget {
   final int documentId;
   final ConsumerRelationsApi? api;
 
-  const ConsumerRelationsDetailScreen({
-    super.key,
-    required this.documentId,
-    this.api,
-  });
+  const ConsumerRelationsDetailScreen({super.key, required this.documentId, this.api});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          ConsumerDetailBloc(api: api)..add(ConsumerDetailFetched(documentId)),
+      create: (_) => ConsumerDetailBloc(api: api)..add(ConsumerDetailFetched(documentId)),
       child: _ConsumerDetailView(documentId: documentId),
     );
   }
@@ -63,9 +60,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
   bool _exitAfterSave = false;
 
   void _retry() {
-    context.read<ConsumerDetailBloc>().add(
-      ConsumerDetailFetched(widget.documentId),
-    );
+    context.read<ConsumerDetailBloc>().add(ConsumerDetailFetched(widget.documentId));
   }
 
   @override
@@ -78,31 +73,22 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 390),
             child: BlocConsumer<ConsumerDetailBloc, ConsumerDetailState>(
-              listenWhen: (p, c) =>
-                  p.saveStatus != c.saveStatus || p.status != c.status,
+              listenWhen: (p, c) => p.saveStatus != c.saveStatus || p.status != c.status,
               listener: (context, state) {
                 if (state.status == ConsumerDetailStatus.loaded) {
                   _requestLookups(state.draftDocument ?? state.document);
                 }
                 if (state.saveStatus == ConsumerDetailSaveStatus.success) {
-                  showToast(
-                    context,
-                    Words.eghuCreateSuccess.tr(),
-                    backgroundColor: const Color(0xFF17B26A),
-                  );
+                  showToast(context, Words.eghuCreateSuccess.tr(), backgroundColor: const Color(0xFF17B26A));
                   if (_exitAfterSave) {
                     _exitAfterSave = false;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       _popRoute(true);
                     });
                   }
-                } else if (state.saveStatus ==
-                    ConsumerDetailSaveStatus.failure) {
+                } else if (state.saveStatus == ConsumerDetailSaveStatus.failure) {
                   _exitAfterSave = false;
-                  showToast(
-                    context,
-                    state.saveError ?? Words.errorOccurred.tr(),
-                  );
+                  showToast(context, state.saveError ?? Words.errorOccurred.tr());
                 }
               },
               builder: (context, state) {
@@ -120,9 +106,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
                         _SaveBar(
                           enabled: state.canSave,
                           loading: state.isSaving,
-                          onTap: () => context.read<ConsumerDetailBloc>().add(
-                            const ConsumerDetailSaved(),
-                          ),
+                          onTap: () => context.read<ConsumerDetailBloc>().add(const ConsumerDetailSaved()),
                         ),
                     ],
                   ),
@@ -176,9 +160,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
       final regionId = document?.region?.id;
       final districtId = document?.district?.id;
       if (regionId != null && districtId != null) {
-        bloc.add(
-          GetGasNetworksEvent(regionId: regionId, districtId: districtId),
-        );
+        bloc.add(GetGasNetworksEvent(regionId: regionId, districtId: districtId));
       }
       _lookupsRequested = true;
     } catch (_) {
@@ -202,10 +184,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
     }
   }
 
-  Widget _buildContent(
-    ConsumerDetailState state,
-    WorkingWithConsumersDetailModel doc,
-  ) {
+  Widget _buildContent(ConsumerDetailState state, WorkingWithConsumersDetailModel doc) {
     final egxuList = doc.egxuList ?? const <ConsumersEgxuItem>[];
     final companyInfo = egxuList.isNotEmpty ? egxuList.first.companyInfo : null;
     final globalState = _globalStateOrNull();
@@ -214,29 +193,21 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
       onRefresh: () async => _retry(),
       color: ConsumerDetailColors.primary,
       child: ListView(
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         children: [
           _DocumentCard(
             state: state,
             document: doc,
             companyInfo: companyInfo,
-            onDetails: companyInfo == null
-                ? null
-                : () => context.read<ConsumerDetailBloc>().add(
-                    const ConsumerDetailCompanyToggled(),
-                  ),
+            onDetails: companyInfo == null ? null : () => context.read<ConsumerDetailBloc>().add(const ConsumerDetailCompanyToggled()),
           ),
           if (state.companyInfoExpanded && companyInfo != null) ...[
             const SizedBox(height: 8),
             _CompanyInfoEditor(
               info: companyInfo,
               globalState: globalState,
-              onChanged: (info) => context.read<ConsumerDetailBloc>().add(
-                ConsumerDetailCompanyChanged(info),
-              ),
+              onChanged: (info) => context.read<ConsumerDetailBloc>().add(ConsumerDetailCompanyChanged(info)),
               onSelectGlobal: _selectGlobal,
               onSelectText: _selectText,
             ),
@@ -249,41 +220,19 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
               item: item,
               state: state,
               globalState: globalState,
-              expanded:
-                  item.id != null && state.expandedEgxuIds.contains(item.id),
-              onToggle: item.id == null
-                  ? null
-                  : () => context.read<ConsumerDetailBloc>().add(
-                      ConsumerDetailEgxuToggled(item.id!),
-                    ),
+              expanded: item.id != null && state.expandedEgxuIds.contains(item.id),
+              onToggle: item.id == null ? null : () => context.read<ConsumerDetailBloc>().add(ConsumerDetailEgxuToggled(item.id!)),
               onRelationChanged: (relation) {
                 final id = item.id;
                 if (id == null) return;
-                context.read<ConsumerDetailBloc>().add(
-                  ConsumerDetailEgxuRelationChanged(
-                    egxuId: id,
-                    relation: relation,
-                  ),
-                );
+                context.read<ConsumerDetailBloc>().add(ConsumerDetailEgxuRelationChanged(egxuId: id, relation: relation));
               },
-              onItemChanged: (item) => context.read<ConsumerDetailBloc>().add(
-                ConsumerDetailEgxuItemChanged(item),
-              ),
-              onAddCert: item.id == null
-                  ? null
-                  : () => _pickFile(
-                      ConsumerFileSlot.certificate,
-                      egxuId: item.id,
-                    ),
-              onRemoveCert: (file) => context.read<ConsumerDetailBloc>().add(
-                ConsumerDetailFileRemoved(
-                  slot: ConsumerFileSlot.certificate,
-                  egxuId: item.id,
-                  file: file,
-                ),
-              ),
+              onItemChanged: (item) => context.read<ConsumerDetailBloc>().add(ConsumerDetailEgxuItemChanged(item)),
+              onAddCert: item.id == null ? null : () => _pickFile(ConsumerFileSlot.certificate, egxuId: item.id),
+              onRemoveCert: (file) =>
+                  context.read<ConsumerDetailBloc>().add(ConsumerDetailFileRemoved(slot: ConsumerFileSlot.certificate, egxuId: item.id, file: file)),
               onViewFile: _viewFile,
-              onAction: _openEghuAction,
+              onAction: (kind) => _openEghuAction(kind, document: doc, eghu: item),
               onSelectGlobal: _selectGlobal,
               onSelectItem: _selectItem,
             ),
@@ -296,12 +245,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
             helpKey: const Key('consumer-upload-help-technical'),
             files: state.technicalAll,
             onAdd: () => _pickFile(ConsumerFileSlot.technical),
-            onRemove: (file) => context.read<ConsumerDetailBloc>().add(
-              ConsumerDetailFileRemoved(
-                slot: ConsumerFileSlot.technical,
-                file: file,
-              ),
-            ),
+            onRemove: (file) => context.read<ConsumerDetailBloc>().add(ConsumerDetailFileRemoved(slot: ConsumerFileSlot.technical, file: file)),
             onView: _viewFile,
           ),
           const SizedBox(height: 12),
@@ -312,12 +256,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
             helpKey: const Key('consumer-upload-help-contract'),
             files: state.contractsAll,
             onAdd: () => _pickFile(ConsumerFileSlot.contract),
-            onRemove: (file) => context.read<ConsumerDetailBloc>().add(
-              ConsumerDetailFileRemoved(
-                slot: ConsumerFileSlot.contract,
-                file: file,
-              ),
-            ),
+            onRemove: (file) => context.read<ConsumerDetailBloc>().add(ConsumerDetailFileRemoved(slot: ConsumerFileSlot.contract, file: file)),
             onView: _viewFile,
           ),
         ],
@@ -333,11 +272,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
     }
   }
 
-  Future<GlobalModel?> _selectGlobal({
-    required String title,
-    required List<GlobalModel> items,
-    required int? selectedId,
-  }) {
+  Future<GlobalModel?> _selectGlobal({required String title, required List<GlobalModel> items, required int? selectedId}) {
     return showModalBottomSheet<GlobalModel>(
       context: context,
       isScrollControlled: true,
@@ -351,49 +286,47 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
     );
   }
 
-  Future<String?> _selectText({
-    required String title,
-    required List<String> items,
-    required String? selected,
-  }) {
+  Future<String?> _selectText({required String title, required List<String> items, required String? selected}) {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _SelectionSheet<String>(
-        title: title,
-        items: items,
-        selected: (item) => item == selected,
-        label: (item) => item,
-      ),
+      builder: (_) => _SelectionSheet<String>(title: title, items: items, selected: (item) => item == selected, label: (item) => item),
     );
   }
 
-  Future<SelectItem?> _selectItem({
-    required String title,
-    required List<SelectItem> items,
-    required String? selectedCode,
-  }) {
+  Future<SelectItem?> _selectItem({required String title, required List<SelectItem> items, required String? selectedCode}) {
     return showModalBottomSheet<SelectItem>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _SelectionSheet<SelectItem>(
-        title: title,
-        items: items,
-        selected: (item) => item.code == selectedCode,
-        label: (item) => item.label,
-      ),
+      builder: (_) =>
+          _SelectionSheet<SelectItem>(title: title, items: items, selected: (item) => item.code == selectedCode, label: (item) => item.label),
     );
   }
 
-  void _openEghuAction(_EghuActionKind kind) {
+  void _openEghuAction(_EghuActionKind kind, {required WorkingWithConsumersDetailModel document, required ConsumersEgxuItem eghu}) {
+    final facial = document.facial;
+    final preselection = EghuActionPreselection(consumer: _consumerListFromDoc(document), eghu: eghu, detail: document);
     final page = switch (kind) {
-      _EghuActionKind.reset => const EghuResetPage(),
-      _EghuActionKind.detach => const EghuTakeOffPage(),
-      _EghuActionKind.indicator => const EghuIndicatorUploadPage(),
+      _EghuActionKind.reset => EghuResetPage(facial: facial, preselection: preselection),
+      _EghuActionKind.detach => EghuTakeOffPage(facial: facial, preselection: preselection),
+      _EghuActionKind.indicator => EghuIndicatorUploadPage(facial: facial, preselection: preselection),
     };
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
+
+  WorkingWithConsumersList _consumerListFromDoc(WorkingWithConsumersDetailModel doc) {
+    return WorkingWithConsumersList(
+      id: doc.id ?? 0,
+      region: doc.region?.name ?? '',
+      district: doc.district?.name ?? '',
+      employee: doc.employee?.fio ?? '',
+      consumers: doc.consumers?.name ?? '',
+      facial: doc.facial ?? '',
+      datetime: DateTime.tryParse(doc.datetime ?? '') ?? DateTime.now(),
+      excelId: doc.excelId?.toString() ?? '',
+    );
   }
 
   Future<void> _pickFile(ConsumerFileSlot slot, {int? egxuId}) async {
@@ -407,32 +340,20 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
     if (source == null) return;
 
     try {
-      final file = source == EghuAttachmentSource.camera
-          ? await _pickFromCamera()
-          : await _pickFromDevice();
+      final file = source == EghuAttachmentSource.camera ? await _pickFromCamera() : await _pickFromDevice();
       if (file == null) return;
 
       bloc.add(ConsumerDetailFileAdded(slot: slot, egxuId: egxuId, file: file));
     } catch (e) {
       if (!mounted) return;
-      showToast(
-        context,
-        '${Words.filePickFailed.tr()}: ${e.toString().replaceAll('Exception: ', '')}',
-      );
+      showToast(context, '${Words.filePickFailed.tr()}: ${e.toString().replaceAll('Exception: ', '')}');
     }
   }
 
   Future<ConsumerUploadFile?> _pickFromCamera() async {
-    final image = await _imagePicker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-    );
+    final image = await _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85);
     if (image == null) return null;
-    return ConsumerUploadFile.local(
-      path: image.path,
-      name: _fileName(image.path),
-      sizeBytes: await image.length(),
-    );
+    return ConsumerUploadFile.local(path: image.path, name: _fileName(image.path), sizeBytes: await image.length());
   }
 
   Future<ConsumerUploadFile?> _pickFromDevice() async {
@@ -445,11 +366,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
     final file = result?.files.single;
     final path = file?.path;
     if (file == null || path == null) return null;
-    return ConsumerUploadFile.local(
-      path: path,
-      name: file.name,
-      sizeBytes: file.size == 0 ? await File(path).length() : file.size,
-    );
+    return ConsumerUploadFile.local(path: path, name: file.name, sizeBytes: file.size == 0 ? await File(path).length() : file.size);
   }
 
   String _fileName(String path) {
@@ -460,11 +377,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
   Future<void> _viewFile(ConsumerUploadFile file) async {
     HapticFeedback.selectionClick();
     if (file.isImage && file.viewSource != null) {
-      _showFullScreenImage(
-        file.isRemote
-            ? NetworkImage(file.remoteUrl!)
-            : FileImage(File(file.localPath!)) as ImageProvider,
-      );
+      _showFullScreenImage(file.isRemote ? NetworkImage(file.remoteUrl!) : FileImage(File(file.localPath!)) as ImageProvider);
       return;
     }
     if (file.isRemote && file.remoteUrl != null) {
@@ -491,14 +404,9 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
                   imageProvider: provider,
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 3,
-                  backgroundDecoration: const BoxDecoration(
-                    color: Colors.transparent,
-                  ),
+                  backgroundDecoration: const BoxDecoration(color: Colors.transparent),
                   errorBuilder: (_, __, ___) => Center(
-                    child: Text(
-                      Words.imageLoadFailed.tr(),
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    child: Text(Words.imageLoadFailed.tr(), style: const TextStyle(color: Colors.white)),
                   ),
                 ),
               ),
@@ -510,15 +418,8 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
                 onTap: () => Navigator.pop(context),
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(30)),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
                 ),
               ),
             ),
@@ -544,23 +445,14 @@ class _Header extends StatelessWidget {
             key: const Key('consumer-detail-back-button'),
             constraints: const BoxConstraints.tightFor(width: 24, height: 24),
             padding: EdgeInsets.zero,
-            icon: const Icon(
-              Icons.chevron_left_rounded,
-              size: 28,
-              color: ConsumerDetailColors.textStrong,
-            ),
+            icon: const Icon(Icons.chevron_left_rounded, size: 28, color: ConsumerDetailColors.textStrong),
             onPressed: onBack,
           ),
           Expanded(
             child: Text(
               Words.documentDetails.tr(),
               textAlign: TextAlign.center,
-              style: consumerText(
-                fontSize: 17,
-                lineHeight: 28,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF1A1D2E),
-              ),
+              style: consumerText(fontSize: 17, lineHeight: 28, fontWeight: FontWeight.w800, color: const Color(0xFF1A1D2E)),
             ),
           ),
           const SizedBox(width: 24),
@@ -571,12 +463,7 @@ class _Header extends StatelessWidget {
 }
 
 class _DocumentCard extends StatelessWidget {
-  const _DocumentCard({
-    required this.state,
-    required this.document,
-    required this.companyInfo,
-    required this.onDetails,
-  });
+  const _DocumentCard({required this.state, required this.document, required this.companyInfo, required this.onDetails});
 
   final ConsumerDetailState state;
   final WorkingWithConsumersDetailModel document;
@@ -590,24 +477,16 @@ class _DocumentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SoftHeader(
-            icon: Icons.description_outlined,
+            icon: AppTools.svg(AppTools.icFileTextBlack),
             title: '${Words.document.tr()} #${document.id ?? '-'}',
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.calendar_today_rounded,
-                  size: 16,
-                  color: ConsumerDetailColors.textSub,
-                ),
+                AppTools.svg(AppTools.icCalendar),
                 const SizedBox(width: 4),
                 Text(
                   AppDateFormatter.dateFromString(document.datetime),
-                  style: consumerText(
-                    fontSize: 13,
-                    lineHeight: 20,
-                    color: ConsumerDetailColors.textSub,
-                  ),
+                  style: consumerText(fontSize: 13, lineHeight: 20, color: ConsumerDetailColors.textSub),
                 ),
               ],
             ),
@@ -620,17 +499,9 @@ class _DocumentCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: _InfoText(
-                  label: Words.consumer.tr(),
-                  value: document.consumers?.name,
-                  bottom: 0,
-                ),
+                child: _InfoText(label: Words.consumer.tr(), value: document.consumers?.name, bottom: 0),
               ),
-              if (onDetails != null)
-                _SmallButton(
-                  label: Words.detailsButton.tr(),
-                  onTap: onDetails!,
-                ),
+              if (onDetails != null) _SmallButton(label: Words.detailsButton.tr(), onTap: onDetails!),
             ],
           ),
         ],
@@ -651,18 +522,8 @@ class _CompanyInfoEditor extends StatelessWidget {
   final ConsumersCompanyInfo info;
   final GlobalState? globalState;
   final ValueChanged<ConsumersCompanyInfo> onChanged;
-  final Future<GlobalModel?> Function({
-    required String title,
-    required List<GlobalModel> items,
-    required int? selectedId,
-  })
-  onSelectGlobal;
-  final Future<String?> Function({
-    required String title,
-    required List<String> items,
-    required String? selected,
-  })
-  onSelectText;
+  final Future<GlobalModel?> Function({required String title, required List<GlobalModel> items, required int? selectedId}) onSelectGlobal;
+  final Future<String?> Function({required String title, required List<String> items, required String? selected}) onSelectText;
 
   @override
   Widget build(BuildContext context) {
@@ -671,12 +532,9 @@ class _CompanyInfoEditor extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SoftHeader(
-            icon: Icons.apartment_rounded,
+            icon: AppTools.svg(AppTools.icApartment),
             title: Words.enterpriseInfo.tr(),
-            trailing: _StatusChip(
-              active: info.isActive ?? false,
-              verified: true,
-            ),
+            trailing: _StatusChip(active: info.isActive ?? false, verified: true),
           ),
           const SizedBox(height: 12),
           _EditField(
@@ -710,10 +568,7 @@ class _CompanyInfoEditor extends StatelessWidget {
               if (selected == null) return;
               onChanged(
                 info.copyWith(
-                  ministry: ConsumersLookup(
-                    id: selected.id,
-                    name: selected.name ?? selected.fio,
-                  ),
+                  ministry: ConsumersLookup(id: selected.id, name: selected.name ?? selected.fio),
                   ministryId: selected.id,
                 ),
               );
@@ -766,11 +621,7 @@ class _CompanyInfoEditor extends StatelessWidget {
             value: info.season,
             bold: true,
             onTap: () async {
-              final selected = await onSelectText(
-                title: Words.season.tr(),
-                items: _seasonOptions(),
-                selected: info.season,
-              );
+              final selected = await onSelectText(title: Words.season.tr(), items: _seasonOptions(), selected: info.season);
               if (selected != null) {
                 onChanged(info.copyWith(season: selected));
               }
@@ -778,23 +629,17 @@ class _CompanyInfoEditor extends StatelessWidget {
           ),
           _SelectorField(
             label: Words.status.tr(),
-            value: (info.isActive ?? false)
-                ? Words.active.tr()
-                : Words.inactive.tr(),
+            value: (info.isActive ?? false) ? Words.active.tr() : Words.inactive.tr(),
             bold: true,
             bottom: 0,
             onTap: () async {
               final selected = await onSelectText(
                 title: Words.status.tr(),
                 items: [Words.active.tr(), Words.inactive.tr()],
-                selected: (info.isActive ?? false)
-                    ? Words.active.tr()
-                    : Words.inactive.tr(),
+                selected: (info.isActive ?? false) ? Words.active.tr() : Words.inactive.tr(),
               );
               if (selected != null) {
-                onChanged(
-                  info.copyWith(isActive: selected == Words.active.tr()),
-                );
+                onChanged(info.copyWith(isActive: selected == Words.active.tr()));
               }
             },
           ),
@@ -813,30 +658,20 @@ class _FacialRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: ConsumerDetailColors.field,
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: ConsumerDetailColors.field, borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
-          _IconBox(icon: Icons.menu_book_rounded),
+          _IconBox(icon: AppTools.svg(AppTools.icBookOpen)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  Words.facialLabel.tr(),
-                  style: consumerText(fontSize: 15, lineHeight: 24),
-                ),
+                Text(Words.facialLabel.tr(), style: consumerText(fontSize: 15, lineHeight: 24)),
                 const SizedBox(height: 2),
                 Text(
                   facial?.isNotEmpty == true ? facial! : '-',
-                  style: consumerText(
-                    fontSize: 13,
-                    lineHeight: 20,
-                    color: ConsumerDetailColors.textSub,
-                  ),
+                  style: consumerText(fontSize: 13, lineHeight: 20, color: ConsumerDetailColors.textSub),
                 ),
               ],
             ),
@@ -875,27 +710,15 @@ class _EgxuCard extends StatelessWidget {
   final ValueChanged<ConsumerUploadFile> onRemoveCert;
   final ValueChanged<ConsumerUploadFile> onViewFile;
   final ValueChanged<_EghuActionKind> onAction;
-  final Future<GlobalModel?> Function({
-    required String title,
-    required List<GlobalModel> items,
-    required int? selectedId,
-  })
-  onSelectGlobal;
-  final Future<SelectItem?> Function({
-    required String title,
-    required List<SelectItem> items,
-    required String? selectedCode,
-  })
-  onSelectItem;
+  final Future<GlobalModel?> Function({required String title, required List<GlobalModel> items, required int? selectedId}) onSelectGlobal;
+  final Future<SelectItem?> Function({required String title, required List<SelectItem> items, required String? selectedCode}) onSelectItem;
 
   @override
   Widget build(BuildContext context) {
     final egxuId = item.id;
     final active = item.isActive ?? false;
     final relation = item.consumerRelationEgxu ?? ConsumerRelationEgxu();
-    final certs = egxuId == null
-        ? const <ConsumerUploadFile>[]
-        : state.certificatesFor(egxuId);
+    final certs = egxuId == null ? const <ConsumerUploadFile>[] : state.certificatesFor(egxuId);
 
     return _FigmaCard(
       padding: const EdgeInsets.all(8),
@@ -932,20 +755,11 @@ class _EgxuCard extends StatelessWidget {
               onView: onViewFile,
             ),
             const SizedBox(height: 12),
-            _EghuActionChip(
-              title: Words.actionEghuReinstall.tr(),
-              onTap: () => onAction(_EghuActionKind.reset),
-            ),
+            _EghuActionChip(title: Words.actionEghuReinstall.tr(), onTap: () => onAction(_EghuActionKind.reset)),
             const SizedBox(height: 8),
-            _EghuActionChip(
-              title: Words.actionEghuDetach.tr(),
-              onTap: () => onAction(_EghuActionKind.detach),
-            ),
+            _EghuActionChip(title: Words.actionEghuDetach.tr(), onTap: () => onAction(_EghuActionKind.detach)),
             const SizedBox(height: 8),
-            _EghuActionChip(
-              title: Words.actionEghuIndicatorUpload.tr(),
-              onTap: () => onAction(_EghuActionKind.indicator),
-            ),
+            _EghuActionChip(title: Words.actionEghuIndicatorUpload.tr(), onTap: () => onAction(_EghuActionKind.indicator)),
           ],
         ],
       ),
@@ -954,11 +768,7 @@ class _EgxuCard extends StatelessWidget {
 }
 
 class _EgxuHeader extends StatelessWidget {
-  const _EgxuHeader({
-    required this.item,
-    required this.active,
-    required this.expanded,
-  });
+  const _EgxuHeader({required this.item, required this.active, required this.expanded});
 
   final ConsumersEgxuItem item;
   final bool active;
@@ -971,21 +781,17 @@ class _EgxuHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: expanded ? ConsumerDetailColors.field : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
           _IconBox(
-            icon: Icons.description_outlined,
+            icon: AppTools.svg(AppTools.icFileTextGreen),
             size: 48,
+            paddingSize: 12,
             radius: 12,
             iconSize: 24,
             color: active ? const Color(0xFFE3F7EC) : const Color(0xFFFEF3F2),
-            iconColor: active
-                ? const Color(0xFF1FC16B)
-                : const Color(0xFFF04438),
+            iconColor: active ? const Color(0xFF1FC16B) : const Color(0xFFF04438),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -993,13 +799,8 @@ class _EgxuHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'EGXU #${item.id ?? '-'}',
-                  style: consumerText(
-                    fontSize: 15,
-                    lineHeight: 24,
-                    fontWeight: FontWeight.w800,
-                    color: ConsumerDetailColors.textStrong,
-                  ),
+                  'EGHU #${item.id ?? '-'}',
+                  style: consumerText(fontSize: 15, lineHeight: 24, fontWeight: FontWeight.w800, color: ConsumerDetailColors.textStrong),
                 ),
                 if (factoryLines.isNotEmpty) ...[
                   const SizedBox(height: 2),
@@ -1008,12 +809,7 @@ class _EgxuHeader extends StatelessWidget {
                       line,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: consumerText(
-                        fontSize: 11,
-                        lineHeight: 16,
-                        color: ConsumerDetailColors.textStrong,
-                        letterSpacing: 0.4,
-                      ),
+                      style: consumerText(fontSize: 11, lineHeight: 16, color: ConsumerDetailColors.textStrong, letterSpacing: 0.4),
                     ),
                 ],
                 const SizedBox(height: 4),
@@ -1022,24 +818,14 @@ class _EgxuHeader extends StatelessWidget {
                   runSpacing: 4,
                   children: [
                     if (item.egxuType?.name != null)
-                      _Chip(
-                        label: item.egxuType!.name!,
-                        color: ConsumerDetailColors.textStrong,
-                        bg: ConsumerDetailColors.soft,
-                      ),
+                      _Chip(label: item.egxuType!.name!, color: ConsumerDetailColors.textStrong, bg: ConsumerDetailColors.soft),
                     _StatusChip(active: active),
                   ],
                 ),
               ],
             ),
           ),
-          Icon(
-            expanded
-                ? Icons.keyboard_arrow_up_rounded
-                : Icons.keyboard_arrow_down_rounded,
-            size: 24,
-            color: ConsumerDetailColors.textStrong,
-          ),
+          Icon(expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, size: 24, color: ConsumerDetailColors.textStrong),
         ],
       ),
     );
@@ -1062,18 +848,8 @@ class _EgxuRelationEditor extends StatelessWidget {
   final GlobalState? globalState;
   final ValueChanged<ConsumerRelationEgxu> onChanged;
   final ValueChanged<ConsumersEgxuItem> onItemChanged;
-  final Future<GlobalModel?> Function({
-    required String title,
-    required List<GlobalModel> items,
-    required int? selectedId,
-  })
-  onSelectGlobal;
-  final Future<SelectItem?> Function({
-    required String title,
-    required List<SelectItem> items,
-    required String? selectedCode,
-  })
-  onSelectItem;
+  final Future<GlobalModel?> Function({required String title, required List<GlobalModel> items, required int? selectedId}) onSelectGlobal;
+  final Future<SelectItem?> Function({required String title, required List<SelectItem> items, required String? selectedCode}) onSelectItem;
 
   @override
   Widget build(BuildContext context) {
@@ -1139,9 +915,7 @@ class _EgxuRelationEditor extends StatelessWidget {
         ),
         _SelectorField(
           label: Words.status.tr(),
-          value: (item.isActive ?? false)
-              ? Words.active.tr()
-              : Words.inactive.tr(),
+          value: (item.isActive ?? false) ? Words.active.tr() : Words.inactive.tr(),
           onTap: () async {
             final selected = await onSelectItem(
               title: Words.status.tr(),
@@ -1157,11 +931,7 @@ class _EgxuRelationEditor extends StatelessWidget {
           label: Words.meterStatus.tr(),
           value: relation.counterStatus,
           onTap: () async {
-            final selected = await onSelectItem(
-              title: Words.meterStatus.tr(),
-              items: _counterStatusItems(),
-              selectedCode: relation.counterStatus,
-            );
+            final selected = await onSelectItem(title: Words.meterStatus.tr(), items: _counterStatusItems(), selectedCode: relation.counterStatus);
             if (selected != null) {
               onChanged(relation.copyWith(counterStatus: selected.code));
             }
@@ -1177,12 +947,7 @@ class _EgxuRelationEditor extends StatelessWidget {
               selectedId: relation.typeOfActivityId,
             );
             if (selected != null) {
-              onChanged(
-                relation.copyWith(
-                  typeOfActivity: selected.name ?? selected.fio,
-                  typeOfActivityId: selected.id,
-                ),
-              );
+              onChanged(relation.copyWith(typeOfActivity: selected.name ?? selected.fio, typeOfActivityId: selected.id));
             }
           },
         ),
@@ -1196,12 +961,7 @@ class _EgxuRelationEditor extends StatelessWidget {
               selectedId: relation.gasNetworksId,
             );
             if (selected != null) {
-              onChanged(
-                relation.copyWith(
-                  gasNetworks: selected.name ?? selected.fio,
-                  gasNetworksId: selected.id,
-                ),
-              );
+              onChanged(relation.copyWith(gasNetworks: selected.name ?? selected.fio, gasNetworksId: selected.id));
             }
           },
         ),
@@ -1215,12 +975,7 @@ class _EgxuRelationEditor extends StatelessWidget {
               selectedId: relation.egxuConnectionPointId,
             );
             if (selected != null) {
-              onChanged(
-                relation.copyWith(
-                  egxuConnectionPoint: selected.name ?? selected.fio,
-                  egxuConnectionPointId: selected.id,
-                ),
-              );
+              onChanged(relation.copyWith(egxuConnectionPoint: selected.name ?? selected.fio, egxuConnectionPointId: selected.id));
             }
           },
         ),
@@ -1228,18 +983,13 @@ class _EgxuRelationEditor extends StatelessWidget {
           label: Words.ghuId.tr(),
           value: relation.ghuIdNumber?.toString(),
           keyboardType: TextInputType.number,
-          onChanged: (v) =>
-              onChanged(relation.copyWith(ghuIdNumber: int.tryParse(v.trim()))),
+          onChanged: (v) => onChanged(relation.copyWith(ghuIdNumber: int.tryParse(v.trim()))),
         ),
         _SelectorField(
           label: Words.moveGtpAfterEghu.tr(),
           value: _moveGrpLabel(relation.movGrpAfterEgxu),
           onTap: () async {
-            final selected = await onSelectItem(
-              title: Words.moveGtpAfterEghu.tr(),
-              items: _moveGrpItems(),
-              selectedCode: relation.movGrpAfterEgxu,
-            );
+            final selected = await onSelectItem(title: Words.moveGtpAfterEghu.tr(), items: _moveGrpItems(), selectedCode: relation.movGrpAfterEgxu);
             if (selected != null) {
               onChanged(relation.copyWith(movGrpAfterEgxu: selected.code));
             }
@@ -1251,8 +1001,7 @@ class _EgxuRelationEditor extends StatelessWidget {
           minLines: 1,
           maxLines: 3,
           bottom: 0,
-          onChanged: (v) =>
-              onChanged(relation.copyWith(reasonsForViolations: v)),
+          onChanged: (v) => onChanged(relation.copyWith(reasonsForViolations: v)),
         ),
       ],
     );
@@ -1260,11 +1009,7 @@ class _EgxuRelationEditor extends StatelessWidget {
 }
 
 class _SaveBar extends StatelessWidget {
-  const _SaveBar({
-    required this.enabled,
-    required this.loading,
-    required this.onTap,
-  });
+  const _SaveBar({required this.enabled, required this.loading, required this.onTap});
 
   final bool enabled;
   final bool loading;
@@ -1274,26 +1019,14 @@ class _SaveBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(
-        20,
-        16,
-        20,
-        MediaQuery.paddingOf(context).bottom + 10,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.paddingOf(context).bottom + 10),
       child: SizedBox(
         height: 56,
         width: double.infinity,
         child: ElevatedButton.icon(
           onPressed: enabled && !loading ? onTap : null,
           icon: loading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : const Icon(Icons.check_rounded, size: 20),
           label: Text(Words.save.tr()),
           style: ElevatedButton.styleFrom(
@@ -1302,14 +1035,8 @@ class _SaveBar extends StatelessWidget {
             disabledBackgroundColor: const Color(0xFFF4F4F4),
             disabledForegroundColor: ConsumerDetailColors.textSub,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            textStyle: consumerText(
-              fontSize: 17,
-              lineHeight: 28,
-              fontWeight: FontWeight.w800,
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            textStyle: consumerText(fontSize: 17, lineHeight: 28, fontWeight: FontWeight.w800),
           ),
         ),
       ),
@@ -1341,7 +1068,7 @@ class _FigmaCard extends StatelessWidget {
 class _SoftHeader extends StatelessWidget {
   const _SoftHeader({required this.icon, required this.title, this.trailing});
 
-  final IconData icon;
+  final Widget icon;
   final String title;
   final Widget? trailing;
 
@@ -1350,10 +1077,7 @@ class _SoftHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: ConsumerDetailColors.field,
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: Colors.transparent /*ConsumerDetailColors.field*/, borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
           _IconBox(icon: icon),
@@ -1363,12 +1087,7 @@ class _SoftHeader extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: consumerText(
-                fontSize: 15,
-                lineHeight: 24,
-                fontWeight: FontWeight.w800,
-                color: ConsumerDetailColors.textStrong,
-              ),
+              style: consumerText(fontSize: 15, lineHeight: 24, fontWeight: FontWeight.w800, color: ConsumerDetailColors.textStrong),
             ),
           ),
           if (trailing != null) trailing!,
@@ -1382,14 +1101,16 @@ class _IconBox extends StatelessWidget {
   const _IconBox({
     required this.icon,
     this.size = 40,
+    this.paddingSize = 8,
     this.radius = 8,
     this.iconSize = 20,
     this.color = ConsumerDetailColors.soft,
     this.iconColor = ConsumerDetailColors.textStrong,
   });
 
-  final IconData icon;
+  final Widget icon;
   final double size;
+  final double paddingSize;
   final double radius;
   final double iconSize;
   final Color color;
@@ -1400,11 +1121,10 @@ class _IconBox extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(radius),
-      ),
-      child: Icon(icon, size: iconSize, color: iconColor),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(radius)),
+      // child: Icon(icon, size: iconSize, color: iconColor),
+      padding: EdgeInsets.all(paddingSize),
+      child: icon,
     );
   }
 }
@@ -1423,26 +1143,13 @@ class _InfoText extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: consumerText(
-              fontSize: 11,
-              lineHeight: 16,
-              color: ConsumerDetailColors.textSub,
-              letterSpacing: 0.4,
-            ),
-          ),
+          Text(label, style: consumerText(fontSize: 11, lineHeight: 16, color: ConsumerDetailColors.textSub, letterSpacing: 0.4)),
           const SizedBox(height: 2),
           Text(
             value?.trim().isNotEmpty == true ? value! : '-',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: consumerText(
-              fontSize: 13,
-              lineHeight: 20,
-              fontWeight: FontWeight.w800,
-              color: ConsumerDetailColors.textStrong,
-            ),
+            style: consumerText(fontSize: 13, lineHeight: 20, fontWeight: FontWeight.w800, color: ConsumerDetailColors.textStrong),
           ),
         ],
       ),
@@ -1466,14 +1173,7 @@ class _SmallButton extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(
-            label,
-            style: consumerText(
-              fontSize: 13,
-              lineHeight: 20,
-              color: const Color(0xFF1A1D2E),
-            ),
-          ),
+          child: Text(label, style: consumerText(fontSize: 13, lineHeight: 20, color: const Color(0xFF1A1D2E))),
         ),
       ),
     );
@@ -1501,7 +1201,7 @@ class _EditField extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final TextInputType? keyboardType;
   final String? suffix;
-  final IconData? trailingIcon;
+  final Widget? trailingIcon;
   final bool bold;
   final bool readOnly;
   final VoidCallback? onTap;
@@ -1516,15 +1216,7 @@ class _EditField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: consumerText(
-              fontSize: 11,
-              lineHeight: 16,
-              color: ConsumerDetailColors.textSub,
-              letterSpacing: 0.4,
-            ),
-          ),
+          Text(label, style: consumerText(fontSize: 11, lineHeight: 16, color: ConsumerDetailColors.textSub, letterSpacing: 0.4)),
           const SizedBox(height: 4),
           TextFormField(
             key: readOnly ? ValueKey('$label-$value') : null,
@@ -1543,24 +1235,10 @@ class _EditField extends StatelessWidget {
             ),
             decoration: InputDecoration(
               hintText: '-',
-              hintStyle: consumerText(
-                fontSize: 13,
-                lineHeight: 20,
-                color: ConsumerDetailColors.textSub,
-              ),
+              hintStyle: consumerText(fontSize: 13, lineHeight: 20, color: ConsumerDetailColors.textSub),
               suffixText: suffix,
-              suffixStyle: consumerText(
-                fontSize: 13,
-                lineHeight: 20,
-                color: ConsumerDetailColors.textSub,
-              ),
-              suffixIcon: trailingIcon == null
-                  ? null
-                  : Icon(
-                      trailingIcon,
-                      size: 20,
-                      color: ConsumerDetailColors.textSub,
-                    ),
+              suffixStyle: consumerText(fontSize: 13, lineHeight: 20, color: ConsumerDetailColors.textSub),
+              suffixIcon: trailingIcon /*Icon(trailingIcon, size: 20, color: ConsumerDetailColors.textSub)*/,
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1576,11 +1254,7 @@ class _EditField extends StatelessWidget {
 }
 
 class _NumberField extends StatelessWidget {
-  const _NumberField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+  const _NumberField({required this.label, required this.value, required this.onChanged});
 
   final String label;
   final double? value;
@@ -1599,11 +1273,7 @@ class _NumberField extends StatelessWidget {
 }
 
 class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
+  const _DateField({required this.label, required this.value, required this.onChanged});
 
   final String label;
   final String? value;
@@ -1616,15 +1286,10 @@ class _DateField extends StatelessWidget {
       value: value,
       bold: true,
       readOnly: true,
-      trailingIcon: Icons.calendar_today_rounded,
+      trailingIcon: Icon(Icons.calendar_today_rounded, size: 16, color: ConsumerDetailColors.textSub),
       onTap: () async {
         final initial = _parseDate(value) ?? DateTime.now();
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: initial,
-          firstDate: DateTime(1900),
-          lastDate: DateTime(2100),
-        );
+        final picked = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime(1900), lastDate: DateTime(2100));
         if (picked != null) {
           onChanged(AppDateFormatter.date(picked));
         }
@@ -1635,13 +1300,7 @@ class _DateField extends StatelessWidget {
 }
 
 class _SelectorField extends StatelessWidget {
-  const _SelectorField({
-    required this.label,
-    required this.value,
-    required this.onTap,
-    this.bold = false,
-    this.bottom = 6,
-  });
+  const _SelectorField({required this.label, required this.value, required this.onTap, this.bold = false, this.bottom = 6});
 
   final String label;
   final String? value;
@@ -1656,7 +1315,7 @@ class _SelectorField extends StatelessWidget {
       value: value,
       bold: bold,
       readOnly: true,
-      trailingIcon: Icons.keyboard_arrow_down_rounded,
+      trailingIcon: Icon(Icons.keyboard_arrow_down, size: 24, color: ConsumerDetailColors.textSub),
       bottom: bottom,
       onTap: onTap,
       onChanged: (_) {},
@@ -1686,15 +1345,8 @@ class _EghuActionChip extends StatelessWidget {
               Container(
                 width: 28,
                 height: 28,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.speed_rounded,
-                  size: 18,
-                  color: ConsumerDetailColors.primary,
-                ),
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                child: AppTools.svg(AppTools.icDashboardSpeed01),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1702,12 +1354,7 @@ class _EghuActionChip extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: consumerText(
-                    fontSize: 13,
-                    lineHeight: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
-                  ),
+                  style: consumerText(fontSize: 13, lineHeight: 20, fontWeight: FontWeight.w800, color: Colors.black),
                 ),
               ),
               const Icon(Icons.chevron_right_rounded, size: 24),
@@ -1731,51 +1378,32 @@ class _StatusChip extends StatelessWidget {
     return _Chip(
       label: active ? Words.active.tr() : Words.inactive.tr(),
       color: Colors.white,
-      bg: active
-          ? (verified ? const Color(0xFF47C2FF) : const Color(0xFF1FC16B))
-          : const Color(0xFFF04438),
-      icon: verified ? null : Icons.sell_outlined,
+      bg: active ? (verified ? const Color(0xFF47C2FF) : const Color(0xFF1FC16B)) : const Color(0xFFF04438),
+      icon: verified ? null : AppTools.svg(AppTools.icTag, colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn)),
     );
   }
 }
 
 class _Chip extends StatelessWidget {
-  const _Chip({
-    required this.label,
-    required this.color,
-    required this.bg,
-    this.icon,
-  });
+  const _Chip({required this.label, required this.color, required this.bg, this.icon});
 
   final String label;
   final Color color;
   final Color bg;
-  final IconData? icon;
+  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(15),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(15)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 4),
-          ],
+          if (icon != null) ...[icon! /*Icon(icon, size: 12, color: color)*/, const SizedBox(width: 4)],
           Text(
             label,
-            style: consumerText(
-              fontSize: 11,
-              lineHeight: 16,
-              fontWeight: FontWeight.w500,
-              color: color,
-              letterSpacing: 0.4,
-            ),
+            style: consumerText(fontSize: 11, lineHeight: 16, fontWeight: FontWeight.w500, color: color, letterSpacing: 0.4),
           ),
         ],
       ),
@@ -1813,12 +1441,7 @@ class _DashedLinePainter extends CustomPainter {
 }
 
 class _SelectionSheet<T> extends StatefulWidget {
-  const _SelectionSheet({
-    required this.title,
-    required this.items,
-    required this.selected,
-    required this.label,
-  });
+  const _SelectionSheet({required this.title, required this.items, required this.selected, required this.label});
 
   final String title;
   final List<T> items;
@@ -1834,28 +1457,15 @@ class _SelectionSheetState<T> extends State<_SelectionSheet<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = widget.items
-        .where(
-          (item) =>
-              widget.label(item).toLowerCase().contains(_query.toLowerCase()),
-        )
-        .toList();
+    final filtered = widget.items.where((item) => widget.label(item).toLowerCase().contains(_query.toLowerCase())).toList();
 
     return SafeArea(
       top: false,
       child: Align(
         alignment: Alignment.bottomCenter,
         child: Container(
-          constraints: BoxConstraints(
-            maxWidth: 390,
-            maxHeight: MediaQuery.sizeOf(context).height * 0.75,
-          ),
-          padding: EdgeInsets.fromLTRB(
-            20,
-            16,
-            20,
-            MediaQuery.paddingOf(context).bottom + 12,
-          ),
+          constraints: BoxConstraints(maxWidth: 390, maxHeight: MediaQuery.sizeOf(context).height * 0.75),
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.paddingOf(context).bottom + 12),
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1865,20 +1475,10 @@ class _SelectionSheetState<T> extends State<_SelectionSheet<T>> {
               Container(
                 width: 39,
                 height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE1E1E1),
-                  borderRadius: BorderRadius.circular(3),
-                ),
+                decoration: BoxDecoration(color: const Color(0xFFE1E1E1), borderRadius: BorderRadius.circular(3)),
               ),
               const SizedBox(height: 16),
-              Text(
-                widget.title,
-                style: consumerText(
-                  fontSize: 17,
-                  lineHeight: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              Text(widget.title, style: consumerText(fontSize: 17, lineHeight: 28, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               TextField(
                 onChanged: (value) => setState(() => _query = value),
@@ -1905,20 +1505,13 @@ class _SelectionSheetState<T> extends State<_SelectionSheet<T>> {
                           final item = filtered[index];
                           final isSelected = widget.selected(item);
                           return Material(
-                            color: isSelected
-                                ? ConsumerDetailColors.primary.withValues(
-                                    alpha: 0.1,
-                                  )
-                                : ConsumerDetailColors.field,
+                            color: isSelected ? ConsumerDetailColors.primary.withValues(alpha: 0.1) : ConsumerDetailColors.field,
                             borderRadius: BorderRadius.circular(12),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: () => Navigator.of(context).pop(item),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 12,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -1927,17 +1520,11 @@ class _SelectionSheetState<T> extends State<_SelectionSheet<T>> {
                                         style: consumerText(
                                           fontSize: 13,
                                           lineHeight: 20,
-                                          color: isSelected
-                                              ? ConsumerDetailColors.primary
-                                              : ConsumerDetailColors.textStrong,
+                                          color: isSelected ? ConsumerDetailColors.primary : ConsumerDetailColors.textStrong,
                                         ),
                                       ),
                                     ),
-                                    if (isSelected)
-                                      const Icon(
-                                        Icons.check_circle,
-                                        color: ConsumerDetailColors.primary,
-                                      ),
+                                    if (isSelected) const Icon(Icons.check_circle, color: ConsumerDetailColors.primary),
                                   ],
                                 ),
                               ),
@@ -1968,27 +1555,15 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              size: 64,
-              color: Color(0xFFF04438),
-            ),
+            const Icon(Icons.error_outline_rounded, size: 64, color: Color(0xFFF04438)),
             const SizedBox(height: 16),
             Text(
               message ?? Words.errorOccurred.tr(),
               textAlign: TextAlign.center,
-              style: consumerText(
-                fontSize: 14,
-                lineHeight: 20,
-                color: ConsumerDetailColors.textSub,
-              ),
+              style: consumerText(fontSize: 14, lineHeight: 20, color: ConsumerDetailColors.textSub),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: Text(Words.retry.tr()),
-            ),
+            ElevatedButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded, size: 18), label: Text(Words.retry.tr())),
           ],
         ),
       ),
@@ -2026,34 +1601,20 @@ String _boolLabel(bool? value) {
 List<String> _factoryLines(ConsumersEgxuItem item) {
   final one = item.oneFactory?.trim();
   final two = item.twoFactory?.trim();
-  return [
-    if (one != null && one.isNotEmpty) '${Words.factoryOne.tr()}: $one',
-    if (two != null && two.isNotEmpty) '${Words.factoryTwo.tr()}: $two',
-  ];
+  return [if (one != null && one.isNotEmpty) '${Words.factoryOne.tr()}: $one', if (two != null && two.isNotEmpty) '${Words.factoryTwo.tr()}: $two'];
 }
 
 String _moveGrpLabel(String? code) {
-  return _moveGrpItems()
-          .where((item) => item.code == code)
-          .map((item) => item.label)
-          .firstOrNull ??
-      code ??
-      '-';
+  return _moveGrpItems().where((item) => item.code == code).map((item) => item.label).firstOrNull ?? code ?? '-';
 }
 
 List<String> _seasonOptions() => ['Bahor', 'Yoz', 'Kuz', 'Qish'];
 
-List<SelectItem> _yesNoItems() => [
-  SelectItem(code: 'true', label: Words.yes.tr()),
-  SelectItem(code: 'false', label: Words.no.tr()),
-];
+List<SelectItem> _yesNoItems() => [SelectItem(code: 'true', label: Words.yes.tr()), SelectItem(code: 'false', label: Words.no.tr())];
 
 List<SelectItem> _counterStatusItems() => [
   SelectItem(code: 'Installed', label: Words.installed.tr()),
-  SelectItem(
-    code: 'TemporarilyDisabled',
-    label: Words.temporarilyDisabled.tr(),
-  ),
+  SelectItem(code: 'TemporarilyDisabled', label: Words.temporarilyDisabled.tr()),
   SelectItem(code: 'Untied', label: Words.untied.tr()),
   SelectItem(code: 'New', label: Words.newItem.tr()),
 ];

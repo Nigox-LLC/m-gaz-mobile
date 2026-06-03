@@ -38,6 +38,8 @@ class EghuActionCreateState extends Equatable {
             number: real.realNumberValue ?? '',
             installedAt: _parseDate(real.installedDate) ?? fallbackDate,
             employeeName: employeeName,
+            installationPlaceId: real.installationPlaceId,
+            installationPlaceName: real.installationPlaceName,
           ),
         )
         .toList();
@@ -98,12 +100,21 @@ class EghuActionCreateState extends Equatable {
   bool get hasValidStamps =>
       stamps.isNotEmpty && stamps.every((stamp) => stamp.isValid);
 
+  /// Reinstall requires every stamp to have an installation place selected.
+  bool get requiresStampInstallationPlace =>
+      actionType == ActionMenuType.reinstall;
+
+  bool get hasValidStampPlaces =>
+      !requiresStampInstallationPlace ||
+      stamps.every((stamp) => stamp.installationPlaceId != null);
+
   bool get canSubmit =>
       selectedConsumer != null &&
       selectedEghu?.id != null &&
       actFile != null &&
       comparisonFile != null &&
-      hasValidStamps;
+      hasValidStamps &&
+      hasValidStampPlaces;
 
   EghuActionCreateRequest? toRequest() {
     final consumer = selectedConsumer;
@@ -115,7 +126,8 @@ class EghuActionCreateState extends Equatable {
         eghu?.id == null ||
         act == null ||
         comparison == null ||
-        !hasValidStamps) {
+        !hasValidStamps ||
+        !hasValidStampPlaces) {
       return null;
     }
 

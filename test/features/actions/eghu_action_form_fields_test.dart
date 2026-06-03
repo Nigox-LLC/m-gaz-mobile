@@ -61,4 +61,77 @@ void main() {
 
     expect(changedDate, DateTime(2026, 5, 28, 1, 3));
   });
+
+  testWidgets('installation place field is hidden by default', (tester) async {
+    const localId = 'stamp-hidden';
+    final stamp = EghuActionStampEntry.newEntry(
+      localId: localId,
+      installedAt: DateTime(2026, 5, 28),
+      employeeName: 'Tester',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EghuStampSection(
+            stamps: [stamp],
+            onAdd: () {},
+            onNumberChanged: (_, __) {},
+            onDateChanged: (_, __) {},
+            onRemoveUnsaved: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('eghu-stamp-place-field-$localId')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('installation place field selects and clears', (tester) async {
+    const localId = 'stamp-place';
+    String? selectedId;
+    String? clearedId;
+    final empty = EghuActionStampEntry.newEntry(
+      localId: localId,
+      installedAt: DateTime(2026, 5, 28),
+      employeeName: 'Tester',
+    );
+
+    Widget build(EghuActionStampEntry stamp) => MaterialApp(
+      home: Scaffold(
+        body: EghuStampSection(
+          stamps: [stamp],
+          showInstallationPlace: true,
+          onAdd: () {},
+          onNumberChanged: (_, __) {},
+          onDateChanged: (_, __) {},
+          onRemoveUnsaved: (_) {},
+          onSelectPlace: (id) => selectedId = id,
+          onPlaceCleared: (id) => clearedId = id,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(build(empty));
+
+    const fieldKey = Key('eghu-stamp-place-field-$localId');
+    expect(find.byKey(fieldKey), findsOneWidget);
+    // No value yet -> tapping the field requests selection.
+    await tester.tap(find.byKey(fieldKey));
+    expect(selectedId, localId);
+
+    // With a value, the clear button appears and clears.
+    final filled = empty.copyWith(
+      installationPlaceId: 5,
+      installationPlaceName: 'Quvur kirishi',
+    );
+    await tester.pumpWidget(build(filled));
+    expect(find.text('Quvur kirishi'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('eghu-stamp-place-clear-$localId')));
+    expect(clearedId, localId);
+  });
 }

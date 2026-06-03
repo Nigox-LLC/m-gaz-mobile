@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:m_gaz/global_widget/app_tools.dart';
 
 import '../../../../core/common/words.dart';
 import '../../../../core/models/working_with_consumers_document/consumer_file_models.dart';
@@ -438,11 +439,7 @@ class _DropZone extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.attach_file_rounded,
-                size: 18,
-                color: ConsumerDetailColors.text,
-              ),
+              AppTools.svg(AppTools.icPaperclip),
               const SizedBox(width: 8),
               Text(text, style: consumerText(fontSize: 15, lineHeight: 24)),
             ],
@@ -654,13 +651,13 @@ class ConsumerSourceSheet extends StatelessWidget {
               ),
             ),
             _SourceTile(
-              icon: Icons.photo_camera_rounded,
+              icon: AppTools.svg(AppTools.icCamera),
               label: Words.openCamera.tr(),
               onTap: () => Navigator.of(context).pop(ConsumerPickSource.camera),
             ),
             const SizedBox(height: 8),
             _SourceTile(
-              icon: Icons.folder_open_rounded,
+              icon: AppTools.svg(AppTools.icFolderPlus),
               label: Words.uploadFromPhone.tr(),
               onTap: () => Navigator.of(context).pop(ConsumerPickSource.device),
             ),
@@ -678,7 +675,7 @@ class _SourceTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String label;
   final VoidCallback onTap;
 
@@ -695,7 +692,8 @@ class _SourceTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: ConsumerDetailColors.primary),
+              // Icon(icon, size: 22, color: ConsumerDetailColors.primary),
+              icon,
               const SizedBox(width: 14),
               Text(
                 label,

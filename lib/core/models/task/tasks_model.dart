@@ -103,18 +103,20 @@ class TaskModel {
 class ConsumerDocument {
   final int documentId;
   final String documentName;
+  final int documentFacial;
 
-  ConsumerDocument({required this.documentId, required this.documentName});
+  ConsumerDocument({required this.documentId, required this.documentName, required this.documentFacial});
 
   factory ConsumerDocument.fromJson(Map<String, dynamic> json) {
     return ConsumerDocument(
       documentId: _readInt(json['document_id']),
       documentName: _readDisplayText(json['document_name']),
+      documentFacial: _readInt(json['document_facial']),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'document_id': documentId, 'document_name': documentName};
+    return {'document_id': documentId, 'document_name': documentName, 'document_facial': documentFacial};
   }
 }
 

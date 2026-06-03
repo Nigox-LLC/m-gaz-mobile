@@ -352,6 +352,7 @@ enum Words {
   actInformation,
   comparisonInformation,
   stampNumberHint,
+  stampInstallationPlace,
   uploadedBy,
   fileDate,
   fileSizeLabel,

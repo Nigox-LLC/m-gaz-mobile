@@ -74,6 +74,18 @@ void main() {
 
       await pumpEventQueue();
 
+      // Reinstall requires a stamp installation place before submit is allowed.
+      expect(bloc.state.canSubmit, isFalse);
+
+      bloc.add(
+        EghuActionStampPlaceChanged(
+          localId: bloc.state.stamps.first.localId,
+          placeId: 5,
+          placeName: 'Quvur kirishi',
+        ),
+      );
+      await pumpEventQueue();
+
       expect(bloc.state.canSubmit, isTrue);
       final request = bloc.state.toRequest();
       expect(request, isNotNull);
@@ -84,6 +96,12 @@ void main() {
       expect(request.regionId, 3);
       expect(request.districtId, 50);
       expect(request.typeOfActivityId, 110);
+      final real = (request.toJson()['reals'] as List).single as Map;
+      expect(real['seal_initalled_location'], 5);
+
+      bloc.add(EghuActionStampPlaceCleared(bloc.state.stamps.first.localId));
+      await pumpEventQueue();
+      expect(bloc.state.canSubmit, isFalse);
     });
 
     test('profile update preserves existing form values', () async {
@@ -165,6 +183,15 @@ void main() {
         ..add(const EghuActionStampNumberChanged('123'));
       await pumpEventQueue();
 
+      bloc.add(
+        EghuActionStampPlaceChanged(
+          localId: bloc.state.stamps.first.localId,
+          placeId: 5,
+          placeName: 'Quvur kirishi',
+        ),
+      );
+      await pumpEventQueue();
+
       bloc.add(const EghuActionSubmitted());
       await pumpEventQueue();
 
@@ -183,6 +210,7 @@ void main() {
       expect(real['id'], isNull);
       expect(real['real_number_value'], '123');
       expect(real['installed_date'], '2026-05-28');
+      expect(real['seal_initalled_location'], 5);
     });
 
     test('detach request maps to removal document type', () async {
@@ -240,6 +268,15 @@ void main() {
         ..add(const EghuActionStampNumberChanged('123'));
       await pumpEventQueue();
 
+      bloc.add(
+        EghuActionStampPlaceChanged(
+          localId: bloc.state.stamps.first.localId,
+          placeId: 5,
+          placeName: 'Quvur kirishi',
+        ),
+      );
+      await pumpEventQueue();
+
       bloc.add(const EghuActionSubmitted());
       await pumpEventQueue();
 
@@ -266,6 +303,15 @@ void main() {
           ),
         )
         ..add(const EghuActionStampNumberChanged('123'));
+      await pumpEventQueue();
+
+      bloc.add(
+        EghuActionStampPlaceChanged(
+          localId: bloc.state.stamps.first.localId,
+          placeId: 5,
+          placeName: 'Quvur kirishi',
+        ),
+      );
       await pumpEventQueue();
 
       bloc.add(const EghuActionSubmitted());
@@ -315,11 +361,15 @@ void main() {
               id: 1,
               realNumberValue: '111',
               installedDate: '2026-05-28',
+              installationPlaceId: 9,
+              installationPlaceName: 'Joy',
             ),
             EghuRemovalReal(
               id: 2,
               realNumberValue: '222',
               installedDate: '2026-05-29',
+              installationPlaceId: 9,
+              installationPlaceName: 'Joy',
             ),
           ],
           akts: const [
@@ -348,6 +398,17 @@ void main() {
 
       final newStampId = editBloc.state.stamps.first.localId;
       editBloc.add(EghuActionStampNumberChanged('333', localId: newStampId));
+      await pumpEventQueue();
+
+      // New stamp needs an installation place; the existing stamps already
+      // carry one from the loaded detail.
+      editBloc.add(
+        EghuActionStampPlaceChanged(
+          localId: newStampId,
+          placeId: 9,
+          placeName: 'Joy',
+        ),
+      );
       await pumpEventQueue();
 
       editBloc.add(const EghuActionSubmitted());

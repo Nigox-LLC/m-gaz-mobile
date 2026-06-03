@@ -13,6 +13,8 @@ class TaskState extends Equatable {
   final bool isLoadingMore;
   final String? errorMessage;
   final String? profileUsername;
+  final String searchQuery;
+  final String? filterType;
 
   final TaskModel? selectedTask;
   final TaskModel? taskDetail;
@@ -29,6 +31,8 @@ class TaskState extends Equatable {
     this.isLoadingMore = false,
     this.errorMessage,
     this.profileUsername,
+    this.searchQuery = '',
+    this.filterType,
     this.selectedTask,
     this.taskDetail,
     this.isCompletingTask = false,
@@ -44,20 +48,26 @@ class TaskState extends Equatable {
     bool? isLoadingMore,
     String? errorMessage,
     String? profileUsername,
+    String? searchQuery,
+    String? filterType,
     TaskModel? selectedTask,
     TaskModel? taskDetail,
     bool? isCompletingTask,
     bool? isCancelingTask,
+    bool clearNextUrl = false,
+    bool clearFilterType = false,
   }) {
     return TaskState(
       status: status ?? this.status,
       tasks: tasks ?? this.tasks,
       taskAnalysis: taskAnalysis ?? this.taskAnalysis,
-      nextUrl: nextUrl ?? this.nextUrl,
+      nextUrl: clearNextUrl ? null : (nextUrl ?? this.nextUrl),
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       errorMessage: errorMessage ?? this.errorMessage,
       profileUsername: profileUsername ?? this.profileUsername,
+      searchQuery: searchQuery ?? this.searchQuery,
+      filterType: clearFilterType ? null : (filterType ?? this.filterType),
       taskDetail: taskDetail ?? this.taskDetail,
       selectedTask: selectedTask ?? this.selectedTask,
       isCompletingTask: isCompletingTask ?? this.isCompletingTask,
@@ -75,6 +85,8 @@ class TaskState extends Equatable {
     isLoadingMore,
     errorMessage,
     profileUsername,
+    searchQuery,
+    filterType,
     selectedTask,
     taskDetail,
     isCompletingTask,

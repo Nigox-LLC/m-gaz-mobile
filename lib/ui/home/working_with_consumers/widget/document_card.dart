@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/models/working_with_consumers_document/working_with_consumers_list.dart';
+import 'package:m_gaz/global_widget/app_tools.dart';
 
 class DocumentCardData {
   const DocumentCardData({
@@ -70,11 +71,8 @@ class DocumentCard extends StatelessWidget {
                         color: const Color(0xFFC0D5FF),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
-                        Icons.apartment_rounded,
-                        color: Color(0xFF2864FF),
-                        size: 24,
-                      ),
+                      padding: EdgeInsets.all(8),
+                      child: AppTools.svg(AppTools.icApartment, width: 24, height: 24),
                     ),
                     const SizedBox(width: 12),
                     Expanded(child: _buildConsumerTitle(document.consumerName)),
@@ -82,14 +80,14 @@ class DocumentCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _buildDetailRow(
-                  icon: Icons.person_outline_rounded,
+                  icon: AppTools.svg(AppTools.icUser),
                   label: Words.status.tr(),
                   value: Words.stampNotInstalled.tr(),
                   emphasizeValue: true,
                 ),
                 const SizedBox(height: 8),
                 _buildDetailRow(
-                  icon: Icons.map_outlined,
+                  icon: AppTools.svg(AppTools.icMap),
                   label: Words.area.tr(),
                   value: location.isEmpty ? '-' : location,
                 ),
@@ -157,7 +155,7 @@ class DocumentCard extends StatelessWidget {
   }
 
   Widget _buildDetailRow({
-    required IconData icon,
+    required Widget icon,
     required String label,
     required String value,
     bool emphasizeValue = false,
@@ -167,7 +165,7 @@ class DocumentCard extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Icon(icon, size: 16, color: const Color(0xFFBBBBBB)),
+          child: icon/*Icon(icon, size: 16, color: const Color(0xFFBBBBBB))*/,
         ),
         const SizedBox(width: 8),
         Expanded(

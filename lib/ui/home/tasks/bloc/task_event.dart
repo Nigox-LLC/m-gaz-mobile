@@ -23,6 +23,25 @@ class TaskAnalysisLoad extends TaskEvent {
 
 class TaskLoadMore extends TaskEvent {}
 
+class TaskSearchChanged extends TaskEvent {
+  final String query;
+
+  const TaskSearchChanged(this.query);
+
+  @override
+  List<Object?> get props => [query];
+}
+
+class TaskFilterChanged extends TaskEvent {
+  final String? type;
+  final bool clearFilter;
+
+  const TaskFilterChanged({this.type, this.clearFilter = false});
+
+  @override
+  List<Object?> get props => [type, clearFilter];
+}
+
 class TaskDetailFetched extends TaskEvent {
   final int documentId;
 

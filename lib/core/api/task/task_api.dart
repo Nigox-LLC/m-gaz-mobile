@@ -22,15 +22,20 @@ class TaskApi {
   Future<PaginatedResponse<TaskModel>> getTasks({
     int limit = 20,
     int offset = 0,
+    String? type,
+    String? search,
   }) async {
     try {
       debugPrint("🔹 Consumer Relations so'rov yuborilmoqda...");
       debugPrint("🔹 Limit: $limit, Offset: $offset");
 
-      final response = await _dio.get(
-        'task/list/',
-        queryParameters: {'limit': limit, 'offset': offset},
-      );
+      final query = <String, dynamic>{'limit': limit, 'offset': offset};
+      if (search != null && search.trim().isNotEmpty) {
+        query['search'] = search.trim();
+      }
+
+      final endpoint = type == null ? 'task/list/' : 'task/$type/';
+      final response = await _dio.get(endpoint, queryParameters: query);
 
       debugPrint("🔹 Javob status code: ${response.statusCode}");
 

@@ -343,6 +343,7 @@
   "actInformation": "Данные акта",
   "comparisonInformation": "Данные новой поверки",
   "stampNumberHint": "Введите номер",
+  "stampInstallationPlace": "Место установки пломбы",
   "uploadedBy": "Загрузил",
   "fileDate": "Дата",
   "fileSizeLabel": "Размер",

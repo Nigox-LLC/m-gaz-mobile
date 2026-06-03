@@ -4,13 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'eghu_action_form_fields.dart';
 
 class EghuCreateHeader extends StatefulWidget {
-  const EghuCreateHeader({
-    super.key,
-    required this.title,
-    required this.helpText,
-    required this.helpButtonKey,
-    required this.helpTooltipKey,
-  });
+  const EghuCreateHeader({super.key, required this.title, required this.helpText, required this.helpButtonKey, required this.helpTooltipKey});
 
   final String title;
   final String helpText;
@@ -48,10 +42,7 @@ class _EghuCreateHeaderState extends State<EghuCreateHeader> {
               alignment: Alignment.topLeft,
               widthFactor: 1,
               heightFactor: 1,
-              child: _EghuCreateHeaderHelpTooltip(
-                tooltipKey: widget.helpTooltipKey,
-                text: widget.helpText,
-              ),
+              child: _EghuCreateHeaderHelpTooltip(tooltipKey: widget.helpTooltipKey, text: widget.helpText),
             ),
           ),
         ),
@@ -72,13 +63,19 @@ class _EghuCreateHeaderState extends State<EghuCreateHeader> {
       height: 40,
       child: Row(
         children: [
-          IconButton(
+          /*IconButton(
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.chevron_left_rounded),
             color: EghuActionCreateColors.textStrong,
             iconSize: 28,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints.tightFor(width: 32, height: 40),
+          ),*/
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).maybePop();
+            },
+            child: const Icon(Icons.chevron_left_rounded, size: 28),
           ),
           Expanded(
             child: Text(
@@ -86,17 +83,12 @@ class _EghuCreateHeaderState extends State<EghuCreateHeader> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: GoogleFonts.manrope(
-                fontSize: 17,
-                height: 28 / 17,
-                fontWeight: FontWeight.w800,
-                color: EghuActionCreateColors.textStrong,
-              ),
+              style: GoogleFonts.manrope(fontSize: 17, height: 28 / 17, fontWeight: FontWeight.w800, color: EghuActionCreateColors.textStrong),
             ),
           ),
           CompositedTransformTarget(
             link: _helpLink,
-            child: IconButton(
+            child: GestureDetector(onTap: _toggleTooltip, child: const Icon(Icons.help_outline_rounded)) /*IconButton(
               key: widget.helpButtonKey,
               onPressed: _toggleTooltip,
               icon: const Icon(Icons.help_outline_rounded),
@@ -104,7 +96,7 @@ class _EghuCreateHeaderState extends State<EghuCreateHeader> {
               iconSize: 24,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 32, height: 40),
-            ),
+            )*/,
           ),
         ],
       ),
@@ -113,10 +105,7 @@ class _EghuCreateHeaderState extends State<EghuCreateHeader> {
 }
 
 class _EghuCreateHeaderHelpTooltip extends StatelessWidget {
-  const _EghuCreateHeaderHelpTooltip({
-    required this.tooltipKey,
-    required this.text,
-  });
+  const _EghuCreateHeaderHelpTooltip({required this.tooltipKey, required this.text});
 
   final Key tooltipKey;
   final String text;
@@ -136,16 +125,8 @@ class _EghuCreateHeaderHelpTooltip extends StatelessWidget {
               color: const Color(0xFFF9F9F9),
               borderRadius: BorderRadius.circular(16),
               boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0D000000),
-                  blurRadius: 1.5,
-                  offset: Offset(0, 1),
-                ),
-                BoxShadow(
-                  color: Color(0x1F000000),
-                  blurRadius: 15,
-                  offset: Offset(0, 4),
-                ),
+                BoxShadow(color: Color(0x0D000000), blurRadius: 1.5, offset: Offset(0, 1)),
+                BoxShadow(color: Color(0x1F000000), blurRadius: 15, offset: Offset(0, 4)),
               ],
             ),
             child: Material(

@@ -10,9 +10,12 @@ part 'eghu_indicator_list_state.dart';
 
 class EghuIndicatorListBloc
     extends Bloc<EghuIndicatorListEvent, EghuIndicatorListState> {
-  EghuIndicatorListBloc({required EghuIndicatorListApi api, this.limit = 10})
-    : _api = api,
-      super(const EghuIndicatorListState()) {
+  EghuIndicatorListBloc({
+    required EghuIndicatorListApi api,
+    this.limit = 10,
+    String? facial,
+  }) : _api = api,
+       super(EghuIndicatorListState(searchQuery: facial?.trim() ?? '')) {
     on<EghuIndicatorListStarted>(_onStarted);
     on<EghuIndicatorListRefreshed>(_onRefreshed);
     on<EghuIndicatorListLoadMoreRequested>(_onLoadMoreRequested);

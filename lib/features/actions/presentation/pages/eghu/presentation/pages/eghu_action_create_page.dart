@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../../../../core/api/working_with_consumers_api/consumer_relations_api.dart';
 import '../../../../../../../core/common/words.dart';
 import '../../../../../../../core/extension/message_extension.dart';
+import '../../../../../../../core/models/global/global_model.dart';
 import '../../../../../../../core/models/working_with_consumers_document/working_with_consumers_list.dart';
 import '../../../../../../../di.dart';
 import '../../../../../../../features/auth/presentation/bloc/login_bloc.dart';
@@ -33,6 +34,7 @@ class EghuActionCreatePage extends StatefulWidget {
     this.consumerApi,
     this.consumerSource,
     this.bloc,
+    this.preselection,
   });
 
   final ActionMenuType actionType;
@@ -42,6 +44,7 @@ class EghuActionCreatePage extends StatefulWidget {
   final ConsumerRelationsApi? consumerApi;
   final EghuActionConsumerSource? consumerSource;
   final EghuActionCreateBloc? bloc;
+  final EghuActionPreselection? preselection;
 
   @override
   State<EghuActionCreatePage> createState() => _EghuActionCreatePageState();
@@ -51,7 +54,9 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
   final _imagePicker = ImagePicker();
   EghuActionCreateBloc? _bloc;
   EghuActionConsumerSource? _consumerSource;
+  EghuStampPlaceSource? _placeSource;
   bool _profileLoadRequested = false;
+  bool _preselectionApplied = false;
 
   @override
   void didChangeDependencies() {
@@ -61,6 +66,7 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
         ConsumerRelationsEghuSource(
           widget.consumerApi ?? di.get<ConsumerRelationsApi>(),
         );
+    _placeSource ??= defaultStampPlaceSource();
 
     final profile = _readLoginState(context);
     _bloc ??=
@@ -83,6 +89,24 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
     } else {
       _syncProfile(profile!);
     }
+
+    _applyPreselection();
+  }
+
+  void _applyPreselection() {
+    final preselection = widget.preselection;
+    if (_preselectionApplied || preselection == null || widget.detail != null) {
+      return;
+    }
+    _preselectionApplied = true;
+    _bloc!
+      ..add(EghuActionConsumerSelected(preselection.consumer))
+      ..add(
+        EghuActionEghuSelected(
+          preselection.eghu,
+          consumerDetail: preselection.detail,
+        ),
+      );
   }
 
   @override
@@ -164,6 +188,7 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
                               EghuStampSection(
                                 stamps: state.stamps,
                                 employeeName: state.employeeName,
+                                showInstallationPlace: true,
                                 onAdd: () => context
                                     .read<EghuActionCreateBloc>()
                                     .add(const EghuActionStampAdded()),
@@ -181,6 +206,11 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
                                         localId: localId,
                                       ),
                                     ),
+                                onSelectPlace: (localId) =>
+                                    _selectStampPlace(context, state, localId),
+                                onPlaceCleared: (localId) => context
+                                    .read<EghuActionCreateBloc>()
+                                    .add(EghuActionStampPlaceCleared(localId)),
                                 onRemoveUnsaved: (localId) => context
                                     .read<EghuActionCreateBloc>()
                                     .add(EghuActionStampRemoved(localId)),
@@ -355,6 +385,35 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
     if (!context.mounted || selected == null) return;
     context.read<EghuActionCreateBloc>().add(
       EghuActionEghuSelected(selected.item, consumerDetail: selected.detail),
+    );
+  }
+
+  Future<void> _selectStampPlace(
+    BuildContext context,
+    EghuActionCreateState state,
+    String localId,
+  ) async {
+    final stamp = state.stamps
+        .where((item) => item.localId == localId)
+        .firstOrNull;
+
+    final selected = await showModalBottomSheet<GlobalModel>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EghuStampPlacePickerSheet(
+        source: _placeSource!,
+        selectedId: stamp?.installationPlaceId,
+      ),
+    );
+
+    if (!context.mounted || selected?.id == null) return;
+    context.read<EghuActionCreateBloc>().add(
+      EghuActionStampPlaceChanged(
+        localId: localId,
+        placeId: selected!.id!,
+        placeName: selected.name ?? '',
+      ),
     );
   }
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:m_gaz/ui/home/working_with_consumers/sub_page/detail.dart';
+import 'package:m_gaz/ui/home/working_with_consumers/sub_page/consumer_detail.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/widget/document_card.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/widget/filter_bottom_sheet.dart';
 import '../../../core/common/words.dart';

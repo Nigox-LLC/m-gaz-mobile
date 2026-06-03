@@ -97,15 +97,22 @@ class EghuRemovalReal extends Equatable {
     required this.id,
     this.realNumberValue,
     this.installedDate,
+    this.installationPlaceId,
+    this.installationPlaceName,
   });
 
   final int? id;
   final String? realNumberValue;
   final String? installedDate;
+  final int? installationPlaceId;
+  final String? installationPlaceName;
 
   factory EghuRemovalReal.fromJson(Map<String, dynamic> json) {
     final real = _asMap(json['real']);
     final realNumber = _asMap(real?['real_number']);
+    final placeRaw =
+        json['seal_initalled_location'] ?? real?['seal_initalled_location'];
+    final placeMap = _asMap(placeRaw);
 
     return EghuRemovalReal(
       id: _parseInt(json['id']),
@@ -118,11 +125,25 @@ class EghuRemovalReal extends Equatable {
         json['installed_date'],
         real?['installed_date'],
       ]),
+      installationPlaceId: placeMap != null
+          ? _parseInt(placeMap['id'])
+          : _parseInt(placeRaw),
+      installationPlaceName: _firstText([
+        placeMap?['name'],
+        json['seal_initalled_location_name'],
+        json['seal_initalled_location_display'],
+      ]),
     );
   }
 
   @override
-  List<Object?> get props => [id, realNumberValue, installedDate];
+  List<Object?> get props => [
+    id,
+    realNumberValue,
+    installedDate,
+    installationPlaceId,
+    installationPlaceName,
+  ];
 }
 
 class EghuRemovalAkt extends Equatable {
