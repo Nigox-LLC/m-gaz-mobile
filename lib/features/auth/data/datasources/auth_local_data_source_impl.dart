@@ -47,6 +47,9 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> clear() => _hive.clear();
 
   @override
+  Future<void> clearAll() => _hive.clearAll();
+
+  @override
   String get lastAgreementDate => _hive.lastAgreementDate;
 
   @override

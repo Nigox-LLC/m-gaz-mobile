@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:m_gaz/app/injection.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/core/extension/navigator_extension.dart';
+import 'package:m_gaz/core/usecase/usecase.dart';
+import 'package:m_gaz/features/auth/domain/usecases/get_saved_username_usecase.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_text_field.dart';
@@ -33,6 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   String? _authErrorMessage;
+  // Faqat shu ekrandan yuborilgan login natijasiga reaksiya qilamiz — bloc
+  // singleton'da qolib ketgan eski `success` state home'ga sakratib yubormasin.
+  bool _submitted = false;
 
   bool get _hasInput =>
       userNameController.text.trim().isNotEmpty &&
@@ -43,18 +49,23 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    final loginBloc = context.read<LoginBloc>();
-    // LoginBloc app darajasidagi singleton — state umumiy. Agar username
-    // allaqachon yuklangan bo'lsa (oldingi tashrif), uni darhol prefill qilamiz.
-    // Listener'dan oldin o'rnatamiz — initState'da setState chaqirilmasin.
-    final cached = loginBloc.state.savedUsername;
-    if (cached.isNotEmpty) {
-      userNameController.text = cached;
-    }
     userNameController.addListener(_handleInputChanged);
     passwordController.addListener(_handleInputChanged);
-    // Birinchi marta (yoki yangilangan) username'ni hive'dan yuklash uchun.
-    loginBloc.add(const LoadSavedUsername());
+    _prefillSavedUsername();
+  }
+
+  // Saqlangan foydalanuvchi nomini har safar ekran ochilganda (cold start,
+  // relaunch, orqa fondan qaytish) to'g'ridan-to'g'ri storage'dan o'qib prefill
+  // qilamiz. Bloc app-level singleton bo'lgani uchun uning state'iga tayanmaymiz:
+  // eski/teng state listener'ni qayta ishga tushirmaydi va prefill o'tkazib
+  // yuboriladi.
+  Future<void> _prefillSavedUsername() async {
+    final result = await getIt<GetSavedUsernameUseCase>()(const NoParams());
+    final name = result.getOrElse(() => '');
+    if (!mounted || name.isEmpty) return;
+    if (userNameController.text.isEmpty) {
+      userNameController.text = name;
+    }
   }
 
   @override
@@ -90,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    _submitted = true;
     context.read<LoginBloc>().add(
       LoginSubmitted(
         userName: userNameController.text.trim(),
@@ -111,10 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: _backgroundColor,
         body: BlocListener<LoginBloc, LoginState>(
           listener: (context, state) {
-            if (state.savedUsername.isNotEmpty &&
-                userNameController.text.isEmpty) {
-              userNameController.text = state.savedUsername;
-            }
+            // Faqat shu ekrandan yuborilgan login natijasini hisobga olamiz.
+            if (!_submitted) return;
             if (state.status == LoginStatus.fail) {
               setState(() {
                 _authErrorMessage = Words.loginInvalidCredentials.tr();

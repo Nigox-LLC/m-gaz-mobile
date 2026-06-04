@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:m_gaz/app/injection.dart';
 import 'package:m_gaz/core/error/failures.dart';
 import 'package:m_gaz/features/auth/domain/entities/auth_token.dart';
 import 'package:m_gaz/features/auth/domain/entities/user.dart';
@@ -173,6 +174,19 @@ void main() {
 
 Future<void> _pumpLoginScreen(WidgetTester tester) async {
   final repository = _FakeAuthRepository();
+
+  // LoginScreen storage'dan username'ni getIt orqali to'g'ridan-to'g'ri o'qiydi.
+  if (getIt.isRegistered<GetSavedUsernameUseCase>()) {
+    getIt.unregister<GetSavedUsernameUseCase>();
+  }
+  getIt.registerFactory<GetSavedUsernameUseCase>(
+    () => GetSavedUsernameUseCase(repository),
+  );
+  addTearDown(() {
+    if (getIt.isRegistered<GetSavedUsernameUseCase>()) {
+      getIt.unregister<GetSavedUsernameUseCase>();
+    }
+  });
 
   await tester.pumpWidget(
     EasyLocalization(

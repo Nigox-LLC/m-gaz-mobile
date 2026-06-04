@@ -63,6 +63,10 @@ class ApiHive {
     }
   }
 
+  /// Hard wipe — clears the entire box including the saved username. Used on
+  /// explicit logout when no local state should survive.
+  Future<void> clearAll() async => await _base.apiBox.clear();
+
   // ⭐⭐⭐ YANGI QO‘SHILGAN QISM ⭐⭐⭐
 
   String get savedUsername =>

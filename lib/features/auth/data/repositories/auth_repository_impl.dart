@@ -66,7 +66,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, Unit>> logout() async {
     try {
-      await _local.clear();
+      await _local.clearAll();
       return const Right(unit);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

@@ -34,6 +34,16 @@ import '../features/auth/domain/usecases/load_user_profile_usecase.dart'
 import '../features/auth/domain/usecases/login_usecase.dart' as _i406;
 import '../features/auth/domain/usecases/logout_usecase.dart' as _i11;
 import '../features/auth/presentation/bloc/login_bloc.dart' as _i724;
+import '../features/profile/data/datasources/profile_remote_data_source.dart'
+    as _i1053;
+import '../features/profile/data/datasources/profile_remote_data_source_impl.dart'
+    as _i535;
+import '../features/profile/data/repository/profile_repository_impl.dart'
+    as _i259;
+import '../features/profile/domain/repository/profile_repository.dart' as _i928;
+import '../features/profile/domain/usecases/load_profile_data_usecase.dart'
+    as _i575;
+import '../features/profile/presentation/bloc/profile_bloc.dart' as _i570;
 
 // initializes the registration of main-scope dependencies inside of GetIt
 _i174.GetIt init(
@@ -61,6 +71,12 @@ _i174.GetIt init(
       gh<_i109.AuthLocalDataSource>(),
     ),
   );
+  gh.lazySingleton<_i1053.ProfileRemoteDataSource>(
+    () => _i535.ProfileRemoteDataSourceImpl(
+      gh<_i510.ApiClient>(),
+      gh<_i109.AuthLocalDataSource>(),
+    ),
+  );
   gh.factory<_i339.CheckDailyAgreementUseCase>(
     () => _i339.CheckDailyAgreementUseCase(gh<_i869.AuthRepository>()),
   );
@@ -83,6 +99,15 @@ _i174.GetIt init(
       gh<_i339.CheckDailyAgreementUseCase>(),
       gh<_i862.GetSavedUsernameUseCase>(),
     ),
+  );
+  gh.lazySingleton<_i928.ProfileRepository>(
+    () => _i259.ProfileRepositoryImpl(gh<_i1053.ProfileRemoteDataSource>()),
+  );
+  gh.factory<_i575.LoadProfileDataUseCase>(
+    () => _i575.LoadProfileDataUseCase(gh<_i928.ProfileRepository>()),
+  );
+  gh.factory<_i570.ProfileBloc>(
+    () => _i570.ProfileBloc(gh<_i575.LoadProfileDataUseCase>()),
   );
   return getIt;
 }

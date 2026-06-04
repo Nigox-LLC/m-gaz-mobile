@@ -117,6 +117,7 @@ class AppTools {
   static const String icDroplet = "assets/icons/ic_droplet.svg";
   static const String icLoader = "assets/icons/ic_loader.svg";
   static const String icChervonLeft = "assets/icons/ic_chervon_left.svg";
+  static const String icChervonRight = "assets/icons/ic_chervon_right.svg";
   static const String icPaperclip = "assets/icons/ic_paperclip.svg";
   static const String icPinForm = "assets/icons/ic_pin_form.svg";
   static const String icNavBarMain = "assets/icons/ic_nav_bar_main.svg";
@@ -131,6 +132,7 @@ class AppTools {
       "assets/icons/ic_dashboard_speed_02.svg";
   static const String icTool = "assets/icons/ic_tool.svg";
   static const String icFileText = "assets/icons/ic_file_text.svg";
+  static const String icFile = "assets/icons/ic_file.svg";
   static const String icFileTextBlack = "assets/icons/ic_file_text_black.svg";
   static const String icFileTextGreen = "assets/icons/ic_file_text_green.svg";
   static const String icSearchIcon = "assets/icons/ic_search_icon.svg";
@@ -151,6 +153,11 @@ class AppTools {
   static const String icCamera = "assets/icons/ic_camera.svg";
   static const String icFolderPlus = "assets/icons/ic_folder_plus.svg";
   static const String icArrowDown = "assets/icons/ic_arrow_down.svg";
+  static const String icShield = "assets/icons/ic_shield.svg";
+  static const String icSettings = "assets/icons/ic_settings.svg";
+  static const String icCheckCircle = "assets/icons/ic_check_circle.svg";
+  static const String icFlagRu = "assets/icons/ic_flag_ru.svg";
+  static const String icEye = "assets/icons/ic_eye.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";
