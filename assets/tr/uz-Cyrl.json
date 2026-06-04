@@ -398,5 +398,15 @@
     "unsavedChangesDescription": "Киритилган маълумотлар сақланмайди. Чиқишни тасдиқлайсизми?",
     "addInformation": "Маълумот қўшиш",
     "detailsButton": "Батафсил",
-    "facialLabel": "Ҳисоб рақам (Лицевой)"
+    "facialLabel": "Ҳисоб рақам (Лицевой)",
+    "security": "Хавфсизлик",
+    "currentPassword": "Жорий парол",
+    "currentPasswordHint": "Жорий паролни киритинг",
+    "newPassword": "Янги парол",
+    "newPasswordHint": "Янги паролни киритинг",
+    "confirmPassword": "Паролни тасдиқлаш",
+    "confirmPasswordHint": "Янги паролни қайта киритинг",
+    "passwordsDoNotMatch": "*Пароллар мос келмади",
+    "changeLanguage": "Тилни ўзгартириш",
+    "logoutConfirmQuestion": "Шахсий ҳисобдан чиқишни хоҳлайсизми?"
 }

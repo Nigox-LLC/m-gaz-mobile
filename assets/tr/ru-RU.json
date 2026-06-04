@@ -398,5 +398,15 @@
   "unsavedChangesDescription": "Введённые данные не будут сохранены. Подтвердить выход?",
   "addInformation": "Добавить данные",
   "detailsButton": "Подробнее",
-  "facialLabel": "Лицевой счёт"
+  "facialLabel": "Лицевой счёт",
+  "security": "Безопасность",
+  "currentPassword": "Текущий пароль",
+  "currentPasswordHint": "Введите текущий пароль",
+  "newPassword": "Новый пароль",
+  "newPasswordHint": "Введите новый пароль",
+  "confirmPassword": "Подтверждение пароля",
+  "confirmPasswordHint": "Повторите новый пароль",
+  "passwordsDoNotMatch": "*Пароли не совпадают",
+  "changeLanguage": "Изменить язык",
+  "logoutConfirmQuestion": "Вы хотите выйти из личного кабинета?"
 }

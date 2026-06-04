@@ -85,4 +85,11 @@ class StorageRepository {
     if (_preferences == null) return null;
     return _preferences!.remove(getStoreKey(key));
   }
+
+  /// Wipes every shared-preferences entry. Used on logout to fully clear
+  /// cached state.
+  static Future<bool>? clear() {
+    if (_preferences == null) return null;
+    return _preferences!.clear();
+  }
 }

@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:m_gaz/ui/home/profile/profile_screen.dart';
+import 'package:m_gaz/features/profile/presentation/pages/profile_page.dart';
 
 import '../../../core/common/words.dart';
 import '../../../core/models/task/task_analysis.dart';
@@ -159,7 +159,7 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Scaffold(
         body: Stack(
           children: [
-            const CustomDrawer(),
+            // const CustomDrawer(),
             GestureDetector(
               onTap: () => isDrawerOpen ? toggleDrawer() : null,
               child: AnimatedContainer(
@@ -295,7 +295,7 @@ class _DashboardUserHeader extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () => Navigator.of(
         context,
-      ).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
+      ).push(MaterialPageRoute(builder: (_) => const ProfilePage())),
       child: Row(
         key: const Key('dashboard-user-header'),
         children: [
@@ -441,12 +441,16 @@ class _DashboardAiCard extends StatelessWidget {
                       size: 16,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      '$analyzedCount ${Words.tasksAnalyzed.tr()}',
-                      style: _manrope(
-                        size: 13,
-                        weight: FontWeight.w500,
-                        height: 20,
+                    Flexible(
+                      child: Text(
+                        '$analyzedCount ${Words.tasksAnalyzed.tr()}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _manrope(
+                          size: 13,
+                          weight: FontWeight.w500,
+                          height: 20,
+                        ),
                       ),
                     ),
                   ],
@@ -542,11 +546,15 @@ class _PeriodSelector extends StatelessWidget {
     return Row(
       key: const Key('dashboard-period-selector'),
       children: [
-        Text(
-          Words.selectPeriod.tr(),
-          style: _manrope(size: 13, weight: FontWeight.w500, height: 20),
+        Expanded(
+          child: Text(
+            Words.selectPeriod.tr(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _manrope(size: 13, weight: FontWeight.w500, height: 20),
+          ),
         ),
-        const Spacer(),
+        const SizedBox(width: 12),
         Container(
           height: 32,
           padding: const EdgeInsets.all(4),

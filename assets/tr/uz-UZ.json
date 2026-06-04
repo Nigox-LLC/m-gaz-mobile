@@ -398,5 +398,15 @@
   "unsavedChangesDescription": "Kiritilgan ma'lumotlar saqlanmaydi. Chiqishni tasdiqlaysizmi?",
   "addInformation": "Ma'lumot qo'shish",
   "detailsButton": "Batafsil",
-  "facialLabel": "Hisob raqam (Лицевой)"
+  "facialLabel": "Hisob raqam (Лицевой)",
+  "security": "Xavfsizlik",
+  "currentPassword": "Joriy parol",
+  "currentPasswordHint": "Joriy parolni kiriting",
+  "newPassword": "Yangi parol",
+  "newPasswordHint": "Yangi parolni kiriting",
+  "confirmPassword": "Parolni tasdiqlash",
+  "confirmPasswordHint": "Yangi parolni qayta kiriting",
+  "passwordsDoNotMatch": "*Parollar mos kelmadi",
+  "changeLanguage": "Tilni o'zgartirish",
+  "logoutConfirmQuestion": "Shaxsiy hisobdan chiqishni xohlaysizmi?"
 }
