@@ -27,6 +27,7 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
       await _local.saveToken(tokenModel);
+      await _local.saveUsername(userName);
       return Right(tokenModel);
     } on UnauthorizedException catch (e) {
       return Left(UnauthorizedFailure(e.message));
@@ -83,6 +84,15 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Right(true);
       }
       return const Right(false);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> getSavedUsername() async {
+    try {
+      return Right(_local.savedUsername);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }

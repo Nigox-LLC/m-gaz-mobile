@@ -51,4 +51,10 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   set lastAgreementDate(String value) => _hive.lastAgreementDate = value;
+
+  @override
+  String get savedUsername => _hive.savedUsername;
+
+  @override
+  Future<void> saveUsername(String value) => _hive.setSavedUsername(value);
 }

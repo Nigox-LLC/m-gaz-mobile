@@ -20,3 +20,8 @@ class LoginSubmitted extends LoginEvent {
 class LoadUserProfile extends LoginEvent {
   const LoadUserProfile();
 }
+
+/// Loads the last saved username so the login form can be pre-filled.
+class LoadSavedUsername extends LoginEvent {
+  const LoadSavedUsername();
+}

@@ -11,6 +11,7 @@ import 'package:m_gaz/features/auth/domain/entities/auth_token.dart';
 import 'package:m_gaz/features/auth/domain/entities/user.dart';
 import 'package:m_gaz/features/auth/domain/repositories/auth_repository.dart';
 import 'package:m_gaz/features/auth/domain/usecases/check_daily_agreement_usecase.dart';
+import 'package:m_gaz/features/auth/domain/usecases/get_saved_username_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/load_user_profile_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/login_usecase.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
@@ -195,6 +196,7 @@ Future<void> _pumpLoginScreen(WidgetTester tester) async {
                 LoginUseCase(repository),
                 LoadUserProfileUseCase(repository),
                 CheckDailyAgreementUseCase(repository),
+                GetSavedUsernameUseCase(repository),
               ),
               child: const LoginScreen(),
             ),
@@ -242,5 +244,10 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<Either<Failure, bool>> requiresDailyAgreement() async {
     return const Right(false);
+  }
+
+  @override
+  Future<Either<Failure, String>> getSavedUsername() async {
+    return const Right('');
   }
 }

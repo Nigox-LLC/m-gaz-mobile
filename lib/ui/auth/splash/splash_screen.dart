@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../core/api/user/user_api.dart';
 import '../../../core/extension/size_extension.dart';
 import '../../../core/utils/colors.dart';
 import '../../../core/utils/style.dart';
-import '../../../di.dart';
 import '../../../global_widget/app_tools.dart';
 import '../../../features/auth/presentation/pages/login_screen.dart';
-import '../attendance/agreement_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,76 +14,21 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final _api = di.get<UserApi>();
-  String lastAgreementDate = "";
-
-
   @override
   void initState() {
     super.initState();
     _checkAuth();
   }
 
-  static const _authTimeout = Duration(seconds: 15);
-
+  // Har ilova ishga tushganda login sahifasi ochiladi. Avto-login (token orqali)
+  // olib tashlandi — foydalanuvchi har safar parolni o‘zi kiritadi, username esa
+  // login ekranida avto-to‘ladi. Yuz tekshiruvi login muvaffaqiyatidan keyin
+  // kuniga bir marta (requiresDailyAgreement) so‘raladi.
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(seconds: 1));
-
-    try {
-      final access = _api.hive.accessToken;
-
-      if (access.isEmpty) {
-        _goLogin();
-        return;
-      }
-
-      var profile = await _api.loadUserProfile().timeout(_authTimeout);
-
-      if (profile == null) {
-        final refreshed = await _api.refreshToken().timeout(_authTimeout);
-
-        if (!refreshed) {
-          _api.hive.clear();
-          _goLogin();
-          return;
-        }
-
-        profile = await _api.loadUserProfile().timeout(_authTimeout);
-
-        if (profile == null) {
-          _api.hive.clear();
-          _goLogin();
-          return;
-        }
-      }
-
-      if (!mounted) return;
-
-      // ⭐ CHECK AGREEMENT LOGIC
-      final today = DateTime.now();
-      final todayStr = "${today.year}-${today.month}-${today.day}";
-
-      final lastDate = _api.hive.lastAgreementDate;
-
-      if (lastDate != todayStr) {
-        // bugun hali ko‘rsatilmagan
-        _api.hive.lastAgreementDate = todayStr;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => AgreementPdfScreen()),
-        );
-      } else {
-        // bugun bir marta ko‘rsatilgan → asosiy ekranga o‘tadi
-        Navigator.pushReplacementNamed(context, "/home");
-      }
-    } catch (_) {
-      // tarmoq xatosi / timeout → splashda qotib qolmasin, loginga o‘tadi
-      if (!mounted) return;
-      _goLogin();
-    }
+    if (!mounted) return;
+    _goLogin();
   }
-
 
   void _goLogin() {
     Navigator.pushReplacement(

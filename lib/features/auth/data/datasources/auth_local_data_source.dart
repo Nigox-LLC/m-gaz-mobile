@@ -13,4 +13,7 @@ abstract class AuthLocalDataSource {
 
   String get lastAgreementDate;
   set lastAgreementDate(String value);
+
+  String get savedUsername;
+  Future<void> saveUsername(String value);
 }
