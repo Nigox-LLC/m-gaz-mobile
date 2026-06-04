@@ -54,9 +54,22 @@ class ApiHive {
     await _base.apiBox.put("employee_id", employeeId);
   }
 
-  Future<void> clear() async => await _base.apiBox.clear();
+  Future<void> clear() async {
+    // Saqlangan username logout/token tozalashda yo‘qolmasin — prefill uchun kerak.
+    final username = savedUsername;
+    await _base.apiBox.clear();
+    if (username.isNotEmpty) {
+      await _base.apiBox.put("saved_username", username);
+    }
+  }
 
   // ⭐⭐⭐ YANGI QO‘SHILGAN QISM ⭐⭐⭐
+
+  String get savedUsername =>
+      _base.apiBox.get("saved_username", defaultValue: "") ?? "";
+
+  Future<void> setSavedUsername(String value) async =>
+      await _base.apiBox.put("saved_username", value);
 
   String get lastAgreementDate =>
       _base.apiBox.get("last_agreement_date", defaultValue: "") ?? "";

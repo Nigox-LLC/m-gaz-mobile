@@ -32,8 +32,51 @@ void onStart(ServiceInstance service) {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  // Ilova orqa fonga (paused/hidden) o'tganini belgilaydi. Faqat shu holatdan
+  // keyin resumed bo'lganda login majburlanadi (vaqtinchalik inactive emas).
+  bool _wentBackground = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _wentBackground = true;
+    } else if (state == AppLifecycleState.resumed && _wentBackground) {
+      _wentBackground = false;
+      _forceLogin();
+    }
+  }
+
+  // Orqa fondan qaytganda login ekraniga majburiy o'tish. Stack tozalanadi,
+  // LoginScreen.initState username'ni avto-to'ldiradi.
+  void _forceLogin() {
+    final nav = mainKey.currentState;
+    if (nav == null) return;
+    final current = ModalRoute.of(nav.context)?.settings.name;
+    if (current == '/login') return; // allaqachon login — flicker oldini olamiz
+    nav.pushNamedAndRemoveUntil('/login', (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {

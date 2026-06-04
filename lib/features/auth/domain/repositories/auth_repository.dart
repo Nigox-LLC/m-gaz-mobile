@@ -24,4 +24,8 @@ abstract class AuthRepository {
   /// Returns `true` if the daily agreement has not yet been shown today,
   /// updating the stored "last shown" date as a side-effect when it does.
   Future<Either<Failure, bool>> requiresDailyAgreement();
+
+  /// Returns the last successfully logged-in username (empty if none), used to
+  /// pre-fill the login form on app launch.
+  Future<Either<Failure, String>> getSavedUsername();
 }

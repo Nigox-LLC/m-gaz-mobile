@@ -43,8 +43,18 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    final loginBloc = context.read<LoginBloc>();
+    // LoginBloc app darajasidagi singleton — state umumiy. Agar username
+    // allaqachon yuklangan bo'lsa (oldingi tashrif), uni darhol prefill qilamiz.
+    // Listener'dan oldin o'rnatamiz — initState'da setState chaqirilmasin.
+    final cached = loginBloc.state.savedUsername;
+    if (cached.isNotEmpty) {
+      userNameController.text = cached;
+    }
     userNameController.addListener(_handleInputChanged);
     passwordController.addListener(_handleInputChanged);
+    // Birinchi marta (yoki yangilangan) username'ni hive'dan yuklash uchun.
+    loginBloc.add(const LoadSavedUsername());
   }
 
   @override
@@ -101,6 +111,10 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: _backgroundColor,
         body: BlocListener<LoginBloc, LoginState>(
           listener: (context, state) {
+            if (state.savedUsername.isNotEmpty &&
+                userNameController.text.isEmpty) {
+              userNameController.text = state.savedUsername;
+            }
             if (state.status == LoginStatus.fail) {
               setState(() {
                 _authErrorMessage = Words.loginInvalidCredentials.tr();
