@@ -34,6 +34,20 @@ import '../features/auth/domain/usecases/load_user_profile_usecase.dart'
 import '../features/auth/domain/usecases/login_usecase.dart' as _i406;
 import '../features/auth/domain/usecases/logout_usecase.dart' as _i11;
 import '../features/auth/presentation/bloc/login_bloc.dart' as _i724;
+import '../features/gas_networks/data/datasources/gas_networks_remote_data_source.dart'
+    as _i35;
+import '../features/gas_networks/data/datasources/gas_networks_remote_data_source_impl.dart'
+    as _i1072;
+import '../features/gas_networks/data/repositories/gas_networks_repository_impl.dart'
+    as _i307;
+import '../features/gas_networks/domain/repositories/gas_networks_repository.dart'
+    as _i943;
+import '../features/gas_networks/domain/usecases/get_measuring_device_documents.dart'
+    as _i1010;
+import '../features/gas_networks/domain/usecases/load_more_measuring_device_documents.dart'
+    as _i462;
+import '../features/gas_networks/presentation/bloc/measurement_devices_bloc.dart'
+    as _i356;
 import '../features/profile/data/datasources/profile_remote_data_source.dart'
     as _i1053;
 import '../features/profile/data/datasources/profile_remote_data_source_impl.dart'
@@ -77,6 +91,12 @@ _i174.GetIt init(
       gh<_i109.AuthLocalDataSource>(),
     ),
   );
+  gh.lazySingleton<_i35.GasNetworksRemoteDataSource>(
+    () => _i1072.GasNetworksRemoteDataSourceImpl(
+      gh<_i510.ApiClient>(),
+      gh<_i109.AuthLocalDataSource>(),
+    ),
+  );
   gh.factory<_i339.CheckDailyAgreementUseCase>(
     () => _i339.CheckDailyAgreementUseCase(gh<_i869.AuthRepository>()),
   );
@@ -100,11 +120,29 @@ _i174.GetIt init(
       gh<_i862.GetSavedUsernameUseCase>(),
     ),
   );
+  gh.lazySingleton<_i943.GasNetworksRepository>(
+    () =>
+        _i307.GasNetworksRepositoryImpl(gh<_i35.GasNetworksRemoteDataSource>()),
+  );
+  gh.factory<_i1010.GetMeasuringDeviceDocuments>(
+    () => _i1010.GetMeasuringDeviceDocuments(gh<_i943.GasNetworksRepository>()),
+  );
+  gh.factory<_i462.LoadMoreMeasuringDeviceDocuments>(
+    () => _i462.LoadMoreMeasuringDeviceDocuments(
+      gh<_i943.GasNetworksRepository>(),
+    ),
+  );
   gh.lazySingleton<_i928.ProfileRepository>(
     () => _i259.ProfileRepositoryImpl(gh<_i1053.ProfileRemoteDataSource>()),
   );
   gh.factory<_i575.LoadProfileDataUseCase>(
     () => _i575.LoadProfileDataUseCase(gh<_i928.ProfileRepository>()),
+  );
+  gh.factory<_i356.MeasurementDevicesBloc>(
+    () => _i356.MeasurementDevicesBloc(
+      gh<_i1010.GetMeasuringDeviceDocuments>(),
+      gh<_i462.LoadMoreMeasuringDeviceDocuments>(),
+    ),
   );
   gh.factory<_i570.ProfileBloc>(
     () => _i570.ProfileBloc(gh<_i575.LoadProfileDataUseCase>()),

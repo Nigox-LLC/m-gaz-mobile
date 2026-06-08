@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:m_gaz/core/enums/task_status_enum.dart';
 
 import '../../../../core/common/words.dart';
 
@@ -10,24 +11,6 @@ class FilterResult {
   const FilterResult({this.type, this.cleared = false});
 
   factory FilterResult.clear() => const FilterResult(cleared: true);
-}
-
-enum TaskFilterType {
-  pending('not-done-list'),
-  done('done-list'),
-  expired('canceled-list');
-
-  const TaskFilterType(this.value);
-
-  final String value;
-
-  String get val => value;
-
-  String label() => switch (this) {
-    TaskFilterType.pending => Words.pending.tr(),
-    TaskFilterType.done => Words.completed.tr(),
-    TaskFilterType.expired => Words.expiredTasks.tr(),
-  };
 }
 
 class TaskFilterBottomSheet extends StatefulWidget {
@@ -46,14 +29,14 @@ class _TaskFilterBottomSheetState extends State<TaskFilterBottomSheet> {
   static const Color _selectedColor = Color(0xFFE9E9E9);
   static const Color _textStrongColor = Color(0xFF1A1D2E);
 
-  TaskFilterType? _selectedType;
+  TaskStatus? _selectedType;
   bool _isStatusOpen = false;
 
   @override
   void initState() {
     super.initState();
-    for (final type in TaskFilterType.values) {
-      if (type.val == widget.initialType) {
+    for (final type in TaskStatus.values) {
+      if (type.filterValue == widget.initialType) {
         _selectedType = type;
         break;
       }
@@ -61,7 +44,7 @@ class _TaskFilterBottomSheetState extends State<TaskFilterBottomSheet> {
   }
 
   void _onApply() {
-    Navigator.pop(context, FilterResult(type: _selectedType?.val));
+    Navigator.pop(context, FilterResult(type: _selectedType?.filterValue));
   }
 
   void _onClear() {
@@ -179,7 +162,7 @@ class _TaskFilterBottomSheetState extends State<TaskFilterBottomSheet> {
             children: [
               Expanded(
                 child: Text(
-                  _selectedType?.label() ?? Words.select.tr(),
+                  _selectedType?.localizedName ?? Words.select.tr(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.manrope(
@@ -214,7 +197,7 @@ class _TaskFilterBottomSheetState extends State<TaskFilterBottomSheet> {
         border: Border.all(color: _strokeColor, width: 1.2),
       ),
       child: Column(
-        children: TaskFilterType.values.map((type) {
+        children: TaskStatus.values.map((type) {
           final selected = type == _selectedType;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -234,7 +217,7 @@ class _TaskFilterBottomSheetState extends State<TaskFilterBottomSheet> {
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Text(
-                    type.label(),
+                    type.localizedName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.manrope(

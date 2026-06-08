@@ -6,23 +6,23 @@ class EghuIndicatorCreateRequest {
     required this.value,
     required this.consumerId,
     required this.egxuId,
-    required this.basicFile,
-    required this.printFile,
+    required this.basicFiles,
+    required this.printFiles,
   });
 
   final DateTime createdAt;
   final String value;
   final int consumerId;
   final int egxuId;
-  final EghuActionAttachment basicFile;
-  final EghuActionAttachment printFile;
+  final List<EghuActionAttachment> basicFiles;
+  final List<EghuActionAttachment> printFiles;
 
   Map<String, Object?> toJson() {
     return {
       'created_at': createdAt.toUtc().toIso8601String(),
       'is_active': true,
       'value': value,
-      'consumer': consumerId,
+      'consumer_relation_document': consumerId,
       'egxu': egxuId,
     };
   }

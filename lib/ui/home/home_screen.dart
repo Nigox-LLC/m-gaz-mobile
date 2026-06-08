@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/utils/locationService/location_service.dart';
+import 'package:m_gaz/features/gas_networks/presentation/pages/gas_networks_page.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/home/main/dashboard_screen.dart';
-import 'package:m_gaz/ui/home/measurement_devices/measurement_devices_screen.dart';
 import 'package:m_gaz/ui/home/tasks/task_screen.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/consumer_relations_screen.dart';
 
@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const BottomNavItemModel(
       title: Words.device,
       iconPath: AppTools.icNavBarDevice,
-      screen: MeasurementDevicesScreen(),
+      screen: GasNetworksPage(),
     ),
   ];
 

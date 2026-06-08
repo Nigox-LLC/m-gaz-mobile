@@ -18,10 +18,10 @@ class EghuActionCreateRequest {
     required this.hourlyGasConsumption,
     required this.dailyConsumption,
     required this.replacementReason,
-    this.actFile,
-    this.proofFile,
-    this.protocolFile,
-    this.comparisonFile,
+    this.actFiles = const [],
+    this.proofFiles = const [],
+    this.protocolFiles = const [],
+    this.comparisonFiles = const [],
     this.employeeId,
     this.egxuTypeId,
     this.oneFactory,
@@ -48,10 +48,10 @@ class EghuActionCreateRequest {
   final num hourlyGasConsumption;
   final num dailyConsumption;
   final String replacementReason;
-  final EghuActionAttachment? actFile;
-  final EghuActionAttachment? proofFile;
-  final EghuActionAttachment? protocolFile;
-  final EghuActionAttachment? comparisonFile;
+  final List<EghuActionAttachment> actFiles;
+  final List<EghuActionAttachment> proofFiles;
+  final List<EghuActionAttachment> protocolFiles;
+  final List<EghuActionAttachment> comparisonFiles;
   final int? employeeId;
   final int? egxuTypeId;
   final String? oneFactory;
@@ -120,10 +120,10 @@ class EghuActionCreateRequest {
     return {
       ...toJson(),
       'action_type': actionCode,
-      'act_file_name': actFile?.name,
-      'proof_file_name': proofFile?.name,
-      'protocol_file_name': protocolFile?.name,
-      'comparison_file_name': comparisonFile?.name,
+      'act_file_names': actFiles.map((file) => file.name).toList(),
+      'proof_file_names': proofFiles.map((file) => file.name).toList(),
+      'protocol_file_names': protocolFiles.map((file) => file.name).toList(),
+      'comparison_file_names': comparisonFiles.map((file) => file.name).toList(),
     };
   }
 }

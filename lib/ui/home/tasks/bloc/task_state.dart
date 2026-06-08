@@ -2,10 +2,10 @@ import 'package:equatable/equatable.dart';
 import 'package:m_gaz/core/models/task/task_analysis.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
 
-enum TaskStatus { initial, loading, success, fail, taskAnalysis }
+enum TaskLoadStatus { initial, loading, success, fail, taskAnalysis }
 
 class TaskState extends Equatable {
-  final TaskStatus status;
+  final TaskLoadStatus status;
   final List<TaskModel> tasks;
   final TaskAnalysisModel? taskAnalysis;
   final String? nextUrl;
@@ -23,7 +23,7 @@ class TaskState extends Equatable {
   final bool isCancelingTask;
 
   const TaskState({
-    this.status = TaskStatus.initial,
+    this.status = TaskLoadStatus.initial,
     this.tasks = const [],
     this.taskAnalysis,
     this.nextUrl,
@@ -40,7 +40,7 @@ class TaskState extends Equatable {
   });
 
   TaskState copyWith({
-    TaskStatus? status,
+    TaskLoadStatus? status,
     List<TaskModel>? tasks,
     TaskAnalysisModel? taskAnalysis,
     String? nextUrl,

@@ -23,10 +23,10 @@ class EghuIndicatorCreateBloc
     on<EghuIndicatorConsumerSelected>(_onConsumerSelected);
     on<EghuIndicatorEghuSelected>(_onEghuSelected);
     on<EghuIndicatorValueChanged>(_onValueChanged);
-    on<EghuIndicatorBasicFileSet>(_onBasicFileSet);
-    on<EghuIndicatorBasicFileRemoved>(_onBasicFileRemoved);
-    on<EghuIndicatorPrintFileSet>(_onPrintFileSet);
-    on<EghuIndicatorPrintFileRemoved>(_onPrintFileRemoved);
+    on<EghuIndicatorBasicFileAdded>(_onBasicFileAdded);
+    on<EghuIndicatorBasicFileRemovedAt>(_onBasicFileRemovedAt);
+    on<EghuIndicatorPrintFileAdded>(_onPrintFileAdded);
+    on<EghuIndicatorPrintFileRemovedAt>(_onPrintFileRemovedAt);
     on<EghuIndicatorProfileChanged>(_onProfileChanged);
     on<EghuIndicatorSubmitted>(_onSubmitted);
   }
@@ -77,32 +77,36 @@ class EghuIndicatorCreateBloc
     );
   }
 
-  void _onBasicFileSet(
-    EghuIndicatorBasicFileSet event,
+  void _onBasicFileAdded(
+    EghuIndicatorBasicFileAdded event,
     Emitter<EghuIndicatorCreateState> emit,
   ) {
-    emit(state.copyWith(basicFile: event.file));
+    emit(state.copyWith(basicFiles: [...state.basicFiles, event.file]));
   }
 
-  void _onBasicFileRemoved(
-    EghuIndicatorBasicFileRemoved event,
+  void _onBasicFileRemovedAt(
+    EghuIndicatorBasicFileRemovedAt event,
     Emitter<EghuIndicatorCreateState> emit,
   ) {
-    emit(state.copyWith(clearBasicFile: true));
+    if (event.index < 0 || event.index >= state.basicFiles.length) return;
+    final updated = [...state.basicFiles]..removeAt(event.index);
+    emit(state.copyWith(basicFiles: updated));
   }
 
-  void _onPrintFileSet(
-    EghuIndicatorPrintFileSet event,
+  void _onPrintFileAdded(
+    EghuIndicatorPrintFileAdded event,
     Emitter<EghuIndicatorCreateState> emit,
   ) {
-    emit(state.copyWith(printFile: event.file));
+    emit(state.copyWith(printFiles: [...state.printFiles, event.file]));
   }
 
-  void _onPrintFileRemoved(
-    EghuIndicatorPrintFileRemoved event,
+  void _onPrintFileRemovedAt(
+    EghuIndicatorPrintFileRemovedAt event,
     Emitter<EghuIndicatorCreateState> emit,
   ) {
-    emit(state.copyWith(clearPrintFile: true));
+    if (event.index < 0 || event.index >= state.printFiles.length) return;
+    final updated = [...state.printFiles]..removeAt(event.index);
+    emit(state.copyWith(printFiles: updated));
   }
 
   void _onProfileChanged(

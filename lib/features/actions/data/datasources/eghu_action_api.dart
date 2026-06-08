@@ -198,14 +198,14 @@ class EghuActionApi
 
   List<_AktUpload> _uploadsForRequest(EghuActionCreateRequest request) {
     return [
-      for (final entry in <(EghuActionAttachment?, String)>[
-        (request.actFile, 'akt'),
-        (request.proofFile, 'proof'),
-        (request.protocolFile, 'protocol'),
-        (request.comparisonFile, 'calibration'),
+      for (final entry in <(List<EghuActionAttachment>, String)>[
+        (request.actFiles, 'akt'),
+        (request.proofFiles, 'proof'),
+        (request.protocolFiles, 'protocol'),
+        (request.comparisonFiles, 'calibration'),
       ])
-        if (entry.$1 != null && !entry.$1!.isRemote)
-          _AktUpload(entry.$1!, entry.$2),
+        for (final attachment in entry.$1)
+          if (!attachment.isRemote) _AktUpload(attachment, entry.$2),
     ];
   }
 

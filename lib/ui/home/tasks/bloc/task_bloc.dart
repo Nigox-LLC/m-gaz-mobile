@@ -58,7 +58,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     TaskAnalysisLoad event,
     Emitter<TaskState> emit,
   ) async {
-    emit(state.copyWith(status: TaskStatus.loading, errorMessage: ''));
+    emit(state.copyWith(status: TaskLoadStatus.loading, errorMessage: ''));
 
     try {
       debugPrint("🚀 TRY ICHIGA KIRDI");
@@ -78,10 +78,10 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         );
       }
 
-      emit(state.copyWith(status: TaskStatus.success, taskAnalysis: response));
+      emit(state.copyWith(status: TaskLoadStatus.success, taskAnalysis: response));
     } catch (e) {
       debugPrint("❌ XATO TUTILDI: $e");
-      emit(state.copyWith(status: TaskStatus.fail, errorMessage: e.toString()));
+      emit(state.copyWith(status: TaskLoadStatus.fail, errorMessage: e.toString()));
     }
   }
 
@@ -95,7 +95,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       final response = await api.getNextPage(state.nextUrl!);
       emit(
         state.copyWith(
-          status: TaskStatus.success,
+          status: TaskLoadStatus.success,
           tasks: [...state.tasks, ...response.results],
           nextUrl: response.next,
           clearNextUrl: response.next == null,
@@ -106,7 +106,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isLoadingMore: false,
         ),
@@ -156,7 +156,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   }) async {
     emit(
       state.copyWith(
-        status: TaskStatus.loading,
+        status: TaskLoadStatus.loading,
         isLoadingMore: false,
         hasReachedMax: false,
         clearNextUrl: true,
@@ -171,7 +171,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
 
       emit(
         state.copyWith(
-          status: TaskStatus.success,
+          status: TaskLoadStatus.success,
           tasks: response.results,
           nextUrl: response.next,
           clearNextUrl: response.next == null,
@@ -182,7 +182,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isLoadingMore: false,
         ),
@@ -194,14 +194,14 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     TaskDetailFetched event,
     Emitter<TaskState> emit,
   ) async {
-    emit(state.copyWith(status: TaskStatus.loading));
+    emit(state.copyWith(status: TaskLoadStatus.loading));
     try {
       final document = await api.getDocumentById(event.documentId);
-      emit(state.copyWith(status: TaskStatus.success, taskDetail: document));
+      emit(state.copyWith(status: TaskLoadStatus.success, taskDetail: document));
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
         ),
       );
@@ -216,12 +216,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     try {
       await api.completeTask(
         taskId: event.taskId,
-        filePath: event.filePath,
+        filePaths: event.filePaths,
         latitude: event.latitude,
         longitude: event.longitude,
       );
 
-      emit(state.copyWith(status: TaskStatus.success, isCompletingTask: false));
+      emit(state.copyWith(status: TaskLoadStatus.success, isCompletingTask: false));
 
       debugPrint("✅ Task bajarildi: ${event.taskId}");
 
@@ -229,7 +229,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isCompletingTask: false,
         ),
@@ -243,10 +243,10 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       await api.cancelTask(
         taskId: event.taskId,
         description: event.description,
-        filePath: event.filePath,
+        filePaths: event.filePaths,
       );
 
-      emit(state.copyWith(status: TaskStatus.success, isCancelingTask: false));
+      emit(state.copyWith(status: TaskLoadStatus.success, isCancelingTask: false));
 
       debugPrint("Task bekor qilindi: ${event.taskId}");
 
@@ -254,7 +254,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isCancelingTask: false,
         ),

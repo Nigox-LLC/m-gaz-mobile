@@ -50,7 +50,7 @@ void main() {
       );
       expect(find.text('Topshiriqlar'), findsOneWidget);
       expect(find.text('Bajarilgan'), findsOneWidget);
-      expect(find.text('Jarayonda'), findsOneWidget);
+      expect(find.text('Kutilmoqda'), findsOneWidget);
       expect(find.text('Iyn'), findsOneWidget);
       expect(find.text('Muddati o‘tgan'), findsOneWidget);
 

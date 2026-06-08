@@ -1,15 +1,15 @@
 import 'package:equatable/equatable.dart';
 
 class TeachMeasureGtsh extends Equatable {
-  final int id;
-  final String name;
+  final int? id;
+  final String? name;
 
   const TeachMeasureGtsh({required this.id, required this.name});
 
   factory TeachMeasureGtsh.fromJson(Map<String, dynamic> json) {
     return TeachMeasureGtsh(
-      id: json['id'] as int,
-      name: json['name'] as String,
+      id: json['id'] as int?,
+      name: json['name'] as String?,
     );
   }
 

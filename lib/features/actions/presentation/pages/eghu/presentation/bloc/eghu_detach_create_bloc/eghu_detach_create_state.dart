@@ -10,9 +10,9 @@ class EghuDetachCreateState extends Equatable {
     this.reason,
     this.otherReason = '',
     this.sealStatus,
-    this.actFile,
-    this.proofFile,
-    this.protocolFile,
+    this.actFiles = const [],
+    this.proofFiles = const [],
+    this.protocolFiles = const [],
     this.gasSupplyStopped,
     this.stamps = const [],
     this.employeeId,
@@ -45,19 +45,19 @@ class EghuDetachCreateState extends Equatable {
         )
         .toList();
 
-    EghuActionAttachment? actFile;
-    EghuActionAttachment? proofFile;
-    EghuActionAttachment? protocolFile;
+    final actFiles = <EghuActionAttachment>[];
+    final proofFiles = <EghuActionAttachment>[];
+    final protocolFiles = <EghuActionAttachment>[];
     for (final akt in detail.akts) {
       final attachment = _attachmentFromAkt(akt);
       if (attachment == null) continue;
       switch (akt.aktFileType) {
         case 'akt':
-          actFile = attachment;
+          actFiles.add(attachment);
         case 'proof':
-          proofFile = attachment;
+          proofFiles.add(attachment);
         case 'protocol':
-          protocolFile = attachment;
+          protocolFiles.add(attachment);
       }
     }
 
@@ -68,9 +68,9 @@ class EghuDetachCreateState extends Equatable {
       otherReason: detail.otherReason ?? '',
       sealStatus: _sealStatusFromApi(detail.sealStatus),
       gasSupplyStopped: _gasSupplyStoppedFromApi(detail.gasSupplyStopped),
-      actFile: actFile,
-      proofFile: proofFile,
-      protocolFile: protocolFile,
+      actFiles: actFiles,
+      proofFiles: proofFiles,
+      protocolFiles: protocolFiles,
       stamps: stamps,
       recordId: detail.id,
       employeeId: employeeId,
@@ -86,9 +86,9 @@ class EghuDetachCreateState extends Equatable {
   final EghuDetachReason? reason;
   final String otherReason;
   final EghuDetachSealStatus? sealStatus;
-  final EghuActionAttachment? actFile;
-  final EghuActionAttachment? proofFile;
-  final EghuActionAttachment? protocolFile;
+  final List<EghuActionAttachment> actFiles;
+  final List<EghuActionAttachment> proofFiles;
+  final List<EghuActionAttachment> protocolFiles;
   final EghuGasSupplyStopped? gasSupplyStopped;
   final List<EghuActionStampEntry> stamps;
   final int? employeeId;
@@ -119,16 +119,16 @@ class EghuDetachCreateState extends Equatable {
   bool get shouldShowProof => sealStatus == EghuDetachSealStatus.working;
 
   bool get shouldShowGasSupplyStopped =>
-      sealStatus == EghuDetachSealStatus.defective && actFile != null;
+      sealStatus == EghuDetachSealStatus.defective && actFiles.isNotEmpty;
 
   bool get shouldShowStamp =>
       sealStatus == EghuDetachSealStatus.defective &&
-      actFile != null &&
+      actFiles.isNotEmpty &&
       gasSupplyStopped == EghuGasSupplyStopped.yes;
 
   bool get shouldShowProtocol =>
       sealStatus == EghuDetachSealStatus.defective &&
-      actFile != null &&
+      actFiles.isNotEmpty &&
       gasSupplyStopped == EghuGasSupplyStopped.no;
 
   bool get canSubmit =>
@@ -137,12 +137,12 @@ class EghuDetachCreateState extends Equatable {
       reason != null &&
       (!shouldShowOtherReason || otherReason.trim().isNotEmpty) &&
       sealStatus != null &&
-      (!shouldShowProof || proofFile != null) &&
-      (!shouldShowAct || actFile != null) &&
+      (!shouldShowProof || proofFiles.isNotEmpty) &&
+      (!shouldShowAct || actFiles.isNotEmpty) &&
       (sealStatus != EghuDetachSealStatus.defective ||
           gasSupplyStopped != null) &&
       (!shouldShowStamp || hasValidStamps) &&
-      (!shouldShowProtocol || protocolFile != null) &&
+      (!shouldShowProtocol || protocolFiles.isNotEmpty) &&
       status != EghuDetachSubmitStatus.submitting;
 
   EghuActionCreateRequest? toRequest({required DateTime now}) {
@@ -177,10 +177,12 @@ class EghuDetachCreateState extends Equatable {
       hourlyGasConsumption: _hourlyGasConsumption(eghu),
       dailyConsumption: _hourlyGasConsumption(eghu) * 24,
       replacementReason: 'EGHU yechib olish',
-      actFile: shouldShowAct ? actFile : null,
-      proofFile: shouldShowProof ? proofFile : null,
-      protocolFile: shouldShowProtocol ? protocolFile : null,
-      comparisonFile: null,
+      actFiles: shouldShowAct ? List.unmodifiable(actFiles) : const [],
+      proofFiles: shouldShowProof ? List.unmodifiable(proofFiles) : const [],
+      protocolFiles: shouldShowProtocol
+          ? List.unmodifiable(protocolFiles)
+          : const [],
+      comparisonFiles: const [],
       employeeId: selectedConsumerDetail?.employee?.id ?? employeeId,
       egxuTypeId: eghu.egxuType?.id,
       oneFactory: eghu.oneFactory,
@@ -198,15 +200,17 @@ class EghuDetachCreateState extends Equatable {
 
   List<int> _existingAktIds() {
     final ids = <int>[];
-    for (final entry in <(EghuActionAttachment?, bool)>[
-      (actFile, shouldShowAct),
-      (proofFile, shouldShowProof),
-      (protocolFile, shouldShowProtocol),
+    for (final entry in <(List<EghuActionAttachment>, bool)>[
+      (actFiles, shouldShowAct),
+      (proofFiles, shouldShowProof),
+      (protocolFiles, shouldShowProtocol),
     ]) {
-      final attachment = entry.$1;
-      if (!entry.$2 || attachment == null || !attachment.isRemote) continue;
-      final aktId = attachment.remoteAktId;
-      if (aktId != null) ids.add(aktId);
+      if (!entry.$2) continue;
+      for (final attachment in entry.$1) {
+        if (!attachment.isRemote) continue;
+        final aktId = attachment.remoteAktId;
+        if (aktId != null) ids.add(aktId);
+      }
     }
     return ids;
   }
@@ -317,9 +321,9 @@ class EghuDetachCreateState extends Equatable {
     EghuDetachReason? reason,
     String? otherReason,
     EghuDetachSealStatus? sealStatus,
-    EghuActionAttachment? actFile,
-    EghuActionAttachment? proofFile,
-    EghuActionAttachment? protocolFile,
+    List<EghuActionAttachment>? actFiles,
+    List<EghuActionAttachment>? proofFiles,
+    List<EghuActionAttachment>? protocolFiles,
     EghuGasSupplyStopped? gasSupplyStopped,
     List<EghuActionStampEntry>? stamps,
     int? employeeId,
@@ -352,11 +356,11 @@ class EghuDetachCreateState extends Equatable {
       reason: clearReason ? null : (reason ?? this.reason),
       otherReason: clearOtherReason ? '' : (otherReason ?? this.otherReason),
       sealStatus: clearSealStatus ? null : (sealStatus ?? this.sealStatus),
-      actFile: clearActFile ? null : (actFile ?? this.actFile),
-      proofFile: clearProofFile ? null : (proofFile ?? this.proofFile),
-      protocolFile: clearProtocolFile
-          ? null
-          : (protocolFile ?? this.protocolFile),
+      actFiles: clearActFile ? const [] : (actFiles ?? this.actFiles),
+      proofFiles: clearProofFile ? const [] : (proofFiles ?? this.proofFiles),
+      protocolFiles: clearProtocolFile
+          ? const []
+          : (protocolFiles ?? this.protocolFiles),
       gasSupplyStopped: clearGasSupplyStopped
           ? null
           : (gasSupplyStopped ?? this.gasSupplyStopped),
@@ -380,9 +384,9 @@ class EghuDetachCreateState extends Equatable {
     reason,
     otherReason,
     sealStatus,
-    actFile,
-    proofFile,
-    protocolFile,
+    actFiles,
+    proofFiles,
+    protocolFiles,
     gasSupplyStopped,
     stamps,
     employeeId,

@@ -35,8 +35,8 @@ class EghuIndicatorValueChanged extends EghuIndicatorCreateEvent {
   List<Object?> get props => [value];
 }
 
-class EghuIndicatorBasicFileSet extends EghuIndicatorCreateEvent {
-  const EghuIndicatorBasicFileSet(this.file);
+class EghuIndicatorBasicFileAdded extends EghuIndicatorCreateEvent {
+  const EghuIndicatorBasicFileAdded(this.file);
 
   final EghuActionAttachment file;
 
@@ -44,12 +44,17 @@ class EghuIndicatorBasicFileSet extends EghuIndicatorCreateEvent {
   List<Object?> get props => [file];
 }
 
-class EghuIndicatorBasicFileRemoved extends EghuIndicatorCreateEvent {
-  const EghuIndicatorBasicFileRemoved();
+class EghuIndicatorBasicFileRemovedAt extends EghuIndicatorCreateEvent {
+  const EghuIndicatorBasicFileRemovedAt(this.index);
+
+  final int index;
+
+  @override
+  List<Object?> get props => [index];
 }
 
-class EghuIndicatorPrintFileSet extends EghuIndicatorCreateEvent {
-  const EghuIndicatorPrintFileSet(this.file);
+class EghuIndicatorPrintFileAdded extends EghuIndicatorCreateEvent {
+  const EghuIndicatorPrintFileAdded(this.file);
 
   final EghuActionAttachment file;
 
@@ -57,8 +62,13 @@ class EghuIndicatorPrintFileSet extends EghuIndicatorCreateEvent {
   List<Object?> get props => [file];
 }
 
-class EghuIndicatorPrintFileRemoved extends EghuIndicatorCreateEvent {
-  const EghuIndicatorPrintFileRemoved();
+class EghuIndicatorPrintFileRemovedAt extends EghuIndicatorCreateEvent {
+  const EghuIndicatorPrintFileRemovedAt(this.index);
+
+  final int index;
+
+  @override
+  List<Object?> get props => [index];
 }
 
 class EghuIndicatorProfileChanged extends EghuIndicatorCreateEvent {

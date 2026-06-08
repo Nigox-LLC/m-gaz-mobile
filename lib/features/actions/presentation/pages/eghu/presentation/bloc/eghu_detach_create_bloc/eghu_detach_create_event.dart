@@ -61,8 +61,8 @@ class EghuDetachSealStatusCleared extends EghuDetachCreateEvent {
   const EghuDetachSealStatusCleared();
 }
 
-class EghuDetachActFileSet extends EghuDetachCreateEvent {
-  const EghuDetachActFileSet(this.file);
+class EghuDetachActFileAdded extends EghuDetachCreateEvent {
+  const EghuDetachActFileAdded(this.file);
 
   final EghuActionAttachment file;
 
@@ -70,12 +70,17 @@ class EghuDetachActFileSet extends EghuDetachCreateEvent {
   List<Object?> get props => [file];
 }
 
-class EghuDetachActFileRemoved extends EghuDetachCreateEvent {
-  const EghuDetachActFileRemoved();
+class EghuDetachActFileRemovedAt extends EghuDetachCreateEvent {
+  const EghuDetachActFileRemovedAt(this.index);
+
+  final int index;
+
+  @override
+  List<Object?> get props => [index];
 }
 
-class EghuDetachProofFileSet extends EghuDetachCreateEvent {
-  const EghuDetachProofFileSet(this.file);
+class EghuDetachProofFileAdded extends EghuDetachCreateEvent {
+  const EghuDetachProofFileAdded(this.file);
 
   final EghuActionAttachment file;
 
@@ -83,12 +88,17 @@ class EghuDetachProofFileSet extends EghuDetachCreateEvent {
   List<Object?> get props => [file];
 }
 
-class EghuDetachProofFileRemoved extends EghuDetachCreateEvent {
-  const EghuDetachProofFileRemoved();
+class EghuDetachProofFileRemovedAt extends EghuDetachCreateEvent {
+  const EghuDetachProofFileRemovedAt(this.index);
+
+  final int index;
+
+  @override
+  List<Object?> get props => [index];
 }
 
-class EghuDetachProtocolFileSet extends EghuDetachCreateEvent {
-  const EghuDetachProtocolFileSet(this.file);
+class EghuDetachProtocolFileAdded extends EghuDetachCreateEvent {
+  const EghuDetachProtocolFileAdded(this.file);
 
   final EghuActionAttachment file;
 
@@ -96,8 +106,13 @@ class EghuDetachProtocolFileSet extends EghuDetachCreateEvent {
   List<Object?> get props => [file];
 }
 
-class EghuDetachProtocolFileRemoved extends EghuDetachCreateEvent {
-  const EghuDetachProtocolFileRemoved();
+class EghuDetachProtocolFileRemovedAt extends EghuDetachCreateEvent {
+  const EghuDetachProtocolFileRemovedAt(this.index);
+
+  final int index;
+
+  @override
+  List<Object?> get props => [index];
 }
 
 class EghuDetachGasSupplyStoppedSelected extends EghuDetachCreateEvent {

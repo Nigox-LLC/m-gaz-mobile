@@ -59,13 +59,13 @@ void main() {
         ..add(EghuActionConsumerSelected(_consumer()))
         ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.act,
             file: _attachment(actFile.path, true),
           ),
         )
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.comparison,
             file: _attachment(comparisonFile.path, false),
           ),
@@ -109,13 +109,13 @@ void main() {
         ..add(EghuActionConsumerSelected(_consumer()))
         ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.act,
             file: _attachment(actFile.path, true),
           ),
         )
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.comparison,
             file: _attachment(comparisonFile.path, false),
           ),
@@ -142,8 +142,8 @@ void main() {
       expect(bloc.state.profileDistrictId, 23);
       expect(bloc.state.selectedConsumer, isNotNull);
       expect(bloc.state.selectedEghu, isNotNull);
-      expect(bloc.state.actFile, isNotNull);
-      expect(bloc.state.comparisonFile, isNotNull);
+      expect(bloc.state.actFiles, isNotEmpty);
+      expect(bloc.state.comparisonFiles, isNotEmpty);
       expect(bloc.state.stampNumber, '234543245675432');
       expect(bloc.state.stampDateTime, stampDate);
     });
@@ -169,13 +169,13 @@ void main() {
         ..add(EghuActionConsumerSelected(_consumer()))
         ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.act,
             file: _attachment(actFile.path, true),
           ),
         )
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.comparison,
             file: _attachment(comparisonFile.path, false),
           ),
@@ -225,13 +225,13 @@ void main() {
         ..add(EghuActionConsumerSelected(_consumer()))
         ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.act,
             file: _attachment(actFile.path, true),
           ),
         )
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.comparison,
             file: _attachment(comparisonFile.path, false),
           ),
@@ -254,13 +254,13 @@ void main() {
         ..add(EghuActionConsumerSelected(_consumer()))
         ..add(EghuActionEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.act,
             file: _attachment(actFile.path, true),
           ),
         )
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.comparison,
             file: _attachment(comparisonFile.path, false),
           ),
@@ -291,13 +291,13 @@ void main() {
           EghuActionEghuSelected(_eghuWithoutType(), consumerDetail: _detail()),
         )
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.act,
             file: _attachment(actFile.path, true),
           ),
         )
         ..add(
-          EghuActionAttachmentSet(
+          EghuActionAttachmentAdded(
             slot: EghuActionAttachmentSlot.comparison,
             file: _attachment(comparisonFile.path, false),
           ),

@@ -8,8 +8,8 @@ class EghuIndicatorCreateState extends Equatable {
     this.selectedConsumerDetail,
     this.selectedEghu,
     this.value = '',
-    this.basicFile,
-    this.printFile,
+    this.basicFiles = const [],
+    this.printFiles = const [],
     this.employeeName,
     this.status = EghuIndicatorSubmitStatus.initial,
     this.errorMessage = '',
@@ -20,8 +20,8 @@ class EghuIndicatorCreateState extends Equatable {
   final WorkingWithConsumersDetailModel? selectedConsumerDetail;
   final ConsumersEgxuItem? selectedEghu;
   final String value;
-  final EghuActionAttachment? basicFile;
-  final EghuActionAttachment? printFile;
+  final List<EghuActionAttachment> basicFiles;
+  final List<EghuActionAttachment> printFiles;
   final String? employeeName;
   final EghuIndicatorSubmitStatus status;
   final String errorMessage;
@@ -40,8 +40,8 @@ class EghuIndicatorCreateState extends Equatable {
       selectedConsumer != null &&
       selectedEghu?.id != null &&
       hasValidValue &&
-      basicFile != null &&
-      printFile != null &&
+      basicFiles.isNotEmpty &&
+      printFiles.isNotEmpty &&
       status != EghuIndicatorSubmitStatus.submitting;
 
   EghuIndicatorCreateRequest? toRequest({required DateTime now}) {
@@ -51,8 +51,8 @@ class EghuIndicatorCreateState extends Equatable {
       value: normalizedValue,
       consumerId: selectedConsumer!.id,
       egxuId: selectedEghu!.id!,
-      basicFile: basicFile!,
-      printFile: printFile!,
+      basicFiles: List.unmodifiable(basicFiles),
+      printFiles: List.unmodifiable(printFiles),
     );
   }
 
@@ -61,16 +61,14 @@ class EghuIndicatorCreateState extends Equatable {
     WorkingWithConsumersDetailModel? selectedConsumerDetail,
     ConsumersEgxuItem? selectedEghu,
     String? value,
-    EghuActionAttachment? basicFile,
-    EghuActionAttachment? printFile,
+    List<EghuActionAttachment>? basicFiles,
+    List<EghuActionAttachment>? printFiles,
     String? employeeName,
     EghuIndicatorSubmitStatus? status,
     String? errorMessage,
     EghuIndicatorCreateRequest? lastSubmittedRequest,
     bool clearSelectedEghu = false,
     bool clearSelectedConsumerDetail = false,
-    bool clearBasicFile = false,
-    bool clearPrintFile = false,
   }) {
     return EghuIndicatorCreateState(
       selectedConsumer: selectedConsumer ?? this.selectedConsumer,
@@ -81,8 +79,8 @@ class EghuIndicatorCreateState extends Equatable {
           ? null
           : (selectedEghu ?? this.selectedEghu),
       value: value ?? this.value,
-      basicFile: clearBasicFile ? null : (basicFile ?? this.basicFile),
-      printFile: clearPrintFile ? null : (printFile ?? this.printFile),
+      basicFiles: basicFiles ?? this.basicFiles,
+      printFiles: printFiles ?? this.printFiles,
       employeeName: employeeName ?? this.employeeName,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -96,8 +94,8 @@ class EghuIndicatorCreateState extends Equatable {
     selectedConsumerDetail,
     selectedEghu,
     value,
-    basicFile,
-    printFile,
+    basicFiles,
+    printFiles,
     employeeName,
     status,
     errorMessage,

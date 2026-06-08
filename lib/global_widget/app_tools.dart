@@ -158,6 +158,8 @@ class AppTools {
   static const String icCheckCircle = "assets/icons/ic_check_circle.svg";
   static const String icFlagRu = "assets/icons/ic_flag_ru.svg";
   static const String icEye = "assets/icons/ic_eye.svg";
+  static const String icRadio = "assets/icons/ic_radio.svg";
+  static const String icBuilding = "assets/icons/ic_building.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";

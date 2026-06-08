@@ -111,8 +111,8 @@ class _EghuIndicatorDetailPageState extends State<EghuIndicatorDetailPage> {
                 ? Words.selectEghu.tr()
                 : eghuTitle(state.selectedEghu!),
             selectedEghuPlaceholder: state.selectedEghu == null,
-            basicFile: state.basicFile,
-            printFile: state.printFile,
+            basicFiles: state.basicFile == null ? const [] : [state.basicFile!],
+            printFiles: state.printFile == null ? const [] : [state.printFile!],
             employeeName: state.employeeName,
             canSubmit: state.canSubmit,
             loading: state.status == EghuIndicatorDetailStatus.submitting,
@@ -124,12 +124,12 @@ class _EghuIndicatorDetailPageState extends State<EghuIndicatorDetailPage> {
             onSelectEghu: () => _selectEghu(context, state),
             onPickBasic: () =>
                 _pickAttachment(context, EghuIndicatorUploadTarget.basic),
-            onRemoveBasic: () => context.read<EghuIndicatorDetailBloc>().add(
+            onRemoveBasicAt: (_) => context.read<EghuIndicatorDetailBloc>().add(
               const EghuIndicatorDetailBasicFileRemoved(),
             ),
             onPickPrint: () =>
                 _pickAttachment(context, EghuIndicatorUploadTarget.print),
-            onRemovePrint: () => context.read<EghuIndicatorDetailBloc>().add(
+            onRemovePrintAt: (_) => context.read<EghuIndicatorDetailBloc>().add(
               const EghuIndicatorDetailPrintFileRemoved(),
             ),
             onSubmit: () => context.read<EghuIndicatorDetailBloc>().add(
@@ -259,9 +259,15 @@ class _EghuIndicatorDetailPageState extends State<EghuIndicatorDetailPage> {
     BuildContext context,
     EghuIndicatorUploadTarget target,
   ) async {
-    final attachment = await pickEghuIndicatorAttachment(context, _imagePicker);
-    if (!context.mounted || attachment == null) return;
+    final attachments = await pickEghuIndicatorAttachments(
+      context,
+      _imagePicker,
+      target,
+    );
+    if (!context.mounted || attachments.isEmpty) return;
 
+    // Editing an existing indicator replaces the single file in this slot.
+    final attachment = attachments.first;
     final bloc = context.read<EghuIndicatorDetailBloc>();
     switch (target) {
       case EghuIndicatorUploadTarget.basic:

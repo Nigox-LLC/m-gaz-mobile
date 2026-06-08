@@ -15,6 +15,7 @@ class TaskModel {
   final bool isDone;
   final bool isApproved;
   final bool isCanceled;
+  final bool isOverdue;
   final bool isAnswerFile;
 
   final ConsumerDocument? consumerDocument;
@@ -34,6 +35,7 @@ class TaskModel {
     required this.isDone,
     required this.isApproved,
     required this.isCanceled,
+    required this.isOverdue,
     required this.isAnswerFile,
     required this.consumerDocument,
   });
@@ -70,6 +72,7 @@ class TaskModel {
       isDone: _readBool(json['is_done']),
       isApproved: _readBool(json['is_approved']),
       isCanceled: _readBool(json['is_canceled']),
+      isOverdue: _readBool(json['is_overdue']),
       isAnswerFile: _readBool(json['is_answer_file']),
 
       consumerDocument: _readConsumerDocument(
@@ -94,6 +97,7 @@ class TaskModel {
       'is_done': isDone,
       'is_approved': isApproved,
       'is_canceled': isCanceled,
+      'is_overdue': isOverdue,
       'is_answer_file': isAnswerFile,
       'consumer_docment': consumerDocument?.toJson(),
     };

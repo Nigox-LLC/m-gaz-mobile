@@ -259,6 +259,7 @@ enum Words {
   cancelAction,
   taskCompleted,
   taskCanceled,
+  taskApproved,
   taskExpired,
   pending,
   attachFile,

@@ -1,15 +1,15 @@
 import 'package:equatable/equatable.dart';
 
 class TechnoMeasuringDevices extends Equatable {
-  final int id;
-  final String name;
+  final int? id;
+  final String? name;
 
   const TechnoMeasuringDevices({required this.id, required this.name});
 
   factory TechnoMeasuringDevices.fromJson(Map<String, dynamic> json) {
     return TechnoMeasuringDevices(
-      id: json['id'] as int,
-      name: json['name'] as String,
+      id: json['id'] as int?,
+      name: json['name'] as String?,
     );
   }
 

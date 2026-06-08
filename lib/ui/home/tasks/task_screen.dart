@@ -4,8 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
 import 'package:m_gaz/core/utils/colors.dart';
+import 'package:m_gaz/core/enums/task_status_enum.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_action_modal.dart';
-import 'package:m_gaz/ui/home/tasks/widgets/task_display_status.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_filter_bottom_sheet.dart';
 import 'package:m_gaz/ui/home/tasks/widgets/task_item.dart';
 import 'bloc/task_bloc.dart';
@@ -55,16 +55,16 @@ class _TaskListScreenState extends State<TaskListScreen> {
             Expanded(
               child: BlocBuilder<TaskBloc, TaskState>(
                 builder: (context, state) {
-                  if (state.status == TaskStatus.loading) {
+                  if (state.status == TaskLoadStatus.loading) {
                     return _buildShimmerLoading();
                   }
-                  if (state.status == TaskStatus.fail) {
+                  if (state.status == TaskLoadStatus.fail) {
                     return _buildErrorState(
                       state.errorMessage ?? Words.unknown.tr(),
                     );
                   }
 
-                  if (state.status == TaskStatus.success) {
+                  if (state.status == TaskLoadStatus.success) {
                     if (state.tasks.isEmpty) {
                       return _buildEmptyState();
                     }
@@ -88,7 +88,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           }
 
                           final task = state.tasks[index];
-                          final displayStatus = TaskDisplayStatus.fromTask(
+                          final displayStatus = TaskStatus.fromTask(
                             task,
                           );
 
@@ -118,9 +118,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
   void _showTaskBottomSheet(
     BuildContext context,
     TaskModel task,
-    TaskDisplayStatus displayStatus,
+    TaskStatus displayStatus,
   ) {
-    final mode = displayStatus == TaskDisplayStatus.pending
+    final mode = displayStatus == TaskStatus.pending
         ? TaskActionModalMode.action
         : TaskActionModalMode.detail;
 

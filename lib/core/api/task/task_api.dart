@@ -157,7 +157,7 @@ class TaskApi {
 
   Future<void> completeTask({
     required int taskId,
-    String? filePath,
+    List<String> filePaths = const [],
     double? latitude,
     double? longitude,
   }) async {
@@ -173,13 +173,16 @@ class TaskApi {
             'https://www.google.com/maps?q=$latitude,$longitude';
       }
 
-      if (filePath != null) {
-        final fileName = filePath.split('/').last;
-        bodyMap['answer_file'] = await MultipartFile.fromFile(
-          filePath,
-          filename: fileName,
-        );
-        debugPrint("📎 Fayl biriktirildi: $fileName");
+      if (filePaths.isNotEmpty) {
+        final files = <MultipartFile>[];
+        for (final filePath in filePaths) {
+          final fileName = filePath.replaceAll('\\', '/').split('/').last;
+          files.add(
+            await MultipartFile.fromFile(filePath, filename: fileName),
+          );
+        }
+        bodyMap['answer_file'] = files;
+        debugPrint("📎 ${files.length} ta fayl biriktirildi");
       }
 
       final formData = FormData.fromMap(bodyMap);
@@ -208,20 +211,25 @@ class TaskApi {
   Future<void> cancelTask({
     required int taskId,
     required String description,
-    required String filePath,
+    List<String> filePaths = const [],
   }) async {
     try {
       debugPrint("рџ”№ Task bekor qilinmoqda... ID: $taskId");
 
-      final fileName = filePath.replaceAll('\\', '/').split('/').last;
+      final files = <MultipartFile>[];
+      for (final filePath in filePaths) {
+        final fileName = filePath.replaceAll('\\', '/').split('/').last;
+        files.add(await MultipartFile.fromFile(filePath, filename: fileName));
+      }
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+        if (files.isNotEmpty) 'file': files,
         'description': description,
       });
       debugPrint("рџ“Ћ Bekor qilish body tayyorlandi: $formData");
 
       final response = await _dio.patch(
         'task/update-status/$taskId/',
+        data: formData,
         queryParameters: {'action': 'cancel'},
       );
 

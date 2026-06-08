@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/extension/size_extension.dart';
+import '../../../core/hive/api_hive.dart';
 import '../../../core/utils/colors.dart';
 import '../../../core/utils/style.dart';
+import '../../../di.dart';
 import '../../../global_widget/app_tools.dart';
 import '../../../features/auth/presentation/pages/login_screen.dart';
+import '../../home/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,14 +23,34 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkAuth();
   }
 
-  // Har ilova ishga tushganda login sahifasi ochiladi. Avto-login (token orqali)
-  // olib tashlandi — foydalanuvchi har safar parolni o‘zi kiritadi, username esa
-  // login ekranida avto-to‘ladi. Yuz tekshiruvi login muvaffaqiyatidan keyin
-  // kuniga bir marta (requiresDailyAgreement) so‘raladi.
+  // Sessiya oynasi: ilova oxirgi marta faol bo'lgandan beri shu muddatdan kam
+  // vaqt o'tgan bo'lsa va token saqlangan bo'lsa, login so'ralmaydi — to'g'ridan
+  // Home ochiladi. Aks holda (token yo'q yoki 5 daqiqadan ko'p o'tgan) login.
+  static const Duration _sessionTimeout = Duration(minutes: 5);
+
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
-    _goLogin();
+
+    final hive = di.get<ApiHive>();
+    final hasToken = hive.accessToken.isNotEmpty;
+    final lastActive = hive.lastActiveMillis;
+    final elapsed = DateTime.now().millisecondsSinceEpoch - lastActive;
+    final sessionAlive =
+        lastActive > 0 && elapsed < _sessionTimeout.inMilliseconds;
+
+    if (hasToken && sessionAlive) {
+      _goHome();
+    } else {
+      _goLogin();
+    }
+  }
+
+  void _goHome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => HomeScreen()),
+    );
   }
 
   void _goLogin() {

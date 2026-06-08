@@ -58,12 +58,12 @@ class EghuDetachCreateBloc
     on<EghuDetachOtherReasonChanged>(_onOtherReasonChanged);
     on<EghuDetachSealStatusSelected>(_onSealStatusSelected);
     on<EghuDetachSealStatusCleared>(_onSealStatusCleared);
-    on<EghuDetachActFileSet>(_onActFileSet);
-    on<EghuDetachActFileRemoved>(_onActFileRemoved);
-    on<EghuDetachProofFileSet>(_onProofFileSet);
-    on<EghuDetachProofFileRemoved>(_onProofFileRemoved);
-    on<EghuDetachProtocolFileSet>(_onProtocolFileSet);
-    on<EghuDetachProtocolFileRemoved>(_onProtocolFileRemoved);
+    on<EghuDetachActFileAdded>(_onActFileAdded);
+    on<EghuDetachActFileRemovedAt>(_onActFileRemovedAt);
+    on<EghuDetachProofFileAdded>(_onProofFileAdded);
+    on<EghuDetachProofFileRemovedAt>(_onProofFileRemovedAt);
+    on<EghuDetachProtocolFileAdded>(_onProtocolFileAdded);
+    on<EghuDetachProtocolFileRemovedAt>(_onProtocolFileRemovedAt);
     on<EghuDetachGasSupplyStoppedSelected>(_onGasSupplyStoppedSelected);
     on<EghuDetachGasSupplyStoppedCleared>(_onGasSupplyStoppedCleared);
     on<EghuDetachStampAdded>(_onStampAdded);
@@ -182,53 +182,69 @@ class EghuDetachCreateBloc
     );
   }
 
-  void _onActFileSet(
-    EghuDetachActFileSet event,
+  void _onActFileAdded(
+    EghuDetachActFileAdded event,
     Emitter<EghuDetachCreateState> emit,
   ) {
-    emit(state.copyWith(actFile: event.file));
+    emit(state.copyWith(actFiles: [...state.actFiles, event.file]));
   }
 
-  void _onActFileRemoved(
-    EghuDetachActFileRemoved event,
+  void _onActFileRemovedAt(
+    EghuDetachActFileRemovedAt event,
     Emitter<EghuDetachCreateState> emit,
   ) {
+    if (event.index < 0 || event.index >= state.actFiles.length) return;
+    final updated = [...state.actFiles]..removeAt(event.index);
+    if (updated.isEmpty) {
+      emit(
+        state.copyWith(
+          clearActFile: true,
+          clearProtocolFile: true,
+          clearGasSupplyStopped: true,
+          clearStamp: true,
+        ),
+      );
+    } else {
+      emit(state.copyWith(actFiles: updated));
+    }
+  }
+
+  void _onProofFileAdded(
+    EghuDetachProofFileAdded event,
+    Emitter<EghuDetachCreateState> emit,
+  ) {
+    emit(state.copyWith(proofFiles: [...state.proofFiles, event.file]));
+  }
+
+  void _onProofFileRemovedAt(
+    EghuDetachProofFileRemovedAt event,
+    Emitter<EghuDetachCreateState> emit,
+  ) {
+    if (event.index < 0 || event.index >= state.proofFiles.length) return;
     emit(
       state.copyWith(
-        clearActFile: true,
-        clearProtocolFile: true,
-        clearGasSupplyStopped: true,
-        clearStamp: true,
+        proofFiles: [...state.proofFiles]..removeAt(event.index),
       ),
     );
   }
 
-  void _onProofFileSet(
-    EghuDetachProofFileSet event,
+  void _onProtocolFileAdded(
+    EghuDetachProtocolFileAdded event,
     Emitter<EghuDetachCreateState> emit,
   ) {
-    emit(state.copyWith(proofFile: event.file));
+    emit(state.copyWith(protocolFiles: [...state.protocolFiles, event.file]));
   }
 
-  void _onProofFileRemoved(
-    EghuDetachProofFileRemoved event,
+  void _onProtocolFileRemovedAt(
+    EghuDetachProtocolFileRemovedAt event,
     Emitter<EghuDetachCreateState> emit,
   ) {
-    emit(state.copyWith(clearProofFile: true));
-  }
-
-  void _onProtocolFileSet(
-    EghuDetachProtocolFileSet event,
-    Emitter<EghuDetachCreateState> emit,
-  ) {
-    emit(state.copyWith(protocolFile: event.file));
-  }
-
-  void _onProtocolFileRemoved(
-    EghuDetachProtocolFileRemoved event,
-    Emitter<EghuDetachCreateState> emit,
-  ) {
-    emit(state.copyWith(clearProtocolFile: true));
+    if (event.index < 0 || event.index >= state.protocolFiles.length) return;
+    emit(
+      state.copyWith(
+        protocolFiles: [...state.protocolFiles]..removeAt(event.index),
+      ),
+    );
   }
 
   void _onGasSupplyStoppedSelected(

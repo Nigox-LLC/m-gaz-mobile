@@ -26,8 +26,8 @@ class EghuActionEghuSelected extends EghuActionCreateEvent {
   List<Object?> get props => [eghu, consumerDetail];
 }
 
-class EghuActionAttachmentSet extends EghuActionCreateEvent {
-  const EghuActionAttachmentSet({required this.slot, required this.file});
+class EghuActionAttachmentAdded extends EghuActionCreateEvent {
+  const EghuActionAttachmentAdded({required this.slot, required this.file});
 
   final EghuActionAttachmentSlot slot;
   final EghuActionAttachment file;
@@ -36,13 +36,14 @@ class EghuActionAttachmentSet extends EghuActionCreateEvent {
   List<Object?> get props => [slot, file];
 }
 
-class EghuActionAttachmentRemoved extends EghuActionCreateEvent {
-  const EghuActionAttachmentRemoved(this.slot);
+class EghuActionAttachmentRemovedAt extends EghuActionCreateEvent {
+  const EghuActionAttachmentRemovedAt({required this.slot, required this.index});
 
   final EghuActionAttachmentSlot slot;
+  final int index;
 
   @override
-  List<Object?> get props => [slot];
+  List<Object?> get props => [slot, index];
 }
 
 class EghuActionStampAdded extends EghuActionCreateEvent {

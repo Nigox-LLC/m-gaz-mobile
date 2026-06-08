@@ -170,17 +170,18 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
                               const SizedBox(height: 16),
                               EghuUploadSection(
                                 slot: EghuActionAttachmentSlot.act,
-                                attachment: state.actFile,
+                                attachments: state.actFiles,
                                 showHelp: true,
                                 uploaderName: state.employeeName,
                                 onAdd: () => _pickAttachment(
                                   context,
                                   EghuActionAttachmentSlot.act,
                                 ),
-                                onRemove: () =>
+                                onRemoveAt: (index) =>
                                     context.read<EghuActionCreateBloc>().add(
-                                      const EghuActionAttachmentRemoved(
-                                        EghuActionAttachmentSlot.act,
+                                      EghuActionAttachmentRemovedAt(
+                                        slot: EghuActionAttachmentSlot.act,
+                                        index: index,
                                       ),
                                     ),
                               ),
@@ -218,17 +219,18 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
                               const SizedBox(height: 16),
                               EghuUploadSection(
                                 slot: EghuActionAttachmentSlot.comparison,
-                                attachment: state.comparisonFile,
+                                attachments: state.comparisonFiles,
                                 showHelp: true,
                                 uploaderName: state.employeeName,
                                 onAdd: () => _pickAttachment(
                                   context,
                                   EghuActionAttachmentSlot.comparison,
                                 ),
-                                onRemove: () =>
+                                onRemoveAt: (index) =>
                                     context.read<EghuActionCreateBloc>().add(
-                                      const EghuActionAttachmentRemoved(
-                                        EghuActionAttachmentSlot.comparison,
+                                      EghuActionAttachmentRemovedAt(
+                                        slot: EghuActionAttachmentSlot.comparison,
+                                        index: index,
                                       ),
                                     ),
                               ),
@@ -431,14 +433,19 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
     if (!context.mounted || source == null) return;
 
     try {
-      final attachment = source == EghuAttachmentSource.camera
-          ? await _pickFromCamera()
-          : await _pickFromDevice();
-      if (!context.mounted || attachment == null) return;
+      final List<EghuActionAttachment> attachments;
+      if (source == EghuAttachmentSource.camera) {
+        final image = await _pickFromCamera();
+        attachments = image == null ? const [] : [image];
+      } else {
+        attachments = await _pickFromDevice();
+      }
+      if (!context.mounted || attachments.isEmpty) return;
 
-      context.read<EghuActionCreateBloc>().add(
-        EghuActionAttachmentSet(slot: slot, file: attachment),
-      );
+      final bloc = context.read<EghuActionCreateBloc>();
+      for (final attachment in attachments) {
+        bloc.add(EghuActionAttachmentAdded(slot: slot, file: attachment));
+      }
     } catch (e) {
       if (!context.mounted) return;
       showToast(
@@ -465,25 +472,40 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
     );
   }
 
-  Future<EghuActionAttachment?> _pickFromDevice() async {
+  Future<List<EghuActionAttachment>> _pickFromDevice() async {
     final result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
+      allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
+      allowedExtensions: const [
+        'jpg',
+        'jpeg',
+        'png',
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+      ],
       withData: false,
     );
-    final file = result?.files.single;
-    final path = file?.path;
-    if (file == null || path == null) return null;
+    if (result == null) return const [];
 
-    return EghuActionAttachment(
-      path: path,
-      name: file.name,
-      sizeBytes: file.size == 0 ? await File(path).length() : file.size,
-      isImage: _isImage(path),
-      sourceLabel: Words.uploadFromPhone.tr(),
-      createdAt: DateTime.now(),
-    );
+    final attachments = <EghuActionAttachment>[];
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null) continue;
+      attachments.add(
+        EghuActionAttachment(
+          path: path,
+          name: file.name,
+          sizeBytes: file.size == 0 ? await File(path).length() : file.size,
+          isImage: _isImage(path),
+          sourceLabel: Words.uploadFromPhone.tr(),
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    return attachments;
   }
 
   String _fileName(String path) {
