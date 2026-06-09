@@ -340,10 +340,18 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
     if (source == null) return;
 
     try {
-      final file = source == EghuAttachmentSource.camera ? await _pickFromCamera() : await _pickFromDevice();
-      if (file == null) return;
+      final List<ConsumerUploadFile> files;
+      if (source == EghuAttachmentSource.camera) {
+        final file = await _pickFromCamera();
+        files = file == null ? const [] : [file];
+      } else {
+        files = await _pickFromDevice();
+      }
+      if (files.isEmpty) return;
 
-      bloc.add(ConsumerDetailFileAdded(slot: slot, egxuId: egxuId, file: file));
+      for (final file in files) {
+        bloc.add(ConsumerDetailFileAdded(slot: slot, egxuId: egxuId, file: file));
+      }
     } catch (e) {
       if (!mounted) return;
       showToast(context, '${Words.filePickFailed.tr()}: ${e.toString().replaceAll('Exception: ', '')}');
@@ -356,17 +364,31 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
     return ConsumerUploadFile.local(path: image.path, name: _fileName(image.path), sizeBytes: await image.length());
   }
 
-  Future<ConsumerUploadFile?> _pickFromDevice() async {
+  Future<List<ConsumerUploadFile>> _pickFromDevice() async {
     final result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
+      allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
+      allowedExtensions: const [
+        'jpg',
+        'jpeg',
+        'png',
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+      ],
       withData: false,
     );
-    final file = result?.files.single;
-    final path = file?.path;
-    if (file == null || path == null) return null;
-    return ConsumerUploadFile.local(path: path, name: file.name, sizeBytes: file.size == 0 ? await File(path).length() : file.size);
+    if (result == null) return const [];
+
+    final files = <ConsumerUploadFile>[];
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null) continue;
+      files.add(ConsumerUploadFile.local(path: path, name: file.name, sizeBytes: file.size == 0 ? await File(path).length() : file.size));
+    }
+    return files;
   }
 
   String _fileName(String path) {

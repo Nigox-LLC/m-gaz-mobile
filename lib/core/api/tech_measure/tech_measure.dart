@@ -93,7 +93,7 @@ class TechMeasureApi {
         "🔹 Consumer Relations Document ID:$id so'rov yuborilmoqda...",
       );
 
-      final response = await _base.dio.get('consumer-relations-documents/$id/');
+      final response = await _base.dio.get('technological-measuring-devices-documents/$id/');
 
       debugPrint("🔹 Javob status code: ${response.statusCode}");
 

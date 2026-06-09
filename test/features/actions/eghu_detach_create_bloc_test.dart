@@ -56,11 +56,11 @@ void main() {
         expect(bloc.state.shouldShowProof, isTrue);
         expect(bloc.state.shouldShowGasSupplyStopped, isFalse);
 
-        bloc.add(EghuDetachProofFileSet(_attachment(proofFile.path)));
+        bloc.add(EghuDetachProofFileAdded(_attachment(proofFile.path)));
         await pumpEventQueue();
 
         expect(bloc.state.canSubmit, isTrue);
-        expect(bloc.state.actFile, isNull);
+        expect(bloc.state.actFiles, isEmpty);
 
         bloc.add(const EghuDetachSubmitted());
         await pumpEventQueue();
@@ -68,9 +68,9 @@ void main() {
         expect(bloc.state.status, EghuDetachSubmitStatus.success);
         final request = api.request;
         expect(request, isNotNull);
-        expect(request!.actFile, isNull);
-        expect(request.proofFile, isNotNull);
-        expect(request.protocolFile, isNull);
+        expect(request!.actFiles, isEmpty);
+        expect(request.proofFiles, isNotEmpty);
+        expect(request.protocolFiles, isEmpty);
         final json = request.toJson();
         expect(json['document_type'], 'removal');
         expect(json['reason'], 'repair');
@@ -86,7 +86,7 @@ void main() {
         ..add(EghuDetachEghuSelected(_eghu()))
         ..add(const EghuDetachReasonSelected(EghuDetachReason.other))
         ..add(const EghuDetachSealStatusSelected(EghuDetachSealStatus.working))
-        ..add(EghuDetachProofFileSet(_attachment(proofFile.path)));
+        ..add(EghuDetachProofFileAdded(_attachment(proofFile.path)));
 
       await pumpEventQueue();
       expect(bloc.state.canSubmit, isFalse);
@@ -122,7 +122,7 @@ void main() {
         expect(bloc.state.canSubmit, isFalse);
         expect(bloc.state.shouldShowGasSupplyStopped, isFalse);
 
-        bloc.add(EghuDetachActFileSet(_attachment(actFile.path)));
+        bloc.add(EghuDetachActFileAdded(_attachment(actFile.path)));
         await pumpEventQueue();
 
         expect(bloc.state.canSubmit, isFalse);
@@ -139,10 +139,10 @@ void main() {
 
         final request = api.request;
         expect(request, isNotNull);
-        expect(request!.actFile, isNotNull);
-        expect(request.proofFile, isNull);
-        expect(request.protocolFile, isNull);
-        expect(request.comparisonFile, isNull);
+        expect(request!.actFiles, isNotEmpty);
+        expect(request.proofFiles, isEmpty);
+        expect(request.protocolFiles, isEmpty);
+        expect(request.comparisonFiles, isEmpty);
         final json = request.toJson(aktIds: const [5]);
         expect(json['reason'], 'periodic_comparison');
         expect(json['seal_status'], 'defective');
@@ -162,7 +162,7 @@ void main() {
         ..add(
           const EghuDetachSealStatusSelected(EghuDetachSealStatus.defective),
         )
-        ..add(EghuDetachActFileSet(_attachment(actFile.path)))
+        ..add(EghuDetachActFileAdded(_attachment(actFile.path)))
         ..add(
           const EghuDetachGasSupplyStoppedSelected(EghuGasSupplyStopped.no),
         );
@@ -172,7 +172,7 @@ void main() {
       expect(bloc.state.canSubmit, isFalse);
       expect(bloc.state.shouldShowProtocol, isTrue);
 
-      bloc.add(EghuDetachProtocolFileSet(_attachment(protocolFile.path)));
+      bloc.add(EghuDetachProtocolFileAdded(_attachment(protocolFile.path)));
       await pumpEventQueue();
 
       expect(bloc.state.canSubmit, isTrue);
@@ -182,9 +182,9 @@ void main() {
 
       final request = api.request;
       expect(request, isNotNull);
-      expect(request!.actFile, isNotNull);
-      expect(request.protocolFile, isNotNull);
-      expect(request.proofFile, isNull);
+      expect(request!.actFiles, isNotEmpty);
+      expect(request.protocolFiles, isNotEmpty);
+      expect(request.proofFiles, isEmpty);
       final json = request.toJson(aktIds: const [5, 8]);
       expect(json['gas_supply_stopped'], 'no');
       expect(json.containsKey('reals'), isFalse);

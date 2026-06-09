@@ -27,7 +27,7 @@ void main() {
         emits(
           predicate<TaskState>(
             (state) =>
-                state.status == TaskStatus.initial &&
+                state.status == TaskLoadStatus.initial &&
                 state.profileUsername == 'Doston Dostonov',
           ),
         ),
@@ -46,10 +46,10 @@ void main() {
     final expectation = expectLater(
       bloc.stream,
       emitsInOrder([
-        predicate<TaskState>((state) => state.status == TaskStatus.loading),
+        predicate<TaskState>((state) => state.status == TaskLoadStatus.loading),
         predicate<TaskState>(
           (state) =>
-              state.status == TaskStatus.success &&
+              state.status == TaskLoadStatus.success &&
               state.taskAnalysis?.allTask == 27,
         ),
       ]),
@@ -75,13 +75,13 @@ void main() {
       emitsInOrder([
         predicate<TaskState>(
           (state) =>
-              state.status == TaskStatus.initial &&
+              state.status == TaskLoadStatus.initial &&
               state.filterType == 'done-list',
         ),
-        predicate<TaskState>((state) => state.status == TaskStatus.loading),
+        predicate<TaskState>((state) => state.status == TaskLoadStatus.loading),
         predicate<TaskState>(
           (state) =>
-              state.status == TaskStatus.success && state.tasks.length == 1,
+              state.status == TaskLoadStatus.success && state.tasks.length == 1,
         ),
       ]),
     );
@@ -103,12 +103,12 @@ void main() {
       emitsInOrder([
         predicate<TaskState>(
           (state) =>
-              state.status == TaskStatus.initial && state.searchQuery == 'abc',
+              state.status == TaskLoadStatus.initial && state.searchQuery == 'abc',
         ),
-        predicate<TaskState>((state) => state.status == TaskStatus.loading),
+        predicate<TaskState>((state) => state.status == TaskLoadStatus.loading),
         predicate<TaskState>(
           (state) =>
-              state.status == TaskStatus.success && state.tasks.length == 1,
+              state.status == TaskLoadStatus.success && state.tasks.length == 1,
         ),
       ]),
     );
@@ -128,10 +128,10 @@ void main() {
     final initialLoad = expectLater(
       bloc.stream,
       emitsInOrder([
-        predicate<TaskState>((state) => state.status == TaskStatus.loading),
+        predicate<TaskState>((state) => state.status == TaskLoadStatus.loading),
         predicate<TaskState>(
           (state) =>
-              state.status == TaskStatus.success &&
+              state.status == TaskLoadStatus.success &&
               state.tasks.length == 1 &&
               !state.hasReachedMax,
         ),
@@ -147,7 +147,7 @@ void main() {
         predicate<TaskState>((state) => state.isLoadingMore),
         predicate<TaskState>(
           (state) =>
-              state.status == TaskStatus.success &&
+              state.status == TaskLoadStatus.success &&
               state.tasks.length == 2 &&
               state.hasReachedMax,
         ),
@@ -233,6 +233,7 @@ TaskModel _task(int id) {
     isDone: false,
     isApproved: false,
     isCanceled: false,
+    isOverdue: false,
     isAnswerFile: false,
     consumerDocument: null,
   );

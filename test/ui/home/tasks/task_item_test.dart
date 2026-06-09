@@ -98,6 +98,7 @@ TaskModel _task({
     isDone: isDone,
     isApproved: false,
     isCanceled: false,
+    isOverdue: false,
     isAnswerFile: false,
     consumerDocument: null,
   );

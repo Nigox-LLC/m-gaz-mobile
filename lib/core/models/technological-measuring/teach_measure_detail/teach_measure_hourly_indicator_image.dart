@@ -1,10 +1,10 @@
 import 'package:equatable/equatable.dart';
 
 class TeachMeasureHourlyListIndicator extends Equatable {
-  final int id;
+  final int? id;
   final DateTime timestamp;
   final double indicator;
-  final bool isActive;
+  final bool? isActive;
 
   const TeachMeasureHourlyListIndicator({
     required this.id,
@@ -15,10 +15,10 @@ class TeachMeasureHourlyListIndicator extends Equatable {
 
   factory TeachMeasureHourlyListIndicator.fromJson(Map<String, dynamic> json) {
     return TeachMeasureHourlyListIndicator(
-      id: json['id'] as int,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      indicator: (json['indicator'] as num).toDouble(),
-      isActive: json['is_active'] as bool,
+      id: json['id'] as int?,
+      timestamp: DateTime.parse(json['timestamp'] as String? ??DateTime.now().toString()),
+      indicator: (json['indicator'] as num? ?? 0).toDouble(),
+      isActive: json['is_active'] as bool?,
     );
   }
 

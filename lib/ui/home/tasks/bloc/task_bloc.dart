@@ -2,7 +2,9 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/core/api/user/user_api.dart';
+import 'package:m_gaz/core/enums/task_status_enum.dart';
 import 'package:m_gaz/core/models/user/user_model.dart' as legacy_user;
+import 'package:m_gaz/core/models/task/tasks_model.dart';
 import 'package:m_gaz/core/api/task/task_api.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_event.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_state.dart';
@@ -47,8 +49,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     try {
       final profile = await _profileLoader();
       final username = profile?.username.trim();
+      final imageLink = profile?.photoUrl;
       if (username == null || username.isEmpty) return;
-      emit(state.copyWith(profileUsername: username));
+      emit(state.copyWith(profileUsername: username, profilePhotoUrl: imageLink));
     } catch (e) {
       debugPrint("Dashboard profile yuklanmadi: $e");
     }
@@ -58,7 +61,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     TaskAnalysisLoad event,
     Emitter<TaskState> emit,
   ) async {
-    emit(state.copyWith(status: TaskStatus.loading, errorMessage: ''));
+    emit(state.copyWith(status: TaskLoadStatus.loading, errorMessage: ''));
 
     try {
       debugPrint("🚀 TRY ICHIGA KIRDI");
@@ -78,10 +81,10 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         );
       }
 
-      emit(state.copyWith(status: TaskStatus.success, taskAnalysis: response));
+      emit(state.copyWith(status: TaskLoadStatus.success, taskAnalysis: response));
     } catch (e) {
       debugPrint("❌ XATO TUTILDI: $e");
-      emit(state.copyWith(status: TaskStatus.fail, errorMessage: e.toString()));
+      emit(state.copyWith(status: TaskLoadStatus.fail, errorMessage: e.toString()));
     }
   }
 
@@ -93,10 +96,11 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     emit(state.copyWith(isLoadingMore: true));
     try {
       final response = await api.getNextPage(state.nextUrl!);
+      final results = _applyClientFilter(response.results, state.filterType);
       emit(
         state.copyWith(
-          status: TaskStatus.success,
-          tasks: [...state.tasks, ...response.results],
+          status: TaskLoadStatus.success,
+          tasks: [...state.tasks, ...results],
           nextUrl: response.next,
           clearNextUrl: response.next == null,
           hasReachedMax: response.next == null,
@@ -106,7 +110,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isLoadingMore: false,
         ),
@@ -156,7 +160,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   }) async {
     emit(
       state.copyWith(
-        status: TaskStatus.loading,
+        status: TaskLoadStatus.loading,
         isLoadingMore: false,
         hasReachedMax: false,
         clearNextUrl: true,
@@ -169,10 +173,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         type: filterType,
       );
 
+      final results = _applyClientFilter(response.results, filterType);
+
       emit(
         state.copyWith(
-          status: TaskStatus.success,
-          tasks: response.results,
+          status: TaskLoadStatus.success,
+          tasks: results,
           nextUrl: response.next,
           clearNextUrl: response.next == null,
           hasReachedMax: response.next == null,
@@ -182,7 +188,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isLoadingMore: false,
         ),
@@ -190,18 +196,30 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     }
   }
 
+  /// Backend may still return non-overdue tasks for the overdue list endpoint,
+  /// so drop any `is_overdue == false` task when that filter is active.
+  List<TaskModel> _applyClientFilter(
+    List<TaskModel> results,
+    String? filterType,
+  ) {
+    if (filterType == TaskStatus.overdue.filterValue) {
+      return results.where((task) => task.isOverdue).toList();
+    }
+    return results;
+  }
+
   Future<void> _onDocumentFetched(
     TaskDetailFetched event,
     Emitter<TaskState> emit,
   ) async {
-    emit(state.copyWith(status: TaskStatus.loading));
+    emit(state.copyWith(status: TaskLoadStatus.loading));
     try {
       final document = await api.getDocumentById(event.documentId);
-      emit(state.copyWith(status: TaskStatus.success, taskDetail: document));
+      emit(state.copyWith(status: TaskLoadStatus.success, taskDetail: document));
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
         ),
       );
@@ -216,12 +234,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     try {
       await api.completeTask(
         taskId: event.taskId,
-        filePath: event.filePath,
+        filePaths: event.filePaths,
         latitude: event.latitude,
         longitude: event.longitude,
       );
 
-      emit(state.copyWith(status: TaskStatus.success, isCompletingTask: false));
+      emit(state.copyWith(status: TaskLoadStatus.success, isCompletingTask: false));
 
       debugPrint("✅ Task bajarildi: ${event.taskId}");
 
@@ -229,7 +247,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isCompletingTask: false,
         ),
@@ -243,10 +261,10 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       await api.cancelTask(
         taskId: event.taskId,
         description: event.description,
-        filePath: event.filePath,
+        filePaths: event.filePaths,
       );
 
-      emit(state.copyWith(status: TaskStatus.success, isCancelingTask: false));
+      emit(state.copyWith(status: TaskLoadStatus.success, isCancelingTask: false));
 
       debugPrint("Task bekor qilindi: ${event.taskId}");
 
@@ -254,7 +272,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: TaskStatus.fail,
+          status: TaskLoadStatus.fail,
           errorMessage: e.toString().replaceAll('Exception: ', ''),
           isCancelingTask: false,
         ),

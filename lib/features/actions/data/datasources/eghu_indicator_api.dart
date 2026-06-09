@@ -131,22 +131,26 @@ class EghuIndicatorApi
 
     try {
       indicatorId = await _createIndicator(request);
-      uploadedFileIds.add(
-        await _uploadFile(
-          indicatorId: indicatorId,
-          createdAt: request.createdAt,
-          attachment: request.basicFile,
-          fileType: 'basic',
-        ),
-      );
-      uploadedFileIds.add(
-        await _uploadFile(
-          indicatorId: indicatorId,
-          createdAt: request.createdAt,
-          attachment: request.printFile,
-          fileType: 'print',
-        ),
-      );
+      for (final attachment in request.basicFiles) {
+        uploadedFileIds.add(
+          await _uploadFile(
+            indicatorId: indicatorId,
+            createdAt: request.createdAt,
+            attachment: attachment,
+            fileType: 'basic',
+          ),
+        );
+      }
+      for (final attachment in request.printFiles) {
+        uploadedFileIds.add(
+          await _uploadFile(
+            indicatorId: indicatorId,
+            createdAt: request.createdAt,
+            attachment: attachment,
+            fileType: 'print',
+          ),
+        );
+      }
     } on DioException catch (e) {
       await _cleanup(
         uploadedFileIds: uploadedFileIds,
@@ -224,7 +228,7 @@ class EghuIndicatorApi
   }) async {
     final response = await _base.dio.patch(
       '$indicatorsEndpoint$id/',
-      data: {'consumer': consumerId, 'egxu': egxuId, 'value': value},
+      data: {'consumer_relation_document': consumerId, 'egxu': egxuId, 'value': value},
       options: Options(contentType: Headers.jsonContentType),
     );
 

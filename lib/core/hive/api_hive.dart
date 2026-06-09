@@ -88,4 +88,18 @@ class ApiHive {
   Future<void> setLastAgreementDate(String date) async {
     await _base.apiBox.put("last_agreement_date", date);
   }
+
+  // Ilova oxirgi marta faol bo'lgan (orqa fonga o'tgan) vaqt — epoch millis.
+  // Splash va lifecycle 5 daqiqalik sessiya oynasini shu qiymat bilan hisoblaydi.
+  int get lastActiveMillis {
+    final value = _base.apiBox.get("last_active_millis");
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  Future<void> setLastActiveNow() async => await _base.apiBox.put(
+    "last_active_millis",
+    DateTime.now().millisecondsSinceEpoch,
+  );
 }

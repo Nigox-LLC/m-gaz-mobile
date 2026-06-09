@@ -14,9 +14,9 @@ class EghuUploadSection extends StatefulWidget {
   const EghuUploadSection({
     super.key,
     required this.slot,
-    required this.attachment,
+    required this.attachments,
     required this.onAdd,
-    required this.onRemove,
+    required this.onRemoveAt,
     this.showHelp = false,
     this.uploaderName,
     this.title,
@@ -25,9 +25,9 @@ class EghuUploadSection extends StatefulWidget {
   });
 
   final EghuActionAttachmentSlot slot;
-  final EghuActionAttachment? attachment;
+  final List<EghuActionAttachment> attachments;
   final VoidCallback onAdd;
-  final VoidCallback onRemove;
+  final void Function(int index) onRemoveAt;
   final bool showHelp;
   final String? uploaderName;
   final String? title;
@@ -44,20 +44,20 @@ class _EghuUploadSectionState extends State<EghuUploadSection> {
   @override
   void didUpdateWidget(covariant EghuUploadSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.attachment?.path != oldWidget.attachment?.path) {
+    if (widget.attachments.length != oldWidget.attachments.length) {
       _showDetails = false;
     }
   }
 
-  void _removeAttachment() {
+  void _removeAt(int index) {
     setState(() => _showDetails = false);
-    widget.onRemove();
+    widget.onRemoveAt(index);
   }
 
   @override
   Widget build(BuildContext context) {
-    final attachment = widget.attachment;
-    final canShowHelp = widget.showHelp && attachment != null;
+    final attachments = widget.attachments;
+    final canShowHelp = widget.showHelp && attachments.isNotEmpty;
     final keyName = widget.keyName ?? widget.slot.name;
 
     return Column(
@@ -73,27 +73,31 @@ class _EghuUploadSectionState extends State<EghuUploadSection> {
           helpKey: Key('eghu-upload-help-$keyName'),
         ),
         SizedBox(height: 8),
-        if (attachment == null)
+        if (attachments.isEmpty)
           _UploadDropZone(
             onTap: widget.onAdd,
             text: widget.emptyText ?? Words.sendFile.tr(),
           )
-        else if (attachment.isImage)
-          _ImagePreview(
-            attachment: attachment,
-            showDetails: _showDetails,
-            keyName: keyName,
-            uploaderName: widget.uploaderName,
-            onRemove: _removeAttachment,
-          )
         else
-          _FilePreview(
-            attachment: attachment,
-            showDetails: _showDetails,
-            keyName: keyName,
-            uploaderName: widget.uploaderName,
-            onRemove: _removeAttachment,
-          ),
+          for (var index = 0; index < attachments.length; index++)
+            Padding(
+              padding: EdgeInsets.only(bottom: index == attachments.length - 1 ? 0 : 8),
+              child: attachments[index].isImage
+                  ? _ImagePreview(
+                      attachment: attachments[index],
+                      showDetails: _showDetails,
+                      keyName: '$keyName-$index',
+                      uploaderName: widget.uploaderName,
+                      onRemove: () => _removeAt(index),
+                    )
+                  : _FilePreview(
+                      attachment: attachments[index],
+                      showDetails: _showDetails,
+                      keyName: '$keyName-$index',
+                      uploaderName: widget.uploaderName,
+                      onRemove: () => _removeAt(index),
+                    ),
+            ),
       ],
     );
   }

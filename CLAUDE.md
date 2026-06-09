@@ -79,7 +79,12 @@ Layer rules:
 
 Use cases return `Future<Either<Failure, T>>`. Repository implementations catch typed exceptions and map them to failures. BLoCs should consume use cases and emit state through `fold`.
 
-Migrated so far: auth.
+Migration status by feature in `lib/features/`:
+
+- `auth`, `profile`: full clean architecture (entities + repository contracts + use cases; BLoC depends on use cases). Use these as the reference pattern.
+- `actions`: feature-first folders (`data/domain/presentation`) but partial — `domain/` holds entities only, no repository/use-case layer. BLoCs under `presentation/.../bloc/` call `data/datasources/*_api.dart` directly. Do not copy this as the target pattern; prefer the `auth`/`profile` shape for new work.
+
+Cross-feature reusable code lives in `lib/shared/{widgets,extensions}`. App-wide enums (e.g. the universal `TaskStatus` in `lib/core/enums/task_status_enum.dart`, the single source of truth for task status label/color/icon/filter endpoint) live in `lib/core/enums/`.
 
 ### Legacy Stack
 
@@ -170,7 +175,7 @@ When adding a `Words` key, update all translation files and run `flutter test`; 
 ## Git And PR Workflow
 
 - Branch from up-to-date `dev`.
-- Use focused branch names, preferably `codex/<issue-or-topic>`.
+- Use focused branch names, preferably `feature/<issue-or-topic>`.
 - PRs target `dev`.
 - Use `Refs #N` for in-progress work and `Closes #N` only when the issue is fully complete.
 - Stage only files that belong to the issue. Inspect `git status --short --branch` and `git diff --stat` before committing.

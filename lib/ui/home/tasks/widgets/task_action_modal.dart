@@ -16,14 +16,14 @@ import 'package:m_gaz/ui/home/tasks/bloc/task_state.dart';
 
 import '../../../../core/utils/colors.dart';
 import '../../../../global_widget/app_tools.dart';
+import 'package:m_gaz/core/enums/task_status_enum.dart';
 import '../../working_with_consumers/sub_page/consumer_detail.dart';
-import 'task_display_status.dart';
 import 'task_location_picker_screen.dart';
 
 enum TaskActionModalMode { action, detail }
 
-typedef TaskCompletionCallback = void Function({required int taskId, String? filePath, double? latitude, double? longitude});
-typedef TaskCancelCallback = void Function({required int taskId, required String description, required String filePath});
+typedef TaskCompletionCallback = void Function({required int taskId, List<String> filePaths, double? latitude, double? longitude});
+typedef TaskCancelCallback = void Function({required int taskId, required String description, List<String> filePaths});
 typedef TaskLocationAddressResolver = Future<String?> Function(Position position);
 
 class TaskActionModal extends StatefulWidget {
@@ -54,7 +54,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
   final ImagePicker _imagePicker = ImagePicker();
   final ValueNotifier<bool> _cancelSubmitting = ValueNotifier<bool>(false);
 
-  _TaskAttachment? _attachment;
+  final List<_TaskAttachment> _attachments = <_TaskAttachment>[];
   Position? _position;
   String? _locationAddress;
   bool _isCompleting = false;
@@ -72,7 +72,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
   @override
   Widget build(BuildContext context) {
-    final displayStatus = TaskDisplayStatus.fromTask(widget.task);
+    final displayStatus = TaskStatus.fromTask(widget.task);
     final content = SafeArea(
       top: false,
       child: Align(
@@ -119,9 +119,12 @@ class _TaskActionModalState extends State<TaskActionModal> {
                               if (_requiresAnswerFile) ...[
                                 const SizedBox(height: 12),
                                 _LocationSection(position: _position, address: _locationAddress, onTap: _openLocationPicker),
-                                if (_attachment != null) ...[
+                                for (var i = 0; i < _attachments.length; i++) ...[
                                   const SizedBox(height: 12),
-                                  _SelectedAttachmentSummary(attachment: _attachment!, onRemove: () => setState(() => _attachment = null)),
+                                  _SelectedAttachmentSummary(
+                                    attachment: _attachments[i],
+                                    onRemove: () => setState(() => _attachments.removeAt(i)),
+                                  ),
                                 ],
                               ],
                             ],
@@ -158,14 +161,14 @@ class _TaskActionModalState extends State<TaskActionModal> {
   }
 
   void _handleCompleteState(BuildContext context, TaskState state) {
-    if (state.status == TaskStatus.success) {
+    if (state.status == TaskLoadStatus.success) {
       setState(() => _isCompleting = false);
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Words.taskCompleted.tr()), backgroundColor: _TaskActionColors.success));
       return;
     }
 
-    if (state.status == TaskStatus.fail) {
+    if (state.status == TaskLoadStatus.fail) {
       setState(() => _isCompleting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.errorMessage ?? "Vazifani bajarishda xatolik yuz berdi"), backgroundColor: _TaskActionColors.error),
@@ -176,7 +179,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
   void _handleCancelState(BuildContext context, TaskState state) {
     _cancelSubmitting.value = false;
 
-    if (state.status == TaskStatus.success) {
+    if (state.status == TaskLoadStatus.success) {
       setState(() => _isCanceling = false);
       final navigator = Navigator.of(context);
       if (navigator.canPop()) navigator.pop();
@@ -185,7 +188,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
       return;
     }
 
-    if (state.status == TaskStatus.fail) {
+    if (state.status == TaskLoadStatus.fail) {
       setState(() => _isCanceling = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.errorMessage ?? "Vazifani bekor qilishda xatolik yuz berdi"), backgroundColor: _TaskActionColors.error),
@@ -199,7 +202,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
       return;
     }
 
-    if (_attachment == null) {
+    if (_attachments.isEmpty) {
       await _showAttachmentRequiredDialog();
       return;
     }
@@ -213,15 +216,16 @@ class _TaskActionModalState extends State<TaskActionModal> {
   }
 
   void _completeTask() {
+    final filePaths = _attachments.map((attachment) => attachment.path).toList();
     final onComplete = widget.onComplete;
     if (onComplete != null) {
-      onComplete(taskId: widget.task.id, filePath: _attachment?.path, latitude: _position?.latitude, longitude: _position?.longitude);
+      onComplete(taskId: widget.task.id, filePaths: filePaths, latitude: _position?.latitude, longitude: _position?.longitude);
       return;
     }
 
     setState(() => _isCompleting = true);
     context.read<TaskBloc>().add(
-      TaskComplete(taskId: widget.task.id, filePath: _attachment?.path, latitude: _position?.latitude, longitude: _position?.longitude),
+      TaskComplete(taskId: widget.task.id, filePaths: filePaths, latitude: _position?.latitude, longitude: _position?.longitude),
     );
   }
 
@@ -231,14 +235,15 @@ class _TaskActionModalState extends State<TaskActionModal> {
       barrierDismissible: true,
       builder: (dialogContext) {
         return _AttachmentRequiredDialog(
-          initialAttachment: _attachment,
-          onPick: _pickAttachmentViaSource,
-          onRemove: () {
-            setState(() => _attachment = null);
+          initialAttachments: _attachments,
+          onPick: () => _pickAttachmentsViaSource(),
+          onRemoveAt: (index) {
+            if (index < 0 || index >= _attachments.length) return;
+            setState(() => _attachments.removeAt(index));
           },
           onBack: () => Navigator.of(dialogContext).pop(),
           onConfirm: () {
-            if (_attachment == null) return;
+            if (_attachments.isEmpty) return;
             Navigator.of(dialogContext).pop();
             if (_position == null) {
               _showSnackBar(Words.enterLocation.tr(), Colors.orange);
@@ -251,7 +256,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
     );
   }
 
-  Future<_TaskAttachment?> _pickAttachmentViaSource({bool updateMainAttachment = true}) async {
+  Future<List<_TaskAttachment>> _pickAttachmentsViaSource({bool updateMainAttachment = true}) async {
     final source = await showModalBottomSheet<_AttachmentSource>(
       context: context,
       isScrollControlled: true,
@@ -259,24 +264,38 @@ class _TaskActionModalState extends State<TaskActionModal> {
       builder: (_) => const _AttachmentSourceSheet(),
     );
 
-    if (source == null) return null;
+    if (source == null) return const [];
 
     try {
-      final picked = source == _AttachmentSource.camera ? await _pickFromCamera() : await _pickFromDevice();
-
-      if (picked == null) return null;
-      if (picked.sizeBytes > _maxAttachmentBytes) {
-        _showSnackBar(Words.fileTooLarge.tr(), Colors.orange);
-        return null;
+      final List<_TaskAttachment> picked;
+      if (source == _AttachmentSource.camera) {
+        final one = await _pickFromCamera();
+        picked = one == null ? const [] : [one];
+      } else {
+        picked = await _pickFromDevice();
       }
+
+      final valid = <_TaskAttachment>[];
+      var hadOversize = false;
+      for (final attachment in picked) {
+        if (attachment.sizeBytes > _maxAttachmentBytes) {
+          hadOversize = true;
+          continue;
+        }
+        valid.add(attachment);
+      }
+      if (hadOversize) {
+        _showSnackBar(Words.fileTooLarge.tr(), Colors.orange);
+      }
+      if (valid.isEmpty) return const [];
 
       if (updateMainAttachment) {
-        setState(() => _attachment = picked);
+        setState(() => _attachments.addAll(valid));
       }
-      return picked;
+      return valid;
     } catch (e) {
       _showSnackBar("Faylni tanlab bo'lmadi: ${_cleanError(e)}", _TaskActionColors.error);
-      return null;
+      return const [];
     }
   }
 
@@ -288,18 +307,31 @@ class _TaskActionModalState extends State<TaskActionModal> {
     return _TaskAttachment(path: image.path, name: _fileNameFromPath(image.path), sizeBytes: size, isImage: true);
   }
 
-  Future<_TaskAttachment?> _pickFromDevice() async {
+  Future<List<_TaskAttachment>> _pickFromDevice() async {
     final result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
+      allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+      allowedExtensions: const [
+        'pdf',
+        'jpg',
+        'jpeg',
+        'png',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+      ],
       withData: false,
     );
-    final file = result?.files.single;
-    final path = file?.path;
-    if (file == null || path == null) return null;
+    if (result == null) return const [];
 
-    return _TaskAttachment(path: path, name: file.name, sizeBytes: file.size, isImage: _isImagePath(path));
+    final attachments = <_TaskAttachment>[];
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null) continue;
+      attachments.add(_TaskAttachment(path: path, name: file.name, sizeBytes: file.size, isImage: _isImagePath(path)));
+    }
+    return attachments;
   }
 
   Future<void> _openLocationPicker() async {
@@ -329,7 +361,7 @@ class _TaskActionModalState extends State<TaskActionModal> {
       builder: (dialogContext) {
         return _CancelTaskDialog(
           isSubmittingListenable: _cancelSubmitting,
-          onPick: () => _pickAttachmentViaSource(updateMainAttachment: false),
+          onPick: () => _pickAttachmentsViaSource(updateMainAttachment: false),
           onBack: () => Navigator.of(dialogContext).pop(),
           onSubmit: _cancelTask,
         );
@@ -337,18 +369,19 @@ class _TaskActionModalState extends State<TaskActionModal> {
     );
   }
 
-  Future<void> _cancelTask(String description, _TaskAttachment attachment) async {
+  Future<void> _cancelTask(String description, List<_TaskAttachment> attachments) async {
     _cancelSubmitting.value = true;
 
+    final filePaths = attachments.map((attachment) => attachment.path).toList();
     final onCancelTask = widget.onCancelTask;
     if (onCancelTask != null) {
-      onCancelTask(taskId: widget.task.id, description: description, filePath: attachment.path);
+      onCancelTask(taskId: widget.task.id, description: description, filePaths: filePaths);
       _cancelSubmitting.value = false;
       return;
     }
 
     setState(() => _isCanceling = true);
-    context.read<TaskBloc>().add(TaskCancel(taskId: widget.task.id, description: description, filePath: attachment.path));
+    context.read<TaskBloc>().add(TaskCancel(taskId: widget.task.id, description: description, filePaths: filePaths));
   }
 
   void _showSnackBar(String message, Color color) {
@@ -450,7 +483,7 @@ class _InfoTile extends StatelessWidget {
 
 class _TaskDetailSection extends StatelessWidget {
   final TaskModel task;
-  final TaskDisplayStatus displayStatus;
+  final TaskStatus displayStatus;
 
   const _TaskDetailSection({required this.task, required this.displayStatus});
 
@@ -716,16 +749,16 @@ class _PrimaryActionButton extends StatelessWidget {
 }
 
 class _AttachmentRequiredDialog extends StatefulWidget {
-  final _TaskAttachment? initialAttachment;
-  final Future<_TaskAttachment?> Function() onPick;
-  final VoidCallback onRemove;
+  final List<_TaskAttachment> initialAttachments;
+  final Future<List<_TaskAttachment>> Function() onPick;
+  final void Function(int index) onRemoveAt;
   final VoidCallback onBack;
   final VoidCallback onConfirm;
 
   const _AttachmentRequiredDialog({
-    required this.initialAttachment,
+    required this.initialAttachments,
     required this.onPick,
-    required this.onRemove,
+    required this.onRemoveAt,
     required this.onBack,
     required this.onConfirm,
   });
@@ -735,12 +768,12 @@ class _AttachmentRequiredDialog extends StatefulWidget {
 }
 
 class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
-  _TaskAttachment? _attachment;
+  late final List<_TaskAttachment> _attachments;
 
   @override
   void initState() {
     super.initState();
-    _attachment = widget.initialAttachment;
+    _attachments = [...widget.initialAttachments];
   }
 
   @override
@@ -767,14 +800,14 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
               const SizedBox(height: 16),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 180),
-                child: _attachment == null
+                child: _attachments.isEmpty
                     ? _UploadBasisTile(onTap: _pick)
                     : _AttachmentPreviewGrid(
-                        attachment: _attachment!,
+                        attachments: _attachments,
                         onAdd: _pick,
-                        onRemove: () {
-                          widget.onRemove();
-                          setState(() => _attachment = null);
+                        onRemoveAt: (index) {
+                          widget.onRemoveAt(index);
+                          setState(() => _attachments.removeAt(index));
                         },
                       ),
               ),
@@ -786,7 +819,7 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _DialogConfirmButton(enabled: _attachment != null, onTap: widget.onConfirm),
+                    child: _DialogConfirmButton(enabled: _attachments.isNotEmpty, onTap: widget.onConfirm),
                   ),
                 ],
               ),
@@ -799,18 +832,16 @@ class _AttachmentRequiredDialogState extends State<_AttachmentRequiredDialog> {
 
   Future<void> _pick() async {
     final picked = await widget.onPick();
-    if (!mounted) return;
-    setState(() {
-      _attachment = picked ?? _attachment;
-    });
+    if (!mounted || picked.isEmpty) return;
+    setState(() => _attachments.addAll(picked));
   }
 }
 
 class _CancelTaskDialog extends StatefulWidget {
   final ValueListenable<bool> isSubmittingListenable;
-  final Future<_TaskAttachment?> Function() onPick;
+  final Future<List<_TaskAttachment>> Function() onPick;
   final VoidCallback onBack;
-  final Future<void> Function(String description, _TaskAttachment attachment) onSubmit;
+  final Future<void> Function(String description, List<_TaskAttachment> attachments) onSubmit;
 
   const _CancelTaskDialog({required this.isSubmittingListenable, required this.onPick, required this.onBack, required this.onSubmit});
 
@@ -820,7 +851,7 @@ class _CancelTaskDialog extends StatefulWidget {
 
 class _CancelTaskDialogState extends State<_CancelTaskDialog> {
   final TextEditingController _reasonController = TextEditingController();
-  _TaskAttachment? _attachment;
+  final List<_TaskAttachment> _attachments = <_TaskAttachment>[];
   bool _hasReason = false;
 
   @override
@@ -867,13 +898,13 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
                 const SizedBox(height: 16),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 180),
-                  child: _attachment == null
+                  child: _attachments.isEmpty
                       ? _UploadBasisTile(dashed: true, onTap: _pick)
                       : _AttachmentPreviewGrid(
-                          attachment: _attachment!,
+                          attachments: _attachments,
                           onAdd: _pick,
-                          onRemove: () {
-                            setState(() => _attachment = null);
+                          onRemoveAt: (index) {
+                            setState(() => _attachments.removeAt(index));
                           },
                         ),
                 ),
@@ -883,7 +914,7 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
                 ValueListenableBuilder<bool>(
                   valueListenable: widget.isSubmittingListenable,
                   builder: (context, isSubmitting, _) {
-                    final canSubmit = _attachment != null && _hasReason && !isSubmitting;
+                    final canSubmit = _attachments.isNotEmpty && _hasReason && !isSubmitting;
                     return Row(
                       children: [
                         Expanded(
@@ -918,15 +949,13 @@ class _CancelTaskDialogState extends State<_CancelTaskDialog> {
 
   Future<void> _pick() async {
     final picked = await widget.onPick();
-    if (!mounted) return;
-    setState(() {
-      _attachment = picked ?? _attachment;
-    });
+    if (!mounted || picked.isEmpty) return;
+    setState(() => _attachments.addAll(picked));
   }
 
   Future<void> _submit(bool canSubmit) async {
-    if (!canSubmit || _attachment == null) return;
-    await widget.onSubmit(_reasonController.text.trim(), _attachment!);
+    if (!canSubmit || _attachments.isEmpty) return;
+    await widget.onSubmit(_reasonController.text.trim(), List.of(_attachments));
   }
 }
 
@@ -1041,11 +1070,11 @@ class _DashedRoundedBorderPainter extends CustomPainter {
 }
 
 class _AttachmentPreviewGrid extends StatelessWidget {
-  final _TaskAttachment attachment;
+  final List<_TaskAttachment> attachments;
   final VoidCallback onAdd;
-  final VoidCallback onRemove;
+  final void Function(int index) onRemoveAt;
 
-  const _AttachmentPreviewGrid({required this.attachment, required this.onAdd, required this.onRemove});
+  const _AttachmentPreviewGrid({required this.attachments, required this.onAdd, required this.onRemoveAt});
 
   @override
   Widget build(BuildContext context) {
@@ -1055,7 +1084,8 @@ class _AttachmentPreviewGrid extends StatelessWidget {
         spacing: 16,
         runSpacing: 16,
         children: [
-          _AttachmentPreviewTile(attachment: attachment, onRemove: onRemove),
+          for (var i = 0; i < attachments.length; i++)
+            _AttachmentPreviewTile(attachment: attachments[i], onRemove: () => onRemoveAt(i)),
           _AddMoreBasisTile(onTap: onAdd),
         ],
       ),

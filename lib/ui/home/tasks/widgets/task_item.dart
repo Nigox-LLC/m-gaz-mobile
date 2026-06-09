@@ -5,8 +5,8 @@ import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import '../../../../core/common/words.dart';
 import '../../../../core/models/task/tasks_model.dart';
+import 'package:m_gaz/core/enums/task_status_enum.dart';
 import 'task_action_modal.dart';
-import 'task_display_status.dart';
 
 class TaskItemWidget extends StatelessWidget {
   final TaskModel task;
@@ -16,7 +16,7 @@ class TaskItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayStatus = TaskDisplayStatus.fromTask(task);
+    final displayStatus = TaskStatus.fromTask(task);
     final formattedDate = DateFormat(
       'dd.MM.yyyy, HH:mm:ss',
     ).format(displayStatus.displayDateFor(task));
@@ -29,7 +29,7 @@ class TaskItemWidget extends StatelessWidget {
         child: InkWell(
           onTap:
               onTap ??
-              (displayStatus == TaskDisplayStatus.pending
+              (displayStatus == TaskStatus.pending
                   ? () => _showTaskActionDialog(context)
                   : null),
           borderRadius: BorderRadius.circular(16),
@@ -205,7 +205,7 @@ class _TaskAvatar extends StatelessWidget {
 }
 
 class _ModernStatusChip extends StatelessWidget {
-  final TaskDisplayStatus status;
+  final TaskStatus status;
 
   const _ModernStatusChip({required this.status});
 

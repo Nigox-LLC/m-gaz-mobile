@@ -2,10 +2,10 @@ import 'package:equatable/equatable.dart';
 import 'package:m_gaz/core/models/task/task_analysis.dart';
 import 'package:m_gaz/core/models/task/tasks_model.dart';
 
-enum TaskStatus { initial, loading, success, fail, taskAnalysis }
+enum TaskLoadStatus { initial, loading, success, fail, taskAnalysis }
 
 class TaskState extends Equatable {
-  final TaskStatus status;
+  final TaskLoadStatus status;
   final List<TaskModel> tasks;
   final TaskAnalysisModel? taskAnalysis;
   final String? nextUrl;
@@ -13,6 +13,7 @@ class TaskState extends Equatable {
   final bool isLoadingMore;
   final String? errorMessage;
   final String? profileUsername;
+  final String? profilePhotoUrl;
   final String searchQuery;
   final String? filterType;
 
@@ -23,7 +24,7 @@ class TaskState extends Equatable {
   final bool isCancelingTask;
 
   const TaskState({
-    this.status = TaskStatus.initial,
+    this.status = TaskLoadStatus.initial,
     this.tasks = const [],
     this.taskAnalysis,
     this.nextUrl,
@@ -31,6 +32,7 @@ class TaskState extends Equatable {
     this.isLoadingMore = false,
     this.errorMessage,
     this.profileUsername,
+    this.profilePhotoUrl,
     this.searchQuery = '',
     this.filterType,
     this.selectedTask,
@@ -40,7 +42,7 @@ class TaskState extends Equatable {
   });
 
   TaskState copyWith({
-    TaskStatus? status,
+    TaskLoadStatus? status,
     List<TaskModel>? tasks,
     TaskAnalysisModel? taskAnalysis,
     String? nextUrl,
@@ -48,6 +50,7 @@ class TaskState extends Equatable {
     bool? isLoadingMore,
     String? errorMessage,
     String? profileUsername,
+    String? profilePhotoUrl,
     String? searchQuery,
     String? filterType,
     TaskModel? selectedTask,
@@ -66,6 +69,7 @@ class TaskState extends Equatable {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       errorMessage: errorMessage ?? this.errorMessage,
       profileUsername: profileUsername ?? this.profileUsername,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       searchQuery: searchQuery ?? this.searchQuery,
       filterType: clearFilterType ? null : (filterType ?? this.filterType),
       taskDetail: taskDetail ?? this.taskDetail,
@@ -85,6 +89,7 @@ class TaskState extends Equatable {
     isLoadingMore,
     errorMessage,
     profileUsername,
+    profilePhotoUrl,
     searchQuery,
     filterType,
     selectedTask,

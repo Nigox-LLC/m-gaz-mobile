@@ -53,32 +53,32 @@ class TaskDetailFetched extends TaskEvent {
 
 class TaskComplete extends TaskEvent {
   final int taskId;
-  final String? filePath;
+  final List<String> filePaths;
   final double? latitude;
   final double? longitude;
 
   const TaskComplete({
     required this.taskId,
-    this.filePath,
+    this.filePaths = const [],
     this.latitude,
     this.longitude,
   });
 
   @override
-  List<Object?> get props => [taskId, filePath, latitude, longitude];
+  List<Object?> get props => [taskId, filePaths, latitude, longitude];
 }
 
 class TaskCancel extends TaskEvent {
   final int taskId;
   final String description;
-  final String filePath;
+  final List<String> filePaths;
 
   const TaskCancel({
     required this.taskId,
     required this.description,
-    required this.filePath,
+    this.filePaths = const [],
   });
 
   @override
-  List<Object?> get props => [taskId, description, filePath];
+  List<Object?> get props => [taskId, description, filePaths];
 }

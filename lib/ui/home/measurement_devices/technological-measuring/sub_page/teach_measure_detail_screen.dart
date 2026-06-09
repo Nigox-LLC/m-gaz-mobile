@@ -4,9 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/global_widget/global_app_bar.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shimmer/shimmer.dart';
+
+import '../../../../../core/common/words.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_certificate.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_detail.dart';
-import '../../../../../core/common/words.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_egxu_type.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_hourly_indicator_image.dart';
 import '../../../../../core/models/technological-measuring/teach_measure_detail/teach_measure_item.dart';
@@ -22,8 +23,7 @@ class TechMeasureDetailScreen extends StatefulWidget {
   const TechMeasureDetailScreen({super.key, required this.documentId});
 
   @override
-  State<TechMeasureDetailScreen> createState() =>
-      _TechMeasureDetailScreenState();
+  State<TechMeasureDetailScreen> createState() => _TechMeasureDetailScreenState();
 }
 
 class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
@@ -34,31 +34,20 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
   }
 
   void _loadDocument() {
-    context.read<TechMeasuresBloc>().add(
-      TechMeasureDetailFetched(widget.documentId),
-    );
+    context.read<TechMeasuresBloc>().add(TechMeasureDetailFetched(widget.documentId));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: CustomGlobalAppBar(
-        title: Words.documentDetails.tr(),
-        centerTitle: true,
-      ),
+      appBar: CustomGlobalAppBar(title: Words.documentDetails.tr(), centerTitle: true),
       body: BlocBuilder<TechMeasuresBloc, TechMeasuresState>(
         builder: (context, state) {
           return switch (state.status) {
             TechMeasuresStatus.loading => _buildShimmerLoading(),
-            TechMeasuresStatus.fail => _buildErrorView(
-              context,
-              state.errorMessage,
-            ),
-            TechMeasuresStatus.success =>
-              state.teachMeasureDetail == null
-                  ? _buildEmptyView()
-                  : _buildDocumentContent(state.teachMeasureDetail!),
+            TechMeasuresStatus.fail => _buildErrorView(context, state.errorMessage),
+            TechMeasuresStatus.success => state.teachMeasureDetail == null ? _buildEmptyView() : _buildDocumentContent(state.teachMeasureDetail!),
             _ => const SizedBox.shrink(),
           };
         },
@@ -69,13 +58,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
   Widget _buildShimmerLoading() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _buildShimmerCard(height: 180),
-          const SizedBox(height: 16),
-          _buildShimmerCard(height: 300),
-        ],
-      ),
+      child: Column(children: [_buildShimmerCard(height: 180), const SizedBox(height: 16), _buildShimmerCard(height: 300)]),
     );
   }
 
@@ -86,10 +69,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
       child: Container(
         height: height,
         width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -105,10 +85,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
             const SizedBox(height: 16),
             Text(
               Words.errorOccurred.tr(),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.red.shade400,
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.red.shade400, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -122,13 +99,8 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
               icon: const Icon(Icons.refresh),
               label: Text(Words.retry.tr()),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -142,19 +114,11 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.description_outlined,
-            size: 80,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.description_outlined, size: 80, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             Words.documentsNotFound.tr(),
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -187,13 +151,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.blue.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -203,15 +161,8 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.description,
-                  color: Colors.blue,
-                  size: 28,
-                ),
+                decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.description, color: Colors.blue, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -220,66 +171,33 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
                   children: [
                     Text(
                       '${Words.document.tr()} #${doc.id}',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      _formatDate(doc.datetime),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
+                    Text(_formatDate(doc.datetime), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600)),
                   ],
                 ),
               ),
             ],
           ),
           const Divider(height: 24, thickness: 1),
-          _buildInfoRow(
-            icon: Icons.location_on,
-            label: Words.region.tr(),
-            value: doc.region.name ?? "",
-            color: Colors.green.shade700,
-          ),
+          _buildInfoRow(icon: Icons.location_on, label: Words.region.tr(), value: doc.region.name ?? "", color: Colors.green.shade700),
           const SizedBox(height: 8),
-          _buildInfoRow(
-            icon: Icons.location_city,
-            label: Words.district.tr(),
-            value: doc.district.name ?? "",
-            color: Colors.blue.shade700,
-          ),
+          _buildInfoRow(icon: Icons.location_city, label: Words.district.tr(), value: doc.district.name ?? "", color: Colors.blue.shade700),
           const SizedBox(height: 8),
-          _buildInfoRow(
-            icon: Icons.person,
-            label: Words.employee.tr(),
-            value: doc.employee.fio ?? "",
-            color: Colors.purple.shade700,
-          ),
+          _buildInfoRow(icon: Icons.person, label: Words.employee.tr(), value: doc.employee.fio ?? "", color: Colors.purple.shade700),
           const SizedBox(height: 8),
-          _buildInfoRow(
-            icon: Icons.people,
-            label: Words.consumer.tr(),
-            value: 'N/A',
-            color: Colors.teal.shade700,
-          ),
-          if (doc.gtsh.name.isNotEmpty) ...[
+          _buildInfoRow(icon: Icons.people, label: Words.consumer.tr(), value: 'N/A', color: Colors.teal.shade700),
+          if (doc.gtsh.name?.isNotEmpty ?? false) ...[
             const SizedBox(height: 8),
-            _buildInfoRow(
-              icon: Icons.factory,
-              label: Words.gtsh.tr(),
-              value: doc.gtsh.name,
-              color: Colors.orange.shade700,
-            ),
+            _buildInfoRow(icon: Icons.factory, label: Words.gtsh.tr(), value: doc.gtsh.name ?? '', color: Colors.orange.shade700),
           ],
-          if (doc.technoMeasuringDevices.name.isNotEmpty) ...[
+          if (doc.technoMeasuringDevices.name?.isNotEmpty ?? false) ...[
             const SizedBox(height: 8),
             _buildInfoRow(
               icon: Icons.electrical_services,
               label: Words.technologicalDevice.tr(),
-              value: doc.technoMeasuringDevices.name,
+              value: doc.technoMeasuringDevices.name ?? '',
               color: Colors.indigo.shade700,
             ),
           ],
@@ -302,11 +220,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
           const SizedBox(width: 12),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade700,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
           ),
         ],
       ),
@@ -328,32 +242,17 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.all(16),
-        childrenPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
+        childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         collapsedBackgroundColor: Colors.white,
         backgroundColor: Colors.grey.shade50,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: _buildStatusIcon(item.isActive),
-        title: Text(
-          'EGHU #${item.id}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: _buildStatusChip(item.isActive),
-        ),
+        title: Text('EGHU #${item.id}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        subtitle: Padding(padding: const EdgeInsets.only(top: 4), child: _buildStatusChip(item.isActive)),
         children: [
           _buildSubSection(Words.eghuType.tr(), Icons.build),
           _buildEgxuTypeInfo(item.egxuType),
@@ -364,10 +263,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
             const SizedBox(height: 16),
           ],
           if (item.real.isNotEmpty) ...[
-            _buildSubSection(
-              '${Words.counters.tr()} (${item.real.length})',
-              Icons.devices,
-            ),
+            _buildSubSection('${Words.counters.tr()} (${item.real.length})', Icons.devices),
             _buildRealDevicesList(item.real),
             const SizedBox(height: 16),
           ],
@@ -403,10 +299,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
           Icon(Icons.build_rounded, color: Colors.blue.shade700),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              egxuType.name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
+            child: Text(egxuType.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ),
         ],
       ),
@@ -428,16 +321,10 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
               children: [
                 Icon(Icons.factory_rounded, color: Colors.blue.shade700),
                 const SizedBox(height: 4),
-                Text(
-                  Words.factoryOne.tr(),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
+                Text(Words.factoryOne.tr(), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 Text(
                   oneFactory ?? '-',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700),
                 ),
               ],
             ),
@@ -456,16 +343,10 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
               children: [
                 Icon(Icons.factory_outlined, color: Colors.orange.shade700),
                 const SizedBox(height: 4),
-                Text(
-                  Words.factoryTwo.tr(),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
+                Text(Words.factoryTwo.tr(), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 Text(
                   twoFactory ?? '-',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange.shade700,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade700),
                 ),
               ],
             ),
@@ -478,34 +359,18 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
   Widget _buildStatusIcon(bool isActive) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.green.shade50 : Colors.red.shade50,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(
-        isActive ? Icons.check_circle : Icons.cancel,
-        color: isActive ? Colors.green : Colors.red,
-        size: 24,
-      ),
+      decoration: BoxDecoration(color: isActive ? Colors.green.shade50 : Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+      child: Icon(isActive ? Icons.check_circle : Icons.cancel, color: isActive ? Colors.green : Colors.red, size: 24),
     );
   }
 
   Widget _buildStatusChip(bool isActive) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.green.shade100 : Colors.red.shade100,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: isActive ? Colors.green.shade100 : Colors.red.shade100, borderRadius: BorderRadius.circular(20)),
       child: Text(
-        isActive
-            ? Words.active.tr().toUpperCase()
-            : Words.inactive.tr().toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: isActive ? Colors.green.shade800 : Colors.red.shade800,
-        ),
+        isActive ? Words.active.tr().toUpperCase() : Words.inactive.tr().toUpperCase(),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isActive ? Colors.green.shade800 : Colors.red.shade800),
       ),
     );
   }
@@ -519,29 +384,17 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
           const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade700,
-              fontSize: 14,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
+  Widget _buildInfoRow({required IconData icon, required String label, required String value, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
@@ -573,27 +426,13 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
           decoration: BoxDecoration(
             color: item.isActive ? Colors.green.shade50 : Colors.red.shade50,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: item.isActive
-                  ? Colors.green.shade200
-                  : Colors.red.shade200,
-            ),
+            border: Border.all(color: item.isActive ? Colors.green.shade200 : Colors.red.shade200),
           ),
           child: ListTile(
             dense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 4,
-            ),
-            leading: Icon(
-              item.isActive ? Icons.check_circle : Icons.cancel,
-              color: item.isActive ? Colors.green : Colors.red,
-              size: 24,
-            ),
-            title: Text(
-              item.realNumber,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            leading: Icon(item.isActive ? Icons.check_circle : Icons.cancel, color: item.isActive ? Colors.green : Colors.red, size: 24),
+            title: Text(item.realNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Column(
@@ -601,23 +440,11 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
                 children: [
                   _buildDeviceDetail(Icons.qr_code_2, 'QR', item.qrCode),
                   const SizedBox(height: 2),
-                  _buildDeviceDetail(
-                    Icons.date_range,
-                    Words.installed.tr(),
-                    _formatDate(item.installedDate),
-                  ),
+                  _buildDeviceDetail(Icons.date_range, Words.installed.tr(), _formatDate(item.installedDate)),
                   const SizedBox(height: 2),
-                  _buildDeviceDetail(
-                    Icons.location_pin,
-                    Words.location.tr(),
-                    item.sealInstalledLocation,
-                  ),
+                  _buildDeviceDetail(Icons.location_pin, Words.location.tr(), item.sealInstalledLocation),
                   const SizedBox(height: 2),
-                  _buildDeviceDetail(
-                    Icons.access_time,
-                    Words.created.tr(),
-                    _formatDateTime(item.created),
-                  ),
+                  _buildDeviceDetail(Icons.access_time, Words.created.tr(), _formatDateTime(item.created)),
                 ],
               ),
             ),
@@ -638,19 +465,10 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
         const SizedBox(width: 4),
         Text(
           '$label: ',
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
         ),
         Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 11),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(value, style: const TextStyle(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
       ],
     );
@@ -675,26 +493,11 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      cert.certificateNumber,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    Text(
-                      cert.certificateType.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
+                    Text(cert.certificateNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(cert.certificateType.toUpperCase(), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                     Text(
                       '${Words.validityPeriod.tr()}: ${_formatDate(cert.expiryDate)}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -707,9 +510,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
     );
   }
 
-  Widget _buildHourlyIndicatorsList(
-    List<TeachMeasureHourlyListIndicator> indicators,
-  ) {
+  Widget _buildHourlyIndicatorsList(List<TeachMeasureHourlyListIndicator> indicators) {
     return SizedBox(
       height: 160,
       child: ListView.builder(
@@ -731,36 +532,19 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.timer_rounded,
-                      size: 18,
-                      color: Colors.blue.shade700,
-                    ),
+                    Icon(Icons.timer_rounded, size: 18, color: Colors.blue.shade700),
                     const SizedBox(width: 6),
-                    Text(
-                      Words.indicator.tr(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(Words.indicator.tr(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   indicator.indicator.toString(),
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
-                  ),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
                 ),
                 const Spacer(),
-                Text(
-                  _formatDateTime(indicator.timestamp),
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                ),
-                _buildStatusChip(indicator.isActive),
+                Text(_formatDateTime(indicator.timestamp), style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                _buildStatusChip(indicator.isActive?? false),
               ],
             ),
           );
@@ -784,16 +568,10 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
               children: [
                 Icon(Icons.start, color: Colors.green.shade700),
                 const SizedBox(height: 4),
-                Text(
-                  Words.startDate.tr(),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
+                Text(Words.startDate.tr(), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 Text(
                   from != null ? _formatDate(from) : '-',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green.shade700,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700),
                 ),
               ],
             ),
@@ -812,16 +590,10 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
               children: [
                 Icon(Icons.event, color: Colors.red.shade700),
                 const SizedBox(height: 4),
-                Text(
-                  Words.endDate.tr(),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
+                Text(Words.endDate.tr(), style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 Text(
                   to != null ? _formatDate(to) : '-',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red.shade700,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade700),
                 ),
               ],
             ),
@@ -843,12 +615,7 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
             children: [
               const Icon(Icons.qr_code, size: 48, color: Colors.blue),
               const SizedBox(height: 16),
-              Text(
-                'QR Kod',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
+              Text('QR Kod', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -857,28 +624,18 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade300),
                 ),
-                child: QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 200,
-                ),
+                child: QrImageView(data: qrData, version: QrVersions.auto, size: 200),
               ),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
                 child: Row(
                   children: [
                     Expanded(
                       child: SelectableText(
                         qrData,
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 14,
-                        ),
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -905,13 +662,8 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(Words.close.tr()),
               ),

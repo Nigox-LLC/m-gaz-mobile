@@ -37,12 +37,12 @@ void main() {
         ..add(EghuIndicatorConsumerSelected(_consumer()))
         ..add(EghuIndicatorEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(const EghuIndicatorValueChanged('2924'))
-        ..add(EghuIndicatorBasicFileSet(_attachment(basicFile.path)));
+        ..add(EghuIndicatorBasicFileAdded(_attachment(basicFile.path)));
       await pumpEventQueue();
 
       expect(bloc.state.canSubmit, isFalse);
 
-      bloc.add(EghuIndicatorPrintFileSet(_attachment(printFile.path)));
+      bloc.add(EghuIndicatorPrintFileAdded(_attachment(printFile.path)));
       await pumpEventQueue();
 
       expect(bloc.state.canSubmit, isTrue);
@@ -53,8 +53,8 @@ void main() {
         ..add(EghuIndicatorConsumerSelected(_consumer()))
         ..add(EghuIndicatorEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(const EghuIndicatorValueChanged('2924,5'))
-        ..add(EghuIndicatorBasicFileSet(_attachment(basicFile.path)))
-        ..add(EghuIndicatorPrintFileSet(_attachment(printFile.path)));
+        ..add(EghuIndicatorBasicFileAdded(_attachment(basicFile.path)))
+        ..add(EghuIndicatorPrintFileAdded(_attachment(printFile.path)));
       await pumpEventQueue();
 
       bloc.add(const EghuIndicatorSubmitted());
@@ -63,7 +63,7 @@ void main() {
       expect(bloc.state.status, EghuIndicatorSubmitStatus.success);
       expect(api.request, isNotNull);
       expect(api.request!.toJson()['value'], '2924.50');
-      expect(api.request!.toJson()['consumer'], 12);
+      expect(api.request!.toJson()['consumer_relation_document'], 12);
       expect(api.request!.toJson()['egxu'], 44);
     });
 
@@ -72,8 +72,8 @@ void main() {
         ..add(EghuIndicatorConsumerSelected(_consumer()))
         ..add(EghuIndicatorEghuSelected(_eghu(), consumerDetail: _detail()))
         ..add(const EghuIndicatorValueChanged('0'))
-        ..add(EghuIndicatorBasicFileSet(_attachment(basicFile.path)))
-        ..add(EghuIndicatorPrintFileSet(_attachment(printFile.path)));
+        ..add(EghuIndicatorBasicFileAdded(_attachment(basicFile.path)))
+        ..add(EghuIndicatorPrintFileAdded(_attachment(printFile.path)));
       await pumpEventQueue();
 
       expect(bloc.state.canSubmit, isFalse);

@@ -163,7 +163,7 @@ void main() {
       expect(createBody['created_at'], '2026-05-31T07:36:58.008Z');
       expect(createBody['is_active'], true);
       expect(createBody['value'], '2924.00');
-      expect(createBody['consumer'], 12);
+      expect(createBody['consumer_relation_document'], 12);
       expect(createBody['egxu'], 44);
 
       expect(_formField(adapter.requests[1], 'file_type'), 'basic');
@@ -211,7 +211,7 @@ void main() {
         '${EghuIndicatorApi.indicatorsEndpoint}91/',
       );
       expect(adapter.requests[0].data, {
-        'consumer': 12,
+        'consumer_relation_document': 12,
         'egxu': 44,
         'value': '2924.50',
       });
@@ -407,8 +407,8 @@ EghuIndicatorCreateRequest _request({
     value: '2924.00',
     consumerId: 12,
     egxuId: 44,
-    basicFile: _attachment(basicFile),
-    printFile: _attachment(printFile),
+    basicFiles: [_attachment(basicFile)],
+    printFiles: [_attachment(printFile)],
   );
 }
 

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:m_gaz/core/api/base/base_api.dart';
+import 'package:m_gaz/core/hive/api_hive.dart';
 import 'package:m_gaz/features/auth/presentation/pages/login_screen.dart';
 import 'package:m_gaz/ui/auth/splash/splash_screen.dart';
 import 'package:m_gaz/ui/home/home_screen.dart';
@@ -40,8 +41,12 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  // Orqa fonda o'tgan vaqt shu chegaradan oshsa login majburlanadi. Aks holda
+  // foydalanuvchi sessiyasi davom etadi (qisqa muddatli inactivity login emas).
+  static const Duration _sessionTimeout = Duration(minutes: 5);
+
   // Ilova orqa fonga (paused/hidden) o'tganini belgilaydi. Faqat shu holatdan
-  // keyin resumed bo'lganda login majburlanadi (vaqtinchalik inactive emas).
+  // keyin resumed bo'lganda sessiya muddati tekshiriladi.
   bool _wentBackground = false;
 
   @override
@@ -62,9 +67,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       _wentBackground = true;
+      // Orqa fonga o'tgan vaqtni saqlaymiz — process o'lsa ham splash o'qiy oladi.
+      di.get<ApiHive>().setLastActiveNow();
     } else if (state == AppLifecycleState.resumed && _wentBackground) {
       _wentBackground = false;
-      _forceLogin();
+      final lastActive = di.get<ApiHive>().lastActiveMillis;
+      final elapsed = DateTime.now().millisecondsSinceEpoch - lastActive;
+      if (lastActive > 0 && elapsed >= _sessionTimeout.inMilliseconds) {
+        _forceLogin();
+      }
     }
   }
 

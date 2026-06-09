@@ -8,8 +8,8 @@ class EghuActionCreateState extends Equatable {
     this.selectedConsumer,
     this.selectedConsumerDetail,
     this.selectedEghu,
-    this.actFile,
-    this.comparisonFile,
+    this.actFiles = const [],
+    this.comparisonFiles = const [],
     this.stamps = const [],
     this.employeeId,
     this.employeeName,
@@ -44,16 +44,16 @@ class EghuActionCreateState extends Equatable {
         )
         .toList();
 
-    EghuActionAttachment? actFile;
-    EghuActionAttachment? comparisonFile;
+    final actFiles = <EghuActionAttachment>[];
+    final comparisonFiles = <EghuActionAttachment>[];
     for (final akt in detail.akts) {
       final attachment = _attachmentFromAkt(akt);
       if (attachment == null) continue;
       switch (akt.aktFileType) {
         case 'akt':
-          actFile = attachment;
+          actFiles.add(attachment);
         case 'calibration':
-          comparisonFile = attachment;
+          comparisonFiles.add(attachment);
       }
     }
 
@@ -61,8 +61,8 @@ class EghuActionCreateState extends Equatable {
       actionType: actionType,
       selectedConsumer: _consumerStub(detail),
       selectedEghu: _eghuStub(detail),
-      actFile: actFile,
-      comparisonFile: comparisonFile,
+      actFiles: actFiles,
+      comparisonFiles: comparisonFiles,
       stamps: stamps,
       recordId: detail.id,
       employeeId: employeeId,
@@ -76,8 +76,8 @@ class EghuActionCreateState extends Equatable {
   final WorkingWithConsumersList? selectedConsumer;
   final WorkingWithConsumersDetailModel? selectedConsumerDetail;
   final ConsumersEgxuItem? selectedEghu;
-  final EghuActionAttachment? actFile;
-  final EghuActionAttachment? comparisonFile;
+  final List<EghuActionAttachment> actFiles;
+  final List<EghuActionAttachment> comparisonFiles;
   final List<EghuActionStampEntry> stamps;
   final int? employeeId;
   final String? employeeName;
@@ -111,21 +111,19 @@ class EghuActionCreateState extends Equatable {
   bool get canSubmit =>
       selectedConsumer != null &&
       selectedEghu?.id != null &&
-      actFile != null &&
-      comparisonFile != null &&
+      actFiles.isNotEmpty &&
+      comparisonFiles.isNotEmpty &&
       hasValidStamps &&
       hasValidStampPlaces;
 
   EghuActionCreateRequest? toRequest() {
     final consumer = selectedConsumer;
     final eghu = selectedEghu;
-    final act = actFile;
-    final comparison = comparisonFile;
 
     if (consumer == null ||
         eghu?.id == null ||
-        act == null ||
-        comparison == null ||
+        actFiles.isEmpty ||
+        comparisonFiles.isEmpty ||
         !hasValidStamps ||
         !hasValidStampPlaces) {
       return null;
@@ -151,8 +149,8 @@ class EghuActionCreateState extends Equatable {
       hourlyGasConsumption: _hourlyGasConsumption(eghu),
       dailyConsumption: _hourlyGasConsumption(eghu) * 24,
       replacementReason: _replacementReason,
-      actFile: act,
-      comparisonFile: comparison,
+      actFiles: List.unmodifiable(actFiles),
+      comparisonFiles: List.unmodifiable(comparisonFiles),
       employeeId: selectedConsumerDetail?.employee?.id ?? employeeId,
       egxuTypeId: eghu.egxuType?.id,
       oneFactory: eghu.oneFactory,
@@ -164,8 +162,8 @@ class EghuActionCreateState extends Equatable {
 
   List<int> _existingAktIds() {
     final ids = <int>[];
-    for (final attachment in <EghuActionAttachment?>[actFile, comparisonFile]) {
-      if (attachment == null || !attachment.isRemote) continue;
+    for (final attachment in [...actFiles, ...comparisonFiles]) {
+      if (!attachment.isRemote) continue;
       final aktId = attachment.remoteAktId;
       if (aktId != null) ids.add(aktId);
     }
@@ -269,8 +267,8 @@ class EghuActionCreateState extends Equatable {
     WorkingWithConsumersList? selectedConsumer,
     WorkingWithConsumersDetailModel? selectedConsumerDetail,
     ConsumersEgxuItem? selectedEghu,
-    EghuActionAttachment? actFile,
-    EghuActionAttachment? comparisonFile,
+    List<EghuActionAttachment>? actFiles,
+    List<EghuActionAttachment>? comparisonFiles,
     List<EghuActionStampEntry>? stamps,
     int? employeeId,
     String? employeeName,
@@ -282,8 +280,6 @@ class EghuActionCreateState extends Equatable {
     int? recordId,
     bool clearSelectedEghu = false,
     bool clearSelectedConsumerDetail = false,
-    bool clearActFile = false,
-    bool clearComparisonFile = false,
   }) {
     return EghuActionCreateState(
       actionType: actionType,
@@ -294,10 +290,8 @@ class EghuActionCreateState extends Equatable {
       selectedEghu: clearSelectedEghu
           ? null
           : (selectedEghu ?? this.selectedEghu),
-      actFile: clearActFile ? null : (actFile ?? this.actFile),
-      comparisonFile: clearComparisonFile
-          ? null
-          : (comparisonFile ?? this.comparisonFile),
+      actFiles: actFiles ?? this.actFiles,
+      comparisonFiles: comparisonFiles ?? this.comparisonFiles,
       stamps: stamps ?? this.stamps,
       employeeId: employeeId ?? this.employeeId,
       employeeName: employeeName ?? this.employeeName,
@@ -316,8 +310,8 @@ class EghuActionCreateState extends Equatable {
     selectedConsumer,
     selectedConsumerDetail,
     selectedEghu,
-    actFile,
-    comparisonFile,
+    actFiles,
+    comparisonFiles,
     stamps,
     employeeId,
     employeeName,

@@ -228,16 +228,16 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
                                   slot: EghuActionAttachmentSlot.act,
                                   title: Words.enterAct.tr(),
                                   emptyText: Words.enterAct.tr(),
-                                  attachment: state.actFile,
+                                  attachments: state.actFiles,
                                   showHelp: true,
                                   uploaderName: state.employeeName,
                                   onAdd: () => _pickAttachment(
                                     context,
                                     _DetachUploadTarget.act,
                                   ),
-                                  onRemove: () => context
+                                  onRemoveAt: (index) => context
                                       .read<EghuDetachCreateBloc>()
-                                      .add(const EghuDetachActFileRemoved()),
+                                      .add(EghuDetachActFileRemovedAt(index)),
                                 ),
                               ],
                               if (state.shouldShowProof) ...[
@@ -247,16 +247,16 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
                                   title: Words.proofInformation.tr(),
                                   emptyText: Words.sendProof.tr(),
                                   keyName: 'proof',
-                                  attachment: state.proofFile,
+                                  attachments: state.proofFiles,
                                   showHelp: true,
                                   uploaderName: state.employeeName,
                                   onAdd: () => _pickAttachment(
                                     context,
                                     _DetachUploadTarget.proof,
                                   ),
-                                  onRemove: () => context
+                                  onRemoveAt: (index) => context
                                       .read<EghuDetachCreateBloc>()
-                                      .add(const EghuDetachProofFileRemoved()),
+                                      .add(EghuDetachProofFileRemovedAt(index)),
                                 ),
                               ],
                               if (state.shouldShowGasSupplyStopped) ...[
@@ -322,16 +322,16 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
                                   slot: EghuActionAttachmentSlot.act,
                                   title: Words.protocolInformation.tr(),
                                   keyName: 'protocol',
-                                  attachment: state.protocolFile,
+                                  attachments: state.protocolFiles,
                                   showHelp: true,
                                   uploaderName: state.employeeName,
                                   onAdd: () => _pickAttachment(
                                     context,
                                     _DetachUploadTarget.protocol,
                                   ),
-                                  onRemove: () =>
+                                  onRemoveAt: (index) =>
                                       context.read<EghuDetachCreateBloc>().add(
-                                        const EghuDetachProtocolFileRemoved(),
+                                        EghuDetachProtocolFileRemovedAt(index),
                                       ),
                                 ),
                               ],
@@ -518,19 +518,25 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
     if (!context.mounted || source == null) return;
 
     try {
-      final attachment = source == EghuAttachmentSource.camera
-          ? await _pickFromCamera()
-          : await _pickFromDevice();
-      if (!context.mounted || attachment == null) return;
+      final List<EghuActionAttachment> attachments;
+      if (source == EghuAttachmentSource.camera) {
+        final image = await _pickFromCamera();
+        attachments = image == null ? const [] : [image];
+      } else {
+        attachments = await _pickFromDevice();
+      }
+      if (!context.mounted || attachments.isEmpty) return;
 
       final bloc = context.read<EghuDetachCreateBloc>();
-      switch (target) {
-        case _DetachUploadTarget.act:
-          bloc.add(EghuDetachActFileSet(attachment));
-        case _DetachUploadTarget.proof:
-          bloc.add(EghuDetachProofFileSet(attachment));
-        case _DetachUploadTarget.protocol:
-          bloc.add(EghuDetachProtocolFileSet(attachment));
+      for (final attachment in attachments) {
+        switch (target) {
+          case _DetachUploadTarget.act:
+            bloc.add(EghuDetachActFileAdded(attachment));
+          case _DetachUploadTarget.proof:
+            bloc.add(EghuDetachProofFileAdded(attachment));
+          case _DetachUploadTarget.protocol:
+            bloc.add(EghuDetachProtocolFileAdded(attachment));
+        }
       }
     } catch (e) {
       if (!context.mounted) return;
@@ -558,25 +564,40 @@ class _EghuDetachCreatePageState extends State<EghuDetachCreatePage> {
     );
   }
 
-  Future<EghuActionAttachment?> _pickFromDevice() async {
+  Future<List<EghuActionAttachment>> _pickFromDevice() async {
     final result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
+      allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
+      allowedExtensions: const [
+        'jpg',
+        'jpeg',
+        'png',
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+      ],
       withData: false,
     );
-    final file = result?.files.single;
-    final path = file?.path;
-    if (file == null || path == null) return null;
+    if (result == null) return const [];
 
-    return EghuActionAttachment(
-      path: path,
-      name: file.name,
-      sizeBytes: file.size == 0 ? await File(path).length() : file.size,
-      isImage: _isImage(path),
-      sourceLabel: Words.uploadFromPhone.tr(),
-      createdAt: DateTime.now(),
-    );
+    final attachments = <EghuActionAttachment>[];
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null) continue;
+      attachments.add(
+        EghuActionAttachment(
+          path: path,
+          name: file.name,
+          sizeBytes: file.size == 0 ? await File(path).length() : file.size,
+          isImage: _isImage(path),
+          sourceLabel: Words.uploadFromPhone.tr(),
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    return attachments;
   }
 
   String _fileName(String path) {

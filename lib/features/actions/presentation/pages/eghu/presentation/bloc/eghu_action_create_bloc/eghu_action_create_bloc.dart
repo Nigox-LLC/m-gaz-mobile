@@ -56,8 +56,8 @@ class EghuActionCreateBloc
        ) {
     on<EghuActionConsumerSelected>(_onConsumerSelected);
     on<EghuActionEghuSelected>(_onEghuSelected);
-    on<EghuActionAttachmentSet>(_onAttachmentSet);
-    on<EghuActionAttachmentRemoved>(_onAttachmentRemoved);
+    on<EghuActionAttachmentAdded>(_onAttachmentAdded);
+    on<EghuActionAttachmentRemovedAt>(_onAttachmentRemovedAt);
     on<EghuActionStampAdded>(_onStampAdded);
     on<EghuActionStampRemoved>(_onStampRemoved);
     on<EghuActionStampNumberChanged>(_onStampNumberChanged);
@@ -102,28 +102,42 @@ class EghuActionCreateBloc
     );
   }
 
-  void _onAttachmentSet(
-    EghuActionAttachmentSet event,
+  void _onAttachmentAdded(
+    EghuActionAttachmentAdded event,
     Emitter<EghuActionCreateState> emit,
   ) {
     emit(switch (event.slot) {
-      EghuActionAttachmentSlot.act => state.copyWith(actFile: event.file),
+      EghuActionAttachmentSlot.act => state.copyWith(
+        actFiles: [...state.actFiles, event.file],
+      ),
       EghuActionAttachmentSlot.comparison => state.copyWith(
-        comparisonFile: event.file,
+        comparisonFiles: [...state.comparisonFiles, event.file],
       ),
     });
   }
 
-  void _onAttachmentRemoved(
-    EghuActionAttachmentRemoved event,
+  void _onAttachmentRemovedAt(
+    EghuActionAttachmentRemovedAt event,
     Emitter<EghuActionCreateState> emit,
   ) {
-    emit(switch (event.slot) {
-      EghuActionAttachmentSlot.act => state.copyWith(clearActFile: true),
-      EghuActionAttachmentSlot.comparison => state.copyWith(
-        clearComparisonFile: true,
-      ),
-    });
+    switch (event.slot) {
+      case EghuActionAttachmentSlot.act:
+        if (event.index < 0 || event.index >= state.actFiles.length) return;
+        emit(
+          state.copyWith(
+            actFiles: [...state.actFiles]..removeAt(event.index),
+          ),
+        );
+      case EghuActionAttachmentSlot.comparison:
+        if (event.index < 0 || event.index >= state.comparisonFiles.length) {
+          return;
+        }
+        emit(
+          state.copyWith(
+            comparisonFiles: [...state.comparisonFiles]..removeAt(event.index),
+          ),
+        );
+    }
   }
 
   void _onStampNumberChanged(
