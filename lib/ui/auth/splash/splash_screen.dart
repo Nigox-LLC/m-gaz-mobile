@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/constants/session_constants.dart';
 import '../../../core/extension/size_extension.dart';
 import '../../../core/hive/api_hive.dart';
 import '../../../core/utils/colors.dart';
@@ -25,19 +26,27 @@ class _SplashScreenState extends State<SplashScreen> {
 
   // Sessiya oynasi: ilova oxirgi marta faol bo'lgandan beri shu muddatdan kam
   // vaqt o'tgan bo'lsa va token saqlangan bo'lsa, login so'ralmaydi — to'g'ridan
-  // Home ochiladi. Aks holda (token yo'q yoki 5 daqiqadan ko'p o'tgan) login.
-  static const Duration _sessionTimeout = Duration(minutes: 5);
+  // Home ochiladi. Aks holda (token yo'q yoki muddat o'tgan) login.
 
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(seconds: 1));
     if (!mounted) return;
 
     final hive = di.get<ApiHive>();
+
+    // Kamera/face-verification bo'limidan chiqib (yoki o'sha yerda process
+    // o'lib) qaytilgan bo'lsa — token muddati ichida bo'lsa ham login majburiy.
+    if (hive.pendingRelogin) {
+      hive.setPendingRelogin(false);
+      _goLogin();
+      return;
+    }
+
     final hasToken = hive.accessToken.isNotEmpty;
     final lastActive = hive.lastActiveMillis;
     final elapsed = DateTime.now().millisecondsSinceEpoch - lastActive;
     final sessionAlive =
-        lastActive > 0 && elapsed < _sessionTimeout.inMilliseconds;
+        lastActive > 0 && elapsed < kSessionTimeout.inMilliseconds;
 
     if (hasToken && sessionAlive) {
       _goHome();

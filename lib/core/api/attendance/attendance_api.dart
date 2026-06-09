@@ -9,6 +9,38 @@ class AttendanceApi {
 
   AttendanceApi(this._base);
 
+  /// Kamerani ochishdan oldin foydalanuvchi bugun allaqachon yo'qlama
+  /// qilganligini tekshiradi. Bir xil endpoint GET qilinadi va javobdagi
+  /// `already_attended` bayrog'i qaytariladi.
+  Future<bool> checkAlreadyAttended() async {
+    try {
+      debugPrint("🔎 Yo'qlama holati tekshirilmoqda...");
+
+      final response = await _base.dio.get(
+        "directory/employee-attendance/",
+        options: Options(contentType: "application/json"),
+      );
+
+      debugPrint("📥 STATUS CODE: ${response.statusCode}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        return data is Map && data['already_attended'] == true;
+      } else {
+        throw Exception("Xatolik: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      final error = e.response?.data;
+      String errorMessage =
+          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      debugPrint("❌ Dio Xatolik: $errorMessage");
+      throw Exception(errorMessage);
+    } catch (e) {
+      debugPrint("❌ UNKNOWN: $e");
+      throw Exception("Kutilmagan xatolik: $e");
+    }
+  }
+
   Future<Map<String, dynamic>> sendAttendance({
     required File photo,
     Map<String, dynamic>? data,

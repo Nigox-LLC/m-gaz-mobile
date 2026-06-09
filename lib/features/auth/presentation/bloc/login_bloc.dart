@@ -4,7 +4,6 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/user.dart';
-import '../../domain/usecases/check_daily_agreement_usecase.dart';
 import '../../domain/usecases/get_saved_username_usecase.dart';
 import '../../domain/usecases/load_user_profile_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -16,13 +15,11 @@ part 'login_state.dart';
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final LoginUseCase _login;
   final LoadUserProfileUseCase _loadProfile;
-  final CheckDailyAgreementUseCase _checkAgreement;
   final GetSavedUsernameUseCase _getSavedUsername;
 
   LoginBloc(
     this._login,
     this._loadProfile,
-    this._checkAgreement,
     this._getSavedUsername,
   ) : super(const LoginState()) {
     on<LoginSubmitted>(_onSubmitted);
@@ -51,21 +48,14 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       LoginParams(userName: event.userName, password: event.password),
     );
 
-    await result.fold(
-      (failure) async {
-        emit(state.copyWith(
-          status: LoginStatus.fail,
-          errorMessage: failure.message,
-        ));
-      },
-      (_) async {
-        final agreementResult = await _checkAgreement(const NoParams());
-        final requiresAgreement = agreementResult.getOrElse(() => false);
-        emit(state.copyWith(
-          status: LoginStatus.success,
-          requiresAgreement: requiresAgreement,
-        ));
-      },
+    result.fold(
+      (failure) => emit(state.copyWith(
+        status: LoginStatus.fail,
+        errorMessage: failure.message,
+      )),
+      // Yo'qlama/kelishuv qarori endi lokal sana emas — backend orqali
+      // (AttendanceCheckAccess) login ekranida hal qilinadi.
+      (_) => emit(state.copyWith(status: LoginStatus.success)),
     );
   }
 

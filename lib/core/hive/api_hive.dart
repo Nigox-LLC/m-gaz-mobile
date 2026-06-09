@@ -102,4 +102,12 @@ class ApiHive {
     "last_active_millis",
     DateTime.now().millisecondsSinceEpoch,
   );
+
+  // Foydalanuvchi kamera/face-verification bo'limidan chiqib ketsa — qaytganda
+  // 30 soniyalik oynani kutmasdan darhol login majburlanishi kerak. Bu bayroq
+  // process o'lsa ham saqlanib qoladi (splash ham, lifecycle ham o'qiy oladi).
+  bool get pendingRelogin => _base.apiBox.get("pending_relogin") == true;
+
+  Future<void> setPendingRelogin(bool value) async =>
+      await _base.apiBox.put("pending_relogin", value);
 }

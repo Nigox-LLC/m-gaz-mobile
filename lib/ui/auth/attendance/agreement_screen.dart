@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:m_gaz/core/common/words.dart';
+import 'package:m_gaz/core/constants/session_constants.dart';
+import 'package:m_gaz/core/hive/api_hive.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/core/utils/style.dart';
+import 'package:m_gaz/di.dart';
 import 'package:m_gaz/global_widget/custom_button.dart';
 import 'package:m_gaz/global_widget/global_app_bar.dart';
 import 'package:pdfx/pdfx.dart';
@@ -14,7 +17,8 @@ class AgreementPdfScreen extends StatefulWidget {
   State<AgreementPdfScreen> createState() => _AgreementPdfScreenState();
 }
 
-class _AgreementPdfScreenState extends State<AgreementPdfScreen> {
+class _AgreementPdfScreenState extends State<AgreementPdfScreen>
+    with WidgetsBindingObserver {
   late PdfControllerPinch _controller;
 
   bool _isLoading = true;
@@ -28,7 +32,18 @@ class _AgreementPdfScreenState extends State<AgreementPdfScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeController();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Face-verification (kelishuv) bo'limidan chiqilsa — qaytganda darhol login.
+    // Faqat `paused` (isAppBackgrounded): `hidden` qaytishda ham yuboriladi.
+    if (isAppBackgrounded(state)) {
+      di.get<ApiHive>().setPendingRelogin(true);
+    }
   }
 
   Future<void> _initializeController() async {
@@ -56,6 +71,7 @@ class _AgreementPdfScreenState extends State<AgreementPdfScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }

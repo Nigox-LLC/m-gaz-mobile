@@ -10,8 +10,8 @@ import 'package:m_gaz/app/injection.dart';
 import 'package:m_gaz/core/error/failures.dart';
 import 'package:m_gaz/features/auth/domain/entities/auth_token.dart';
 import 'package:m_gaz/features/auth/domain/entities/user.dart';
+import 'package:m_gaz/core/api/attendance/attendance_api.dart';
 import 'package:m_gaz/features/auth/domain/repositories/auth_repository.dart';
-import 'package:m_gaz/features/auth/domain/usecases/check_daily_agreement_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/get_saved_username_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/load_user_profile_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/login_usecase.dart';
@@ -19,6 +19,7 @@ import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/features/auth/presentation/pages/login_screen.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_text_field.dart';
+import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -205,13 +206,19 @@ Future<void> _pumpLoginScreen(WidgetTester tester) async {
             localizationsDelegates: context.localizationDelegates,
             supportedLocales: context.supportedLocales,
             locale: context.locale,
-            home: BlocProvider(
-              create: (_) => LoginBloc(
-                LoginUseCase(repository),
-                LoadUserProfileUseCase(repository),
-                CheckDailyAgreementUseCase(repository),
-                GetSavedUsernameUseCase(repository),
-              ),
+            home: MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) => LoginBloc(
+                    LoginUseCase(repository),
+                    LoadUserProfileUseCase(repository),
+                    GetSavedUsernameUseCase(repository),
+                  ),
+                ),
+                BlocProvider(
+                  create: (_) => AttendanceBloc(api: _FakeAttendanceApi()),
+                ),
+              ],
               child: const LoginScreen(),
             ),
           );
@@ -256,12 +263,21 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> requiresDailyAgreement() async {
-    return const Right(false);
-  }
-
-  @override
   Future<Either<Failure, String>> getSavedUsername() async {
     return const Right('');
   }
+}
+
+class _FakeAttendanceApi implements AttendanceApi {
+  @override
+  Future<bool> checkAlreadyAttended() async => false;
+
+  @override
+  Future<Map<String, dynamic>> sendAttendance({
+    required File photo,
+    Map<String, dynamic>? data,
+  }) async => <String, dynamic>{};
+
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

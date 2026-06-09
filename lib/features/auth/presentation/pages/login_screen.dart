@@ -15,6 +15,9 @@ import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_text_field.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/auth/attendance/agreement_screen.dart';
+import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
+import 'package:m_gaz/ui/auth/attendance/bloc/attendance_event.dart';
+import 'package:m_gaz/ui/auth/attendance/bloc/attendance_state.dart';
 
 import '../../../../ui/home/home_screen.dart';
 
@@ -39,6 +42,9 @@ class _LoginScreenState extends State<LoginScreen> {
   // Faqat shu ekrandan yuborilgan login natijasiga reaksiya qilamiz — bloc
   // singleton'da qolib ketgan eski `success` state home'ga sakratib yubormasin.
   bool _submitted = false;
+  // Login muvaffaqiyatli bo'lgandan keyin backend yo'qlama tekshiruvi
+  // (AttendanceCheckAccess) davom etayotganini bildiradi.
+  bool _checkingAttendance = false;
 
   bool get _hasInput =>
       userNameController.text.trim().isNotEmpty &&
@@ -92,6 +98,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login(BuildContext context) {
+    if (_checkingAttendance) return;
+
     if (!_hasInput) {
       showToast(context, Words.loginRequiredFields.tr());
       return;
@@ -110,6 +118,51 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Auth muvaffaqiyatli — endi lokal sana emas, backend GET orqali bugungi
+  // yo'qlama holatini so'raymiz (AttendanceCheckAccess).
+  void _onLoginState(BuildContext context, LoginState state) {
+    if (!_submitted) return;
+
+    if (state.status == LoginStatus.fail) {
+      setState(() {
+        _authErrorMessage = Words.loginInvalidCredentials.tr();
+        _checkingAttendance = false;
+      });
+      if (state.errorMessage.isNotEmpty) {
+        showToast(context, state.errorMessage);
+      }
+    }
+
+    if (state.status == LoginStatus.success && !_checkingAttendance) {
+      setState(() => _checkingAttendance = true);
+      context.read<AttendanceBloc>().add(AttendanceCheckAccess());
+    }
+  }
+
+  // Backend javobiga ko'ra yo'naltirish:
+  //   already_attended == false (accessAllowed) → AgreementPdfScreen
+  //   already_attended == true  (accessBlocked) → HomeScreen
+  void _onAttendanceState(BuildContext context, AttendanceState state) {
+    if (!_checkingAttendance) return;
+
+    switch (state.status) {
+      case AttendanceStatus.accessAllowed:
+        _checkingAttendance = false;
+        pushAndRemoveUntil(AgreementPdfScreen());
+        break;
+      case AttendanceStatus.accessBlocked:
+        _checkingAttendance = false;
+        pushAndRemoveUntil(HomeScreen());
+        break;
+      case AttendanceStatus.fail:
+        setState(() => _checkingAttendance = false);
+        showToast(context, state.error ?? Words.errorOccurred.tr());
+        break;
+      default:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -121,26 +174,17 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: _backgroundColor,
-        body: BlocListener<LoginBloc, LoginState>(
-          listener: (context, state) {
-            // Faqat shu ekrandan yuborilgan login natijasini hisobga olamiz.
-            if (!_submitted) return;
-            if (state.status == LoginStatus.fail) {
-              setState(() {
-                _authErrorMessage = Words.loginInvalidCredentials.tr();
-              });
-              if (state.errorMessage.isNotEmpty) {
-                showToast(context, state.errorMessage);
-              }
-            }
-            if (state.status == LoginStatus.success) {
-              if (state.requiresAgreement) {
-                pushAndRemoveUntil(AgreementPdfScreen());
-              } else {
-                pushAndRemoveUntil(HomeScreen());
-              }
-            }
-          },
+        body: MultiBlocListener(
+          listeners: [
+            BlocListener<LoginBloc, LoginState>(
+              listenWhen: (prev, curr) => prev.status != curr.status,
+              listener: _onLoginState,
+            ),
+            BlocListener<AttendanceBloc, AttendanceState>(
+              listenWhen: (prev, curr) => prev.status != curr.status,
+              listener: _onAttendanceState,
+            ),
+          ],
           child: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -202,6 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               onSubmit: () => _login(context),
                               hasInput: _hasInput,
                               hasAuthError: _hasAuthError,
+                              externalBusy: _checkingAttendance,
                             ),
                             const SizedBox(height: 24),
                           ],
@@ -231,6 +276,7 @@ class _LoginForm extends StatelessWidget {
     required this.onSubmit,
     required this.hasInput,
     required this.hasAuthError,
+    required this.externalBusy,
   });
 
   final TextEditingController userNameController;
@@ -243,12 +289,15 @@ class _LoginForm extends StatelessWidget {
   final VoidCallback onSubmit;
   final bool hasInput;
   final bool hasAuthError;
+  // Auth muvaffaqiyatli, lekin backend yo'qlama tekshiruvi davom etayotgan davr —
+  // tugma yuklanish holatida va o'chirilgan bo'lib turadi.
+  final bool externalBusy;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<LoginBloc, LoginState>(
       builder: (context, state) {
-        final isLoading = state.status == LoginStatus.loading;
+        final isLoading = state.status == LoginStatus.loading || externalBusy;
         final isEnabled = hasInput && !hasAuthError && !isLoading;
         final hasError = authErrorMessage != null;
 

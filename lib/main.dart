@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:m_gaz/core/api/base/base_api.dart';
+import 'package:m_gaz/core/constants/session_constants.dart';
 import 'package:m_gaz/core/hive/api_hive.dart';
 import 'package:m_gaz/features/auth/presentation/pages/login_screen.dart';
 import 'package:m_gaz/ui/auth/splash/splash_screen.dart';
@@ -41,10 +42,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  // Orqa fonda o'tgan vaqt shu chegaradan oshsa login majburlanadi. Aks holda
-  // foydalanuvchi sessiyasi davom etadi (qisqa muddatli inactivity login emas).
-  static const Duration _sessionTimeout = Duration(minutes: 5);
-
   // Ilova orqa fonga (paused/hidden) o'tganini belgilaydi. Faqat shu holatdan
   // keyin resumed bo'lganda sessiya muddati tekshiriladi.
   bool _wentBackground = false;
@@ -64,29 +61,43 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
+    // MUHIM: faqat `paused` (isAppBackgrounded). `hidden` qaytishda ham
+    // yuboriladi — agar unda ham vaqtni yangilasak, taymer nolga tushib 30s
+    // timeout hech qachon ishlamaydi (Home tugmasi yo'li doim `hidden` orqali).
+    if (isAppBackgrounded(state)) {
       _wentBackground = true;
       // Orqa fonga o'tgan vaqtni saqlaymiz — process o'lsa ham splash o'qiy oladi.
       di.get<ApiHive>().setLastActiveNow();
     } else if (state == AppLifecycleState.resumed && _wentBackground) {
       _wentBackground = false;
-      final lastActive = di.get<ApiHive>().lastActiveMillis;
+      final hive = di.get<ApiHive>();
+      final lastActive = hive.lastActiveMillis;
       final elapsed = DateTime.now().millisecondsSinceEpoch - lastActive;
-      if (lastActive > 0 && elapsed >= _sessionTimeout.inMilliseconds) {
+      final timedOut = lastActive > 0 && elapsed >= kSessionTimeout.inMilliseconds;
+      // pendingRelogin = kamera/face-verification bo'limidan chiqilgan — 30s
+      // oynani kutmasdan darhol login. Aks holda — odatiy 30s timeout.
+      if (hive.pendingRelogin || timedOut) {
         _forceLogin();
       }
     }
   }
 
-  // Orqa fondan qaytganda login ekraniga majburiy o'tish. Stack tozalanadi,
-  // LoginScreen.initState username'ni avto-to'ldiradi.
+  // Orqa fondan qaytganda login ekraniga majburiy o'tish (soft logout: token va
+  // saqlangan username qoladi, LoginScreen.initState username'ni avto-to'ldiradi).
   void _forceLogin() {
+    di.get<ApiHive>().setPendingRelogin(false);
     final nav = mainKey.currentState;
     if (nav == null) return;
-    final current = ModalRoute.of(nav.context)?.settings.name;
-    if (current == '/login') return; // allaqachon login — flicker oldini olamiz
-    nav.pushNamedAndRemoveUntil('/login', (route) => false);
+    // Splash anonim route'lar bilan push qiladi — nomli route'lar bilan aralashib
+    // ketsa fallback sifatida to'g'ridan-to'g'ri LoginScreen'ga o'tamiz.
+    try {
+      nav.pushNamedAndRemoveUntil('/login', (route) => false);
+    } catch (_) {
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override
