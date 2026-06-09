@@ -1,7 +1,18 @@
 import 'dart:io';
 import 'package:equatable/equatable.dart';
 
-enum AttendanceStatus { initial, picking, picked, uploading, success, fail }
+enum AttendanceStatus {
+  initial,
+  picking,
+  picked,
+  uploading,
+  success,
+  fail,
+  // Kamerani ochishdan oldingi "already attended" tekshiruvi uchun holatlar.
+  checking,
+  accessAllowed,
+  accessBlocked,
+}
 
 class AttendanceState extends Equatable {
   final AttendanceStatus status;

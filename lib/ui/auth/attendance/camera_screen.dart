@@ -10,8 +10,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:m_gaz/core/common/words.dart';
+import 'package:m_gaz/core/constants/session_constants.dart';
 import 'package:m_gaz/core/extension/message_extension.dart';
+import 'package:m_gaz/core/hive/api_hive.dart';
 import 'package:m_gaz/core/utils/colors.dart';
+import 'package:m_gaz/di.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
 import '../../../core/utils/services/in_app_camera_service.dart';
@@ -68,7 +71,128 @@ bool attendanceHasOpenEyes(Face face, {double threshold = 0.8}) {
   return leftEye > threshold && rightEye > threshold;
 }
 
-enum _AttendanceCameraPhase { intro, initializing, camera, error }
+/// Yuz kameraga to'g'ri qaraganmi — bosh burchaklari (yaw/pitch) chegarada bo'lsa.
+/// Burchaklar `null` bo'lsa (aniqlanmagan) — markazda emas deb hisoblanadi.
+@visibleForTesting
+bool attendanceFaceCentered(
+  Face face, {
+  double maxYawDeg = 18,
+  double maxPitchDeg = 15,
+}) {
+  final yaw = face.headEulerAngleY;
+  final pitch = face.headEulerAngleX;
+  if (yaw == null || pitch == null) return false;
+  return yaw.abs() <= maxYawDeg && pitch.abs() <= maxPitchDeg;
+}
+
+/// "To'liq yuz" — yuz ramkasi kadrning yetarli qismini egallasa (juda uzoq emas).
+@visibleForTesting
+bool attendanceFaceLargeEnough(
+  Rect faceBox,
+  Size imageSize, {
+  double minAreaRatio = 0.10,
+}) {
+  final imageArea = imageSize.width * imageSize.height;
+  if (imageArea <= 0) return false;
+  final faceArea = faceBox.width * faceBox.height;
+  return (faceArea / imageArea) >= minAreaRatio;
+}
+
+@visibleForTesting
+double attendanceAverageLuminance(List<int> luma) {
+  if (luma.isEmpty) return 0;
+  var sum = 0;
+  for (final v in luma) {
+    sum += v;
+  }
+  return sum / luma.length;
+}
+
+/// Yorug'lik muvozanatda — juda qorong'i ham, juda yorug' ham emas (0–255).
+@visibleForTesting
+bool attendanceBrightnessBalanced(
+  double avg, {
+  double min = 70,
+  double max = 200,
+}) {
+  return avg >= min && avg <= max;
+}
+
+/// Laplas operatori variansiyasi — yuqori bo'lsa tasvir aniq, past bo'lsa xira.
+@visibleForTesting
+double attendanceLaplacianVariance(List<int> luma, int width, int height) {
+  if (width < 3 || height < 3 || luma.length < width * height) return 0;
+
+  final responses = <double>[];
+  for (var y = 1; y < height - 1; y++) {
+    for (var x = 1; x < width - 1; x++) {
+      final i = y * width + x;
+      final lap = (4 * luma[i] -
+              luma[i - 1] -
+              luma[i + 1] -
+              luma[i - width] -
+              luma[i + width])
+          .toDouble();
+      responses.add(lap);
+    }
+  }
+  if (responses.isEmpty) return 0;
+
+  var mean = 0.0;
+  for (final r in responses) {
+    mean += r;
+  }
+  mean /= responses.length;
+
+  var variance = 0.0;
+  for (final r in responses) {
+    final d = r - mean;
+    variance += d * d;
+  }
+  return variance / responses.length;
+}
+
+@visibleForTesting
+bool attendanceSharpEnough(double variance, {double min = 8.0}) {
+  return variance >= min;
+}
+
+/// Uzluksiz barqarorlik taymeri: bir xil `trackingId` `holdDuration` davomida
+/// to'xtovsiz valid bo'lsagina `true` qaytaradi. Invalid kadr yoki trackingId
+/// almashishi taymerni nolga qaytaradi. `now` test uchun injektsiya qilinadi.
+@visibleForTesting
+class AttendanceStabilityTracker {
+  AttendanceStabilityTracker({this.holdDuration = const Duration(seconds: 2)});
+
+  final Duration holdDuration;
+
+  int? _trackingId;
+  DateTime? _since;
+
+  void reset() {
+    _trackingId = null;
+    _since = null;
+  }
+
+  bool update({
+    required bool valid,
+    int? trackingId,
+    required DateTime now,
+  }) {
+    if (!valid) {
+      reset();
+      return false;
+    }
+    if (trackingId != _trackingId || _since == null) {
+      _trackingId = trackingId;
+      _since = now;
+      return false;
+    }
+    return now.difference(_since!) >= holdDuration;
+  }
+}
+
+enum _AttendanceCameraPhase { intro, checking, initializing, camera, error }
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -77,23 +201,77 @@ class CameraScreen extends StatefulWidget {
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
+class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
+  static const int _lumaGridW = 32;
+  static const int _lumaGridH = 32;
+
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(enableClassification: true, enableTracking: true, performanceMode: FaceDetectorMode.accurate),
   );
+  final AttendanceStabilityTracker _stability = AttendanceStabilityTracker();
 
   _AttendanceCameraPhase _phase = _AttendanceCameraPhase.intro;
   bool _sending = false;
   bool _processingFrame = false;
-  bool _faceDetected = false;
-  bool _eyesOpen = false;
+  bool _isValidFace = false;
+  Words _statusMessage = Words.faceNotFound;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Face-verification bo'limidan chiqilsa — qaytganda darhol login majburlanadi.
+    // Faqat `paused` (isAppBackgrounded): `hidden` qaytishda ham yuboriladi va
+    // bayroqni noto'g'ri qayta yoqib qo'yishi mumkin.
+    if (isAppBackgrounded(state)) {
+      di.get<ApiHive>().setPendingRelogin(true);
+    }
+  }
+
+  // Intro'dagi "Boshlash" — kamerani ochishdan oldin bugungi yo'qlama
+  // holatini GET orqali tekshiramiz.
+  void _onStartPressed() {
+    setState(() => _phase = _AttendanceCameraPhase.checking);
+    context.read<AttendanceBloc>().add(AttendanceCheckAccess());
+  }
+
+  void _onAccessStateChanged(BuildContext context, AttendanceState state) {
+    switch (state.status) {
+      case AttendanceStatus.accessAllowed:
+        _initializeCamera();
+        break;
+      case AttendanceStatus.accessBlocked:
+        // Bugun allaqachon yo'qlama qilingan — hech qanday xabarsiz Home'ga.
+        di.get<ApiHive>().setPendingRelogin(false);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
+        break;
+      case AttendanceStatus.fail:
+        if (_phase == _AttendanceCameraPhase.checking) {
+          showToast(context, state.error ?? Words.errorOccurred.tr());
+          setState(() => _phase = _AttendanceCameraPhase.intro);
+        }
+        break;
+      default:
+        break;
+    }
+  }
 
   Future<void> _initializeCamera() async {
+    _stability.reset();
     setState(() {
       _phase = _AttendanceCameraPhase.initializing;
       _sending = false;
-      _faceDetected = false;
-      _eyesOpen = false;
+      _isValidFace = false;
+      _statusMessage = Words.faceNotFound;
     });
 
     final initialized = await InAppCameraService.initialize();
@@ -114,6 +292,8 @@ class _CameraScreenState extends State<CameraScreen> {
       return;
     }
 
+    // Har safar oqim qayta boshlanganda 2 soniyalik barqarorlik qaytadan kerak.
+    _stability.reset();
     controller.startImageStream(_processCameraImage);
   }
 
@@ -125,31 +305,105 @@ class _CameraScreenState extends State<CameraScreen> {
       final inputImage = _inputImageFromCameraImage(image);
       if (inputImage == null) return;
 
+      // Yorug'lik (avg) va aniqlik (blur) — downsample qilingan luma to'ridan.
+      final luma = _lumaGridFromImage(image);
+      final avgLuma = attendanceAverageLuminance(luma);
+      final variance = attendanceLaplacianVariance(luma, _lumaGridW, _lumaGridH);
+      final brightnessOk = attendanceBrightnessBalanced(avgLuma);
+      final sharpOk = attendanceSharpEnough(variance);
+
       final faces = await _faceDetector.processImage(inputImage);
       if (!mounted) return;
 
-      if (faces.isEmpty) {
-        setState(() {
-          _faceDetected = false;
-          _eyesOpen = false;
-        });
-        return;
+      final face = attendanceLargestFace(faces);
+      final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+
+      final faceDetected = face != null;
+      final centered = faceDetected && attendanceFaceCentered(face);
+      final largeEnough =
+          faceDetected && attendanceFaceLargeEnough(face.boundingBox, imageSize);
+      final eyesOpen = faceDetected && attendanceHasOpenEyes(face);
+
+      final valid = faceDetected &&
+          centered &&
+          largeEnough &&
+          eyesOpen &&
+          brightnessOk &&
+          sharpOk;
+
+      // Status xabari ustuvorligi: nima yetishmayotganini ko'rsatamiz.
+      final Words message;
+      if (!faceDetected) {
+        message = Words.faceNotFound;
+      } else if (!centered || !largeEnough) {
+        message = Words.lookAtCamera;
+      } else if (!brightnessOk) {
+        message = avgLuma < 70 ? Words.faceTooDark : Words.faceTooBright;
+      } else if (!sharpOk) {
+        message = Words.faceBlurry;
+      } else if (!eyesOpen) {
+        message = Words.faceNotFound;
+      } else {
+        message = Words.faceHoldStill;
       }
 
-      final face = attendanceLargestFace(faces);
-      final eyesOpen = face != null && attendanceHasOpenEyes(face);
+      final ready = _stability.update(
+        valid: valid,
+        trackingId: face?.trackingId,
+        now: DateTime.now(),
+      );
 
       setState(() {
-        _faceDetected = true;
-        _eyesOpen = eyesOpen;
+        _isValidFace = valid;
+        _statusMessage = ready ? Words.faceConfirmed : message;
       });
 
-      if (eyesOpen) {
+      // Yuz to'liq, markazda, yaxshi yorug'likda va 2 soniya barqaror — yuboramiz.
+      if (ready && !_sending) {
         await _autoTakePicture();
       }
     } finally {
       _processingFrame = false;
     }
+  }
+
+  // CameraImage'dan downsample qilingan luminance to'rini quradi (gridW x gridH).
+  List<int> _lumaGridFromImage(CameraImage image) {
+    final width = image.width;
+    final height = image.height;
+    final plane = image.planes.first;
+    final bytes = plane.bytes;
+    final bytesPerRow = plane.bytesPerRow;
+    final grid = List<int>.filled(_lumaGridW * _lumaGridH, 0);
+
+    if (Platform.isAndroid) {
+      // NV21: Y (luminance) tekisligi birinchi; bytesPerRow padding bo'lishi mumkin.
+      for (var gy = 0; gy < _lumaGridH; gy++) {
+        final sy = gy * height ~/ _lumaGridH;
+        for (var gx = 0; gx < _lumaGridW; gx++) {
+          final sx = gx * width ~/ _lumaGridW;
+          final idx = sy * bytesPerRow + sx;
+          grid[gy * _lumaGridW + gx] = idx < bytes.length ? bytes[idx] : 0;
+        }
+      }
+    } else {
+      // BGRA8888: 4 bayt/piksel; luma = 0.114B + 0.587G + 0.299R.
+      for (var gy = 0; gy < _lumaGridH; gy++) {
+        final sy = gy * height ~/ _lumaGridH;
+        for (var gx = 0; gx < _lumaGridW; gx++) {
+          final sx = gx * width ~/ _lumaGridW;
+          final idx = sy * bytesPerRow + sx * 4;
+          if (idx + 2 < bytes.length) {
+            final b = bytes[idx];
+            final g = bytes[idx + 1];
+            final r = bytes[idx + 2];
+            grid[gy * _lumaGridW + gx] =
+                (0.114 * b + 0.587 * g + 0.299 * r).round();
+          }
+        }
+      }
+    }
+    return grid;
   }
 
   InputImage? _inputImageFromCameraImage(CameraImage image) {
@@ -241,6 +495,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (InAppCameraService.controller?.value.isStreamingImages ?? false) {
       InAppCameraService.controller?.stopImageStream();
     }
@@ -251,9 +506,18 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return BlocListener<AttendanceBloc, AttendanceState>(
+      listenWhen: (prev, curr) => prev.status != curr.status,
+      listener: _onAccessStateChanged,
+      child: _buildPhase(),
+    );
+  }
+
+  Widget _buildPhase() {
     switch (_phase) {
       case _AttendanceCameraPhase.intro:
-        return _AttendanceIntroView(onBack: () => Navigator.maybePop(context), onStart: _initializeCamera);
+        return _AttendanceIntroView(onBack: () => Navigator.maybePop(context), onStart: _onStartPressed);
+      case _AttendanceCameraPhase.checking:
       case _AttendanceCameraPhase.initializing:
         return const Scaffold(
           backgroundColor: _AttendanceCameraColors.background,
@@ -263,7 +527,8 @@ class _CameraScreenState extends State<CameraScreen> {
         return _CameraErrorView(onRetry: _initializeCamera);
       case _AttendanceCameraPhase.camera:
         return _CameraAttendanceView(
-          isValidFace: _faceDetected && _eyesOpen,
+          isValidFace: _isValidFace,
+          statusMessage: _statusMessage,
           preview: _CameraPreviewFill(controller: InAppCameraService.controller!),
           onSubmitFailed: _startImageStream,
           onSuccessResetSending: () {
@@ -281,6 +546,7 @@ class _CameraScreenState extends State<CameraScreen> {
 class _CameraAttendanceView extends StatelessWidget {
   const _CameraAttendanceView({
     required this.isValidFace,
+    required this.statusMessage,
     required this.preview,
     required this.onSubmitFailed,
     required this.onSuccessResetSending,
@@ -289,6 +555,7 @@ class _CameraAttendanceView extends StatelessWidget {
   });
 
   final bool isValidFace;
+  final Words statusMessage;
   final Widget preview;
   final VoidCallback onSubmitFailed;
   final VoidCallback onSuccessResetSending;
@@ -299,11 +566,14 @@ class _CameraAttendanceView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocConsumer<AttendanceBloc, AttendanceState>(
+        listenWhen: (prev, curr) => prev.status != curr.status,
         listener: (context, state) {
           if (state.status == AttendanceStatus.success) {
             showToast(context, Words.attendanceAllowed.tr(), backgroundColor: AppColors.c17B26A);
             onSuccessResetSending();
 
+            // Yo'qlama topshirildi — Home ochilmoqda, login bayrog'ini tozalaymiz.
+            di.get<ApiHive>().setPendingRelogin(false);
             Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
           }
 
@@ -316,6 +586,7 @@ class _CameraAttendanceView extends StatelessWidget {
         builder: (context, state) {
           return _CameraScannerView(
             isValidFace: isValidFace,
+            statusMessage: statusMessage,
             isSubmitting: isSending || state.status == AttendanceStatus.uploading,
             preview: preview,
           );
@@ -567,9 +838,15 @@ class _CameraPreviewFill extends StatelessWidget {
 }
 
 class _CameraScannerView extends StatelessWidget {
-  const _CameraScannerView({required this.isValidFace, required this.preview, required this.isSubmitting});
+  const _CameraScannerView({
+    required this.isValidFace,
+    required this.statusMessage,
+    required this.preview,
+    required this.isSubmitting,
+  });
 
   final bool isValidFace;
+  final Words statusMessage;
   final Widget preview;
   final bool isSubmitting;
 
@@ -605,7 +882,11 @@ class _CameraScannerView extends StatelessWidget {
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: AttendanceScannerStatusBadge(isValidFace: isValidFace, isSubmitting: isSubmitting),
+                    child: AttendanceScannerStatusBadge(
+                      isValidFace: isValidFace,
+                      message: statusMessage,
+                      isSubmitting: isSubmitting,
+                    ),
                   ),
                 ),
               ],
@@ -619,16 +900,17 @@ class _CameraScannerView extends StatelessWidget {
 
 @visibleForTesting
 class AttendanceScannerStatusBadge extends StatelessWidget {
-  const AttendanceScannerStatusBadge({super.key, required this.isValidFace, this.isSubmitting = false});
+  const AttendanceScannerStatusBadge({super.key, required this.isValidFace, this.message, this.isSubmitting = false});
 
   final bool isValidFace;
+  final Words? message;
   final bool isSubmitting;
 
   @override
   Widget build(BuildContext context) {
     final color = isValidFace ? _AttendanceCameraColors.success : _AttendanceCameraColors.error;
     final icon = isValidFace ? Icons.check_circle_outline : Icons.cancel_outlined;
-    final label = isValidFace ? Words.faceConfirmed.tr() : Words.faceNotFound.tr();
+    final label = (message ?? (isValidFace ? Words.faceConfirmed : Words.faceNotFound)).tr();
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 150),

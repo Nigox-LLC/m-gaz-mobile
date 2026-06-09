@@ -14,9 +14,6 @@ abstract class AuthLocalDataSource {
   /// Hard wipe — clears all local auth state, including the saved username.
   Future<void> clearAll();
 
-  String get lastAgreementDate;
-  set lastAgreementDate(String value);
-
   String get savedUsername;
   Future<void> saveUsername(String value);
 }

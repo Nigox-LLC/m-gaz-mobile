@@ -25,8 +25,6 @@ import '../features/auth/data/datasources/auth_remote_data_source_impl.dart'
     as _i902;
 import '../features/auth/data/repositories/auth_repository_impl.dart' as _i570;
 import '../features/auth/domain/repositories/auth_repository.dart' as _i869;
-import '../features/auth/domain/usecases/check_daily_agreement_usecase.dart'
-    as _i339;
 import '../features/auth/domain/usecases/get_saved_username_usecase.dart'
     as _i862;
 import '../features/auth/domain/usecases/load_user_profile_usecase.dart'
@@ -97,9 +95,6 @@ _i174.GetIt init(
       gh<_i109.AuthLocalDataSource>(),
     ),
   );
-  gh.factory<_i339.CheckDailyAgreementUseCase>(
-    () => _i339.CheckDailyAgreementUseCase(gh<_i869.AuthRepository>()),
-  );
   gh.factory<_i862.GetSavedUsernameUseCase>(
     () => _i862.GetSavedUsernameUseCase(gh<_i869.AuthRepository>()),
   );
@@ -116,7 +111,6 @@ _i174.GetIt init(
     () => _i724.LoginBloc(
       gh<_i406.LoginUseCase>(),
       gh<_i846.LoadUserProfileUseCase>(),
-      gh<_i339.CheckDailyAgreementUseCase>(),
       gh<_i862.GetSavedUsernameUseCase>(),
     ),
   );

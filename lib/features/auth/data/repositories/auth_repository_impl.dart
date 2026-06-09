@@ -74,22 +74,6 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> requiresDailyAgreement() async {
-    try {
-      final now = DateTime.now();
-      final todayStr = '${now.year}-${now.month}-${now.day}';
-      final lastDate = _local.lastAgreementDate;
-      if (lastDate != todayStr) {
-        _local.lastAgreementDate = todayStr;
-        return const Right(true);
-      }
-      return const Right(false);
-    } catch (e) {
-      return Left(CacheFailure(e.toString()));
-    }
-  }
-
-  @override
   Future<Either<Failure, String>> getSavedUsername() async {
     try {
       return Right(_local.savedUsername);
