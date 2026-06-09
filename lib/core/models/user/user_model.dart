@@ -9,6 +9,7 @@ class UserModel {
   final String? regionName;
   final int? districtId;
   final String? districtName;
+  final String? photoUrl;
 
   UserModel({
     required this.id,
@@ -20,6 +21,7 @@ class UserModel {
     this.regionName,
     this.districtId,
     this.districtName,
+    this.photoUrl,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class UserModel {
       regionName: json['region_name'],
       districtId: json['district_id'],
       districtName: json['district_name'],
+      photoUrl: json['photo_url'],
     );
   }
 
@@ -48,6 +51,7 @@ class UserModel {
       'region_name': regionName,
       'district_id': districtId,
       'district_name': districtName,
+      'photo_url': photoUrl,
     };
   }
 }

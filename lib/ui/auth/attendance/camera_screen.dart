@@ -4,8 +4,8 @@ import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
@@ -79,11 +79,7 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   final FaceDetector _faceDetector = FaceDetector(
-    options: FaceDetectorOptions(
-      enableClassification: true,
-      enableTracking: true,
-      performanceMode: FaceDetectorMode.accurate,
-    ),
+    options: FaceDetectorOptions(enableClassification: true, enableTracking: true, performanceMode: FaceDetectorMode.accurate),
   );
 
   _AttendanceCameraPhase _phase = _AttendanceCameraPhase.intro;
@@ -114,9 +110,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   void _startImageStream() {
     final controller = InAppCameraService.controller;
-    if (controller == null ||
-        !controller.value.isInitialized ||
-        controller.value.isStreamingImages) {
+    if (controller == null || !controller.value.isInitialized || controller.value.isStreamingImages) {
       return;
     }
 
@@ -225,12 +219,7 @@ class _CameraScreenState extends State<CameraScreen> {
     final pos = await Geolocator.getCurrentPosition();
 
     if (!mounted) return;
-    context.read<AttendanceBloc>().add(
-      AttendanceSubmit(
-        photo: photo,
-        data: {'lat': pos.latitude.toString(), 'lng': pos.longitude.toString()},
-      ),
-    );
+    context.read<AttendanceBloc>().add(AttendanceSubmit(photo: photo, data: {'lat': pos.latitude.toString(), 'lng': pos.longitude.toString()}));
   }
 
   Future<bool> _checkLocationPermission() async {
@@ -247,8 +236,7 @@ class _CameraScreenState extends State<CameraScreen> {
       return false;
     }
 
-    return permission == LocationPermission.always ||
-        permission == LocationPermission.whileInUse;
+    return permission == LocationPermission.always || permission == LocationPermission.whileInUse;
   }
 
   @override
@@ -265,10 +253,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget build(BuildContext context) {
     switch (_phase) {
       case _AttendanceCameraPhase.intro:
-        return _AttendanceIntroView(
-          onBack: () => Navigator.maybePop(context),
-          onStart: _initializeCamera,
-        );
+        return _AttendanceIntroView(onBack: () => Navigator.maybePop(context), onStart: _initializeCamera);
       case _AttendanceCameraPhase.initializing:
         return const Scaffold(
           backgroundColor: _AttendanceCameraColors.background,
@@ -279,9 +264,7 @@ class _CameraScreenState extends State<CameraScreen> {
       case _AttendanceCameraPhase.camera:
         return _CameraAttendanceView(
           isValidFace: _faceDetected && _eyesOpen,
-          preview: _CameraPreviewFill(
-            controller: InAppCameraService.controller!,
-          ),
+          preview: _CameraPreviewFill(controller: InAppCameraService.controller!),
           onSubmitFailed: _startImageStream,
           onSuccessResetSending: () {
             if (mounted) setState(() => _sending = false);
@@ -318,24 +301,14 @@ class _CameraAttendanceView extends StatelessWidget {
       body: BlocConsumer<AttendanceBloc, AttendanceState>(
         listener: (context, state) {
           if (state.status == AttendanceStatus.success) {
-            showToast(
-              context,
-              Words.attendanceAllowed.tr(),
-              backgroundColor: AppColors.c17B26A,
-            );
+            showToast(context, Words.attendanceAllowed.tr(), backgroundColor: AppColors.c17B26A);
             onSuccessResetSending();
 
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false,
-            );
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
           }
 
           if (state.status == AttendanceStatus.fail) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.error ?? Words.errorOccurred.tr())),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.error ?? Words.errorOccurred.tr())));
             onFailResetSending();
             onSubmitFailed();
           }
@@ -343,8 +316,7 @@ class _CameraAttendanceView extends StatelessWidget {
         builder: (context, state) {
           return _CameraScannerView(
             isValidFace: isValidFace,
-            isSubmitting:
-                isSending || state.status == AttendanceStatus.uploading,
+            isSubmitting: isSending || state.status == AttendanceStatus.uploading,
             preview: preview,
           );
         },
@@ -368,10 +340,7 @@ class _CameraErrorView extends StatelessWidget {
           children: [
             Text(Words.cameraFailed.tr()),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              child: Text(Words.tryAgain.tr()),
-            ),
+            ElevatedButton(onPressed: onRetry, child: Text(Words.tryAgain.tr())),
           ],
         ),
       ),
@@ -410,11 +379,7 @@ class _AttendanceIntroView extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final compact = constraints.maxHeight < 760;
-                final graphicHeight =
-                    (constraints.maxHeight * (compact ? 0.28 : 0.37)).clamp(
-                      150.0,
-                      308.0,
-                    );
+                final graphicHeight = (constraints.maxHeight * (compact ? 0.28 : 0.37)).clamp(150.0, 308.0);
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -430,11 +395,7 @@ class _AttendanceIntroView extends StatelessWidget {
                             IconButton(
                               key: const Key('attendance-intro-back'),
                               onPressed: onBack,
-                              icon: const Icon(
-                                Icons.chevron_left,
-                                color: Colors.black,
-                                size: 28,
-                              ),
+                              icon: const Icon(Icons.chevron_left, color: Colors.black, size: 28),
                               padding: EdgeInsets.zero,
                               alignment: Alignment.centerLeft,
                             ),
@@ -477,26 +438,17 @@ class _AttendanceIntroView extends StatelessWidget {
                           onPressed: onStart,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _AttendanceCameraColors.primary,
-                            foregroundColor:
-                                _AttendanceCameraColors.scannerWhite,
+                            foregroundColor: _AttendanceCameraColors.scannerWhite,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: Text(
                             Words.start.tr(),
-                            style: GoogleFonts.manrope(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              height: 24 / 15,
-                            ),
+                            style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, height: 24 / 15),
                           ),
                         ),
                       ),
-                      SizedBox(
-                        height: compact ? 12 : (bottomPadding > 0 ? 16 : 28),
-                      ),
+                      SizedBox(height: compact ? 12 : (bottomPadding > 0 ? 16 : 28)),
                     ],
                   ),
                 );
@@ -521,10 +473,7 @@ class _FaceIntroGraphic extends StatelessWidget {
       height: height,
       child: Container(
         key: const Key('attendance-intro-graphic'),
-        decoration: BoxDecoration(
-          color: _AttendanceCameraColors.soft,
-          borderRadius: BorderRadius.circular(28),
-        ),
+        decoration: BoxDecoration(color: _AttendanceCameraColors.soft, borderRadius: BorderRadius.circular(28)),
         child: Center(
           child: SizedBox.square(
             dimension: 228,
@@ -550,19 +499,14 @@ class _FaceGuidanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = GoogleFonts.manrope(
-      color: const Color(0xFF202020),
-      fontSize: 15,
-      fontWeight: FontWeight.w500,
-      height: 24 / 15,
-    );
+    final textStyle = GoogleFonts.manrope(color: const Color(0xFF202020), fontSize: 15, fontWeight: FontWeight.w500, height: 24 / 15);
 
     return Row(
       children: [
         Expanded(
           child: _GuidanceItem(
             key: const Key('attendance-guidance-open-face'),
-            icon: AppTools.svg(AppTools.icSmile),
+            icon: AppTools.svg(AppTools.icSmile, colorFilter: ColorFilter.mode(Color(0xFF202020), BlendMode.srcIn)),
             label: Words.faceOpenFace.tr(),
             textStyle: textStyle,
           ),
@@ -571,7 +515,7 @@ class _FaceGuidanceRow extends StatelessWidget {
         Expanded(
           child: _GuidanceItem(
             key: const Key('attendance-guidance-lighting'),
-            icon: AppTools.svg(AppTools.icSun),
+            icon: AppTools.svg(AppTools.icSun, colorFilter: ColorFilter.mode(Color(0xFF202020), BlendMode.srcIn)),
             label: Words.faceGoodLighting.tr(),
             textStyle: textStyle,
           ),
@@ -582,12 +526,7 @@ class _FaceGuidanceRow extends StatelessWidget {
 }
 
 class _GuidanceItem extends StatelessWidget {
-  const _GuidanceItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.textStyle,
-  });
+  const _GuidanceItem({super.key, required this.icon, required this.label, required this.textStyle});
 
   final Widget icon;
   final String label;
@@ -601,12 +540,7 @@ class _GuidanceItem extends StatelessWidget {
         SizedBox.square(dimension: 24, child: icon),
         const SizedBox(width: 8),
         Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textStyle,
-          ),
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: textStyle),
         ),
       ],
     );
@@ -627,21 +561,13 @@ class _CameraPreviewFill extends StatelessWidget {
 
     return FittedBox(
       fit: BoxFit.cover,
-      child: SizedBox(
-        width: previewSize.height,
-        height: previewSize.width,
-        child: CameraPreview(controller),
-      ),
+      child: SizedBox(width: previewSize.height, height: previewSize.width, child: CameraPreview(controller)),
     );
   }
 }
 
 class _CameraScannerView extends StatelessWidget {
-  const _CameraScannerView({
-    required this.isValidFace,
-    required this.preview,
-    required this.isSubmitting,
-  });
+  const _CameraScannerView({required this.isValidFace, required this.preview, required this.isSubmitting});
 
   final bool isValidFace;
   final Widget preview;
@@ -664,34 +590,22 @@ class _CameraScannerView extends StatelessWidget {
             final frameWidth = width - (frameLeft * 2);
             final frameBottom = media.padding.bottom + (height * 73 / 844);
             final frameHeight = height - frameTop - frameBottom;
-            final frameRect = Rect.fromLTWH(
-              frameLeft,
-              frameTop,
-              frameWidth,
-              frameHeight,
-            );
+            final frameRect = Rect.fromLTWH(frameLeft, frameTop, frameWidth, frameHeight);
 
             return Stack(
               fit: StackFit.expand,
               children: [
-                CustomPaint(
-                  painter: _ScannerOverlayPainter(frameRect: frameRect),
-                ),
+                CustomPaint(painter: _ScannerOverlayPainter(frameRect: frameRect)),
                 Positioned.fromRect(
                   rect: frameRect,
-                  child: IgnorePointer(
-                    child: CustomPaint(painter: const _ScannerFramePainter()),
-                  ),
+                  child: IgnorePointer(child: CustomPaint(painter: const _ScannerFramePainter())),
                 ),
                 Positioned(
                   top: frameRect.bottom - 46,
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: AttendanceScannerStatusBadge(
-                      isValidFace: isValidFace,
-                      isSubmitting: isSubmitting,
-                    ),
+                    child: AttendanceScannerStatusBadge(isValidFace: isValidFace, isSubmitting: isSubmitting),
                   ),
                 ),
               ],
@@ -705,48 +619,29 @@ class _CameraScannerView extends StatelessWidget {
 
 @visibleForTesting
 class AttendanceScannerStatusBadge extends StatelessWidget {
-  const AttendanceScannerStatusBadge({
-    super.key,
-    required this.isValidFace,
-    this.isSubmitting = false,
-  });
+  const AttendanceScannerStatusBadge({super.key, required this.isValidFace, this.isSubmitting = false});
 
   final bool isValidFace;
   final bool isSubmitting;
 
   @override
   Widget build(BuildContext context) {
-    final color = isValidFace
-        ? _AttendanceCameraColors.success
-        : _AttendanceCameraColors.error;
-    final icon = isValidFace
-        ? Icons.check_circle_outline
-        : Icons.cancel_outlined;
-    final label = isValidFace
-        ? Words.faceConfirmed.tr()
-        : Words.faceNotFound.tr();
+    final color = isValidFace ? _AttendanceCameraColors.success : _AttendanceCameraColors.error;
+    final icon = isValidFace ? Icons.check_circle_outline : Icons.cancel_outlined;
+    final label = isValidFace ? Words.faceConfirmed.tr() : Words.faceNotFound.tr();
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 150),
       opacity: isSubmitting ? 0.72 : 1,
       child: Row(
-        key: Key(
-          isValidFace
-              ? 'attendance-scanner-confirmed'
-              : 'attendance-scanner-not-found',
-        ),
+        key: Key(isValidFace ? 'attendance-scanner-confirmed' : 'attendance-scanner-not-found'),
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 24, color: color),
           const SizedBox(width: 8),
           Text(
             label,
-            style: GoogleFonts.manrope(
-              color: _AttendanceCameraColors.scannerWhite,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              height: 24 / 15,
-            ),
+            style: GoogleFonts.manrope(color: _AttendanceCameraColors.scannerWhite, fontSize: 15, fontWeight: FontWeight.w800, height: 24 / 15),
           ),
         ],
       ),
@@ -798,81 +693,29 @@ class _ScannerFramePainter extends CustomPainter {
     }
 
     const corner = radius * 2;
-    arc(
-      Rect.fromLTWH(rect.left, rect.top, corner, corner),
-      math.pi,
-      math.pi / 2,
-    );
-    line(
-      Offset(rect.left + radius, rect.top),
-      Offset(rect.left + segment, rect.top),
-    );
-    line(
-      Offset(rect.left, rect.top + radius),
-      Offset(rect.left, rect.top + segment),
-    );
+    arc(Rect.fromLTWH(rect.left, rect.top, corner, corner), math.pi, math.pi / 2);
+    line(Offset(rect.left + radius, rect.top), Offset(rect.left + segment, rect.top));
+    line(Offset(rect.left, rect.top + radius), Offset(rect.left, rect.top + segment));
 
-    arc(
-      Rect.fromLTWH(rect.right - corner, rect.top, corner, corner),
-      -math.pi / 2,
-      math.pi / 2,
-    );
-    line(
-      Offset(rect.right - segment, rect.top),
-      Offset(rect.right - radius, rect.top),
-    );
-    line(
-      Offset(rect.right, rect.top + radius),
-      Offset(rect.right, rect.top + segment),
-    );
+    arc(Rect.fromLTWH(rect.right - corner, rect.top, corner, corner), -math.pi / 2, math.pi / 2);
+    line(Offset(rect.right - segment, rect.top), Offset(rect.right - radius, rect.top));
+    line(Offset(rect.right, rect.top + radius), Offset(rect.right, rect.top + segment));
 
-    arc(
-      Rect.fromLTWH(rect.right - corner, rect.bottom - corner, corner, corner),
-      0,
-      math.pi / 2,
-    );
-    line(
-      Offset(rect.right, rect.bottom - segment),
-      Offset(rect.right, rect.bottom - radius),
-    );
-    line(
-      Offset(rect.right - segment, rect.bottom),
-      Offset(rect.right - radius, rect.bottom),
-    );
+    arc(Rect.fromLTWH(rect.right - corner, rect.bottom - corner, corner, corner), 0, math.pi / 2);
+    line(Offset(rect.right, rect.bottom - segment), Offset(rect.right, rect.bottom - radius));
+    line(Offset(rect.right - segment, rect.bottom), Offset(rect.right - radius, rect.bottom));
 
-    arc(
-      Rect.fromLTWH(rect.left, rect.bottom - corner, corner, corner),
-      math.pi / 2,
-      math.pi / 2,
-    );
-    line(
-      Offset(rect.left, rect.bottom - segment),
-      Offset(rect.left, rect.bottom - radius),
-    );
-    line(
-      Offset(rect.left + radius, rect.bottom),
-      Offset(rect.left + segment, rect.bottom),
-    );
+    arc(Rect.fromLTWH(rect.left, rect.bottom - corner, corner, corner), math.pi / 2, math.pi / 2);
+    line(Offset(rect.left, rect.bottom - segment), Offset(rect.left, rect.bottom - radius));
+    line(Offset(rect.left + radius, rect.bottom), Offset(rect.left + segment, rect.bottom));
 
     final centerX = rect.center.dx;
-    line(
-      Offset(centerX - centerSegment / 2, rect.top),
-      Offset(centerX + centerSegment / 2, rect.top),
-    );
-    line(
-      Offset(centerX - centerSegment / 2, rect.bottom),
-      Offset(centerX + centerSegment / 2, rect.bottom),
-    );
+    line(Offset(centerX - centerSegment / 2, rect.top), Offset(centerX + centerSegment / 2, rect.top));
+    line(Offset(centerX - centerSegment / 2, rect.bottom), Offset(centerX + centerSegment / 2, rect.bottom));
 
     final centerY = rect.center.dy;
-    line(
-      Offset(rect.left, centerY - sideSegment / 2),
-      Offset(rect.left, centerY + sideSegment / 2),
-    );
-    line(
-      Offset(rect.right, centerY - sideSegment / 2),
-      Offset(rect.right, centerY + sideSegment / 2),
-    );
+    line(Offset(rect.left, centerY - sideSegment / 2), Offset(rect.left, centerY + sideSegment / 2));
+    line(Offset(rect.right, centerY - sideSegment / 2), Offset(rect.right, centerY + sideSegment / 2));
   }
 
   @override

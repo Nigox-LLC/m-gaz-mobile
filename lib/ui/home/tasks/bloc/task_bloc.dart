@@ -2,7 +2,9 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/core/api/user/user_api.dart';
+import 'package:m_gaz/core/enums/task_status_enum.dart';
 import 'package:m_gaz/core/models/user/user_model.dart' as legacy_user;
+import 'package:m_gaz/core/models/task/tasks_model.dart';
 import 'package:m_gaz/core/api/task/task_api.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_event.dart';
 import 'package:m_gaz/ui/home/tasks/bloc/task_state.dart';
@@ -47,8 +49,9 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     try {
       final profile = await _profileLoader();
       final username = profile?.username.trim();
+      final imageLink = profile?.photoUrl;
       if (username == null || username.isEmpty) return;
-      emit(state.copyWith(profileUsername: username));
+      emit(state.copyWith(profileUsername: username, profilePhotoUrl: imageLink));
     } catch (e) {
       debugPrint("Dashboard profile yuklanmadi: $e");
     }
@@ -93,10 +96,11 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     emit(state.copyWith(isLoadingMore: true));
     try {
       final response = await api.getNextPage(state.nextUrl!);
+      final results = _applyClientFilter(response.results, state.filterType);
       emit(
         state.copyWith(
           status: TaskLoadStatus.success,
-          tasks: [...state.tasks, ...response.results],
+          tasks: [...state.tasks, ...results],
           nextUrl: response.next,
           clearNextUrl: response.next == null,
           hasReachedMax: response.next == null,
@@ -169,10 +173,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         type: filterType,
       );
 
+      final results = _applyClientFilter(response.results, filterType);
+
       emit(
         state.copyWith(
           status: TaskLoadStatus.success,
-          tasks: response.results,
+          tasks: results,
           nextUrl: response.next,
           clearNextUrl: response.next == null,
           hasReachedMax: response.next == null,
@@ -188,6 +194,18 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
         ),
       );
     }
+  }
+
+  /// Backend may still return non-overdue tasks for the overdue list endpoint,
+  /// so drop any `is_overdue == false` task when that filter is active.
+  List<TaskModel> _applyClientFilter(
+    List<TaskModel> results,
+    String? filterType,
+  ) {
+    if (filterType == TaskStatus.overdue.filterValue) {
+      return results.where((task) => task.isOverdue).toList();
+    }
+    return results;
   }
 
   Future<void> _onDocumentFetched(

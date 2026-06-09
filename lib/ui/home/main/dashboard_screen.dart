@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:m_gaz/features/profile/presentation/pages/profile_page.dart';
 
 import '../../../core/common/words.dart';
 import '../../../core/enums/task_status_enum.dart';
+import '../../../core/extension/size_extension.dart';
 import '../../../core/models/task/task_analysis.dart';
 import '../../../core/utils/colors.dart';
 import '../tasks/bloc/task_bloc.dart';
@@ -167,7 +169,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                               padding: const EdgeInsets.fromLTRB(20, 12, 20, 90),
                               children: [
-                                _DashboardUserHeader(profileUsername: state.profileUsername),
+                                _DashboardUserHeader(profileUsername: state.profileUsername, profileImage: state.profilePhotoUrl ?? ''),
                                 const SizedBox(height: 32),
                                 _DashboardAiCard(state: state, analysisTime: _analysisTime),
                                 const SizedBox(height: 20),
@@ -222,9 +224,21 @@ TextStyle _manrope({
 }
 
 class _DashboardUserHeader extends StatelessWidget {
-  const _DashboardUserHeader({required this.profileUsername});
+  const _DashboardUserHeader({required this.profileUsername, required this.profileImage});
 
   final String? profileUsername;
+  final String profileImage;
+
+  Widget _placeholder(String initial) => Container(
+    width: 38,
+    height: 38,
+    alignment: Alignment.center,
+    decoration: const BoxDecoration(color: _DashboardColors.avatar, shape: BoxShape.circle),
+    child: Text(
+      initial,
+      style: _manrope(size: 17, weight: FontWeight.w800, height: 28, color: Colors.white),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -238,16 +252,19 @@ class _DashboardUserHeader extends StatelessWidget {
       child: Row(
         key: const Key('dashboard-user-header'),
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(color: _DashboardColors.avatar, shape: BoxShape.circle),
-            child: Text(
-              initial,
-              style: _manrope(size: 17, weight: FontWeight.w800, height: 28, color: Colors.white),
-            ),
-          ),
+          (profileImage.isNotEmpty)
+              ? ClipRRect(
+                  borderRadius: BorderRadiusGeometry.circular(19),
+                  child: CachedNetworkImage(
+                    imageUrl: profileImage,
+                    height: 38.h,
+                    width: 38.w,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
+                    errorWidget: (_, __, ___) => _placeholder(initial),
+                  ),
+                )
+              : _placeholder(initial),
           const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

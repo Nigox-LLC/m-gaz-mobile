@@ -13,6 +13,7 @@ class TaskState extends Equatable {
   final bool isLoadingMore;
   final String? errorMessage;
   final String? profileUsername;
+  final String? profilePhotoUrl;
   final String searchQuery;
   final String? filterType;
 
@@ -31,6 +32,7 @@ class TaskState extends Equatable {
     this.isLoadingMore = false,
     this.errorMessage,
     this.profileUsername,
+    this.profilePhotoUrl,
     this.searchQuery = '',
     this.filterType,
     this.selectedTask,
@@ -48,6 +50,7 @@ class TaskState extends Equatable {
     bool? isLoadingMore,
     String? errorMessage,
     String? profileUsername,
+    String? profilePhotoUrl,
     String? searchQuery,
     String? filterType,
     TaskModel? selectedTask,
@@ -66,6 +69,7 @@ class TaskState extends Equatable {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       errorMessage: errorMessage ?? this.errorMessage,
       profileUsername: profileUsername ?? this.profileUsername,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       searchQuery: searchQuery ?? this.searchQuery,
       filterType: clearFilterType ? null : (filterType ?? this.filterType),
       taskDetail: taskDetail ?? this.taskDetail,
@@ -85,6 +89,7 @@ class TaskState extends Equatable {
     isLoadingMore,
     errorMessage,
     profileUsername,
+    profilePhotoUrl,
     searchQuery,
     filterType,
     selectedTask,

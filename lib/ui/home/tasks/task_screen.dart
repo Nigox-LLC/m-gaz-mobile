@@ -267,6 +267,7 @@ class _TaskHeader extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const _TaskSearchAndFilterBar(),
+          const SizedBox(height: 8),
         ],
       ),
     );

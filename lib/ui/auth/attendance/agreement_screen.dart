@@ -130,7 +130,7 @@ class _AgreementPdfScreenState extends State<AgreementPdfScreen> {
             height: 52,
             child: CustomButton(
               title: Words.agree.tr(),
-              backgroundColor: _agreed ? AppColors.c1570EF : AppColors.cA1A8B0,
+              backgroundColor: _agreed ? Color(0xFF314692) : AppColors.cA1A8B0,
               onTap: _agreed
                   ? () {
                       Navigator.pushReplacement(
