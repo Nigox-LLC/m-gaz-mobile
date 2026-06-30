@@ -413,5 +413,8 @@
   "confirmPasswordHint": "Yangi parolni qayta kiriting",
   "passwordsDoNotMatch": "*Parollar mos kelmadi",
   "changeLanguage": "Tilni o'zgartirish",
-  "logoutConfirmQuestion": "Shaxsiy hisobdan chiqishni xohlaysizmi?"
+  "logoutConfirmQuestion": "Shaxsiy hisobdan chiqishni xohlaysizmi?",
+  "locationDisclosureTitle": "Joylashuvga ruxsat",
+  "locationDisclosureMessage": "Приложение M Gaz собирает данные о вашем местоположении для отслеживания рабочего времени, фиксации посещаемости сотрудников и координации их перемещений, даже когда приложение закрыто или не используется.",
+  "locationDisclosureDecline": "Yo'q, rahmat"
 }

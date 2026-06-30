@@ -423,4 +423,7 @@ enum Words {
   passwordsDoNotMatch,
   changeLanguage,
   logoutConfirmQuestion,
+  locationDisclosureTitle,
+  locationDisclosureMessage,
+  locationDisclosureDecline,
 }
