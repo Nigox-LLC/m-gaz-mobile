@@ -413,5 +413,8 @@
   "confirmPasswordHint": "Повторите новый пароль",
   "passwordsDoNotMatch": "*Пароли не совпадают",
   "changeLanguage": "Изменить язык",
-  "logoutConfirmQuestion": "Вы хотите выйти из личного кабинета?"
+  "logoutConfirmQuestion": "Вы хотите выйти из личного кабинета?",
+  "locationDisclosureTitle": "Доступ к местоположению",
+  "locationDisclosureMessage": "Приложение M Gaz собирает данные о вашем местоположении для отслеживания рабочего времени, фиксации посещаемости сотрудников и координации их перемещений, даже когда приложение закрыто или не используется.",
+  "locationDisclosureDecline": "Нет, спасибо"
 }

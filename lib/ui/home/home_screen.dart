@@ -4,11 +4,13 @@ import 'dart:ui';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/core/utils/locationService/location_service.dart';
 import 'package:m_gaz/features/gas_networks/presentation/pages/gas_networks_page.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
+import 'package:m_gaz/shared/widgets/location_disclosure_dialog.dart';
 import 'package:m_gaz/ui/home/main/dashboard_screen.dart';
 import 'package:m_gaz/ui/home/tasks/task_screen.dart';
 import 'package:m_gaz/ui/home/working_with_consumers/consumer_relations_screen.dart';
@@ -95,6 +97,44 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     _dailyRouteTrackingStartRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_startDailyRouteTracking(service, notificationTexts));
+    });
+  }
+
+  /// Starts background location tracking, but first shows the Google-required
+  /// prominent disclosure when a permission request would actually be made.
+  /// [DailyRouteLocationService.ensureStarted] (which calls
+  /// `Geolocator.requestPermission()` / `locationAlways.request()`) only runs
+  /// after the user accepts the disclosure.
+  Future<void> _startDailyRouteTracking(
+    DailyRouteLocationService service,
+    DailyRouteNotificationTexts notificationTexts,
+  ) async {
+    LocationPermission permission;
+    try {
+      permission = await Geolocator.checkPermission();
+    } catch (error) {
+      debugPrint('DailyRoute checkPermission error: $error');
+      permission = LocationPermission.denied;
+    }
+
+    // Disclosure is only required before a real permission prompt. When
+    // background access is already granted no prompt fires; when it is
+    // permanently denied the system prompt cannot be shown.
+    final needsDisclosure =
+        permission != LocationPermission.always &&
+        permission != LocationPermission.deniedForever;
+
+    if (needsDisclosure) {
+      if (!mounted) return;
+      final accepted = await LocationDisclosureDialog.show(context);
+      if (!accepted) {
+        debugPrint('DailyRoute: disclosure declined, tracking not started');
+        return;
+      }
+    }
+
     unawaited(
       service.ensureStarted(notificationTexts: notificationTexts).catchError((
         Object error,

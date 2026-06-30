@@ -413,5 +413,8 @@
     "confirmPasswordHint": "Янги паролни қайта киритинг",
     "passwordsDoNotMatch": "*Пароллар мос келмади",
     "changeLanguage": "Тилни ўзгартириш",
-    "logoutConfirmQuestion": "Шахсий ҳисобдан чиқишни хоҳлайсизми?"
+    "logoutConfirmQuestion": "Шахсий ҳисобдан чиқишни хоҳлайсизми?",
+    "locationDisclosureTitle": "Жойлашувга рухсат",
+    "locationDisclosureMessage": "Приложение M Gaz собирает данные о вашем местоположении для отслеживания рабочего времени, фиксации посещаемости сотрудников и координации их перемещений, даже когда приложение закрыто или не используется.",
+    "locationDisclosureDecline": "Йўқ, раҳмат"
 }
