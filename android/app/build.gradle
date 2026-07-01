@@ -41,7 +41,7 @@ gradle.taskGraph.whenReady { taskGraph ->
     }
 }
 android {
-    namespace = "nigox.uz.m_gaz"
+    namespace = "raqamli.nazorat.m_gaz_mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -56,7 +56,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "nigox.uz.m_gaz"
+        applicationId = "raqamli.nazorat.m_gaz_mobile"
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
