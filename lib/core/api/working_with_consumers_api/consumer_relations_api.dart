@@ -49,9 +49,7 @@ class ConsumerRelationsApi {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("❌ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -92,9 +90,7 @@ class ConsumerRelationsApi {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("❌ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -119,9 +115,7 @@ class ConsumerRelationsApi {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("❌ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -133,15 +127,11 @@ class ConsumerRelationsApi {
   Future<WorkingWithConsumersDetailModel> patchDocument({
     required int id,
     required WorkingWithConsumersDetailModel document,
-    Map<int, List<ConsumerUploadFile>> certificateDetailsByEgxu = const {},
   }) async {
     try {
       final response = await _base.dio.patch(
         'consumer-relations-documents/$id/',
-        data: buildConsumerDocumentPatchPayload(
-          document,
-          certificateDetailsByEgxu: certificateDetailsByEgxu,
-        ),
+        data: buildConsumerDocumentPatchPayload(document),
       );
 
       if (response.statusCode == 200) {
@@ -149,9 +139,7 @@ class ConsumerRelationsApi {
       }
       throw Exception('Xatolik yuz berdi: ${response.statusCode}');
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("вќЊ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -292,14 +280,16 @@ class ConsumerRelationsApi {
   }
 
   /// POST /api/consumer-relations-documents/egxu/certificates/ (multipart)
-  Future<void> uploadEgxuCertificates({
+  Future<void> uploadEgxuCertificateFiles({
     required int egxuId,
+    required int certificateId,
     required List<String> paths,
   }) async {
     if (paths.isEmpty) return;
     try {
       final formData = FormData();
       formData.fields.add(MapEntry('egxu_id', egxuId.toString()));
+      formData.fields.add(MapEntry('certificate_id', certificateId.toString()));
       for (final path in paths) {
         formData.files.add(
           MapEntry('certificate_files', await MultipartFile.fromFile(path)),
@@ -317,7 +307,7 @@ class ConsumerRelationsApi {
     } on DioException catch (e) {
       throw Exception(_dioMessage(e));
     } catch (e) {
-      debugPrint("❌ uploadEgxuCertificates: $e");
+      debugPrint("❌ uploadEgxuCertificateFiles: $e");
       throw Exception("Kutilmagan xatolik: $e");
     }
   }
@@ -325,9 +315,25 @@ class ConsumerRelationsApi {
   String _dioMessage(DioException e) {
     final error = e.response?.data;
     if (error is Map) {
-      return error['message'] ?? error['error'] ?? "So'rov bajarilmadi";
+      final message = error['message'] ?? error['error'] ?? error['detail'];
+      if (message != null) return message.toString();
+      return error.entries
+          .map((entry) => '${entry.key}: ${_errorValue(entry.value)}')
+          .join('\n');
     }
+    if (error is List) return error.map(_errorValue).join('\n');
+    if (error is String && error.trim().isNotEmpty) return error.trim();
     return "So'rov bajarilmadi";
+  }
+
+  String _errorValue(Object? value) {
+    if (value is List) return value.map(_errorValue).join(', ');
+    if (value is Map) {
+      return value.entries
+          .map((entry) => '${entry.key}: ${_errorValue(entry.value)}')
+          .join(', ');
+    }
+    return value?.toString() ?? '';
   }
 
   Future<void> createEgxu(ConsumerCreateModel model) async {
@@ -354,9 +360,8 @@ class ConsumerRelationsApi {
 
 @visibleForTesting
 Map<String, dynamic> buildConsumerDocumentPatchPayload(
-  WorkingWithConsumersDetailModel document, {
-  Map<int, List<ConsumerUploadFile>> certificateDetailsByEgxu = const {},
-}) {
+  WorkingWithConsumersDetailModel document,
+) {
   final payload = Map<String, dynamic>.from(document.toJson());
 
   // Backend PATCH expects top-level relations as PK values, not GET objects.
@@ -365,40 +370,5 @@ Map<String, dynamic> buildConsumerDocumentPatchPayload(
   payload['employee'] = document.employee?.id;
   payload['consumers'] = document.consumers?.id;
 
-  if (certificateDetailsByEgxu.isNotEmpty) {
-    payload['egxu_list'] = (document.egxuList ?? const <ConsumersEgxuItem>[])
-        .map((item) {
-          final itemPayload = Map<String, dynamic>.from(item.toJson());
-          final certificates = certificateDetailsByEgxu[item.id];
-          if (certificates != null) {
-            itemPayload['certificates'] = certificates
-                .map(_certificatePatchPayload)
-                .toList();
-          }
-          return itemPayload;
-        })
-        .toList();
-  }
-
   return payload;
-}
-
-Map<String, dynamic> _certificatePatchPayload(ConsumerUploadFile certificate) {
-  String text(String? value) => value?.trim() ?? '';
-  String? date(String? value) {
-    final normalized = value?.trim();
-    return normalized?.isEmpty == true ? null : normalized;
-  }
-
-  return {
-    if (certificate.id != null) 'id': certificate.id,
-    'certificate_type': text(certificate.certificateType),
-    'certificate_number': text(certificate.certificateNumber),
-    'issued_date': date(certificate.issuedDate),
-    'expiry_date': date(certificate.expiryDate),
-    'warning_letter': text(certificate.warningLetter),
-    'warning_date': date(certificate.warningDate),
-    'warning_reason': text(certificate.warningReason),
-    'is_active': true,
-  };
 }

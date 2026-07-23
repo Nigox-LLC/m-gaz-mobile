@@ -48,9 +48,8 @@ void main() {
 
   Future<void> pumpCertificate(
     WidgetTester tester, {
-    required ConsumerUploadFile file,
-    required bool editable,
-    void Function(ConsumerUploadFile)? onChanged,
+    required EgxuCertificate certificate,
+    void Function(EgxuCertificate)? onChanged,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -59,8 +58,7 @@ void main() {
             width: 320,
             child: SingleChildScrollView(
               child: ConsumerCertificateDetailsCard(
-                file: file,
-                editable: editable,
+                certificate: certificate,
                 onChanged: onChanged ?? (_) {},
               ),
             ),
@@ -147,28 +145,23 @@ void main() {
   testWidgets('new certificate opens editable details and reports changes', (
     tester,
   ) async {
-    final pending = ConsumerUploadFile.local(
-      path: '/tmp/cert.pdf',
-      name: 'cert.pdf',
-      sizeBytes: 10,
-    );
-    ConsumerUploadFile? changed;
+    final pending = EgxuCertificate.draft();
+    EgxuCertificate? changed;
 
     await pumpCertificate(
       tester,
-      file: pending,
-      editable: true,
-      onChanged: (file) => changed = file,
+      certificate: pending,
+      onChanged: (certificate) => changed = certificate,
     );
 
     expect(find.text(Words.certificateDetails.tr()), findsOneWidget);
     expect(
-      find.byKey(const Key('consumer-certificate-number-/tmp/cert.pdf')),
+      find.byKey(Key('consumer-certificate-number-${pending.localId}')),
       findsOneWidget,
     );
 
     await tester.enterText(
-      find.byKey(const Key('consumer-certificate-number-/tmp/cert.pdf')),
+      find.byKey(Key('consumer-certificate-number-${pending.localId}')),
       'CERT-10',
     );
 
@@ -176,7 +169,7 @@ void main() {
 
     final numberField = tester.widget<EditableText>(
       find.descendant(
-        of: find.byKey(const Key('consumer-certificate-number-/tmp/cert.pdf')),
+        of: find.byKey(Key('consumer-certificate-number-${pending.localId}')),
         matching: find.byType(EditableText),
       ),
     );
@@ -184,7 +177,7 @@ void main() {
     final warningField = tester.widget<EditableText>(
       find.descendant(
         of: find.byKey(
-          const Key('consumer-certificate-warning-letter-/tmp/cert.pdf'),
+          Key('consumer-certificate-warning-letter-${pending.localId}'),
         ),
         matching: find.byType(EditableText),
       ),
@@ -192,27 +185,92 @@ void main() {
     expect(warningField.keyboardType, TextInputType.number);
   });
 
-  testWidgets('remote certificate starts collapsed and shows API details', (
-    tester,
-  ) async {
-    final remote = ConsumerUploadFile.fromCertificate(
-      const EgxuCertificate(
-        id: 7,
-        file: 'https://example.com/cert.pdf',
-        certificateNumber: 'CERT-7',
-        issuedDate: '2026-02-01',
-      ),
+  testWidgets('remote certificate metadata is editable', (tester) async {
+    final remote = const EgxuCertificate(
+      id: 7,
+      certificateNumber: 'CERT-7',
+      issuedDate: '2026-02-01',
     );
 
-    await pumpCertificate(tester, file: remote, editable: false);
+    await pumpCertificate(tester, certificate: remote);
 
     expect(find.text('CERT-7'), findsNothing);
     await tester.tap(
       find.byKey(const Key('consumer-certificate-details-toggle-7')),
     );
     await tester.pumpAndSettle();
-
     expect(find.text('CERT-7'), findsOneWidget);
     expect(find.text('01.02.2026'), findsOneWidget);
+  });
+
+  testWidgets('certificate list separates record add from file add', (
+    tester,
+  ) async {
+    var records = 0;
+    EgxuCertificate? fileTarget;
+    final certificate = EgxuCertificate.draft();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ConsumerCertificateList(
+              certificates: [certificate],
+              onAddCertificate: () => records++,
+              onAddFile: (value) => fileTarget = value,
+              onRemoveFile: (_, __) {},
+              onViewFile: (_) {},
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        Key('consumer-upload-add-certificate-files-${certificate.localId}'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('consumer-upload-add-certificate-record-add')),
+    );
+    await tester.pump();
+    expect(records, 1);
+
+    await tester.tap(
+      find.byKey(
+        Key(
+          'consumer-upload-add-tile-certificate-files-${certificate.localId}',
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(fileTarget, same(certificate));
+  });
+
+  testWidgets('multiple certificates render separate metadata sections', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ConsumerCertificateList(
+              certificates: [EgxuCertificate.draft(), EgxuCertificate.draft()],
+              onAddCertificate: () {},
+              onAddFile: (_) {},
+              onRemoveFile: (_, __) {},
+              onViewFile: (_) {},
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(Words.certificateDetails.tr()), findsNWidgets(2));
   });
 }

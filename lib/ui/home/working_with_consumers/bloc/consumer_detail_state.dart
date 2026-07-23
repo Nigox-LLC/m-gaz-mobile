@@ -22,7 +22,6 @@ class ConsumerDetailState extends Equatable {
     this.certsByEgxu = const {},
     this.technicalDocs = const [],
     this.contracts = const [],
-    this.pendingCertsByEgxu = const {},
     this.pendingTechnical = const [],
     this.pendingContracts = const [],
     this.saveStatus = ConsumerDetailSaveStatus.idle,
@@ -38,12 +37,11 @@ class ConsumerDetailState extends Equatable {
   final bool isDirty;
 
   // Mavjud (remote) fayllar
-  final Map<int, List<ConsumerUploadFile>> certsByEgxu;
+  final Map<int, List<EgxuCertificate>> certsByEgxu;
   final List<ConsumerUploadFile> technicalDocs;
   final List<ConsumerUploadFile> contracts;
 
   // Hali yuklanmagan (pending) fayllar
-  final Map<int, List<ConsumerUploadFile>> pendingCertsByEgxu;
   final List<ConsumerUploadFile> pendingTechnical;
   final List<ConsumerUploadFile> pendingContracts;
 
@@ -55,7 +53,12 @@ class ConsumerDetailState extends Equatable {
   bool get hasPending =>
       pendingTechnical.isNotEmpty ||
       pendingContracts.isNotEmpty ||
-      pendingCertsByEgxu.values.any((l) => l.isNotEmpty);
+      certsByEgxu.values.any(
+        (certificates) => certificates.any(
+          (certificate) =>
+              certificate.files.any((file) => file.localPath != null),
+        ),
+      );
 
   bool get canSave =>
       status == ConsumerDetailStatus.loaded &&
@@ -63,9 +66,8 @@ class ConsumerDetailState extends Equatable {
       !isSaving;
 
   /// EGHU uchun ko'rsatiladigan birlashgan ro'yxat (remote + pending).
-  List<ConsumerUploadFile> certificatesFor(int egxuId) => [
+  List<EgxuCertificate> certificatesFor(int egxuId) => [
     ...?certsByEgxu[egxuId],
-    ...?pendingCertsByEgxu[egxuId],
   ];
 
   List<ConsumerUploadFile> get technicalAll => [
@@ -86,10 +88,9 @@ class ConsumerDetailState extends Equatable {
     bool? companyInfoExpanded,
     Set<int>? expandedEgxuIds,
     bool? isDirty,
-    Map<int, List<ConsumerUploadFile>>? certsByEgxu,
+    Map<int, List<EgxuCertificate>>? certsByEgxu,
     List<ConsumerUploadFile>? technicalDocs,
     List<ConsumerUploadFile>? contracts,
-    Map<int, List<ConsumerUploadFile>>? pendingCertsByEgxu,
     List<ConsumerUploadFile>? pendingTechnical,
     List<ConsumerUploadFile>? pendingContracts,
     ConsumerDetailSaveStatus? saveStatus,
@@ -106,7 +107,6 @@ class ConsumerDetailState extends Equatable {
       certsByEgxu: certsByEgxu ?? this.certsByEgxu,
       technicalDocs: technicalDocs ?? this.technicalDocs,
       contracts: contracts ?? this.contracts,
-      pendingCertsByEgxu: pendingCertsByEgxu ?? this.pendingCertsByEgxu,
       pendingTechnical: pendingTechnical ?? this.pendingTechnical,
       pendingContracts: pendingContracts ?? this.pendingContracts,
       saveStatus: saveStatus ?? this.saveStatus,
@@ -126,7 +126,6 @@ class ConsumerDetailState extends Equatable {
     certsByEgxu,
     technicalDocs,
     contracts,
-    pendingCertsByEgxu,
     pendingTechnical,
     pendingContracts,
     saveStatus,

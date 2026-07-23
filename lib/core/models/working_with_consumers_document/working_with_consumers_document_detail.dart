@@ -1,4 +1,5 @@
 import '../global/base_model.dart';
+import 'consumer_file_models.dart';
 
 List<T>? _mapList<T>(
   Object? value,
@@ -102,7 +103,7 @@ class ConsumersEgxuItem {
   final List<ConsumersIndicatorImage>? indicatorImages;
   final String? indicatorImagesRaw;
   final String? hourlyFiles;
-  final String? certificates;
+  final List<EgxuCertificate>? certificates;
   final ConsumersEgxuType? egxuType;
   final String? oneFactory;
   final String? twoFactory;
@@ -155,9 +156,9 @@ class ConsumersEgxuItem {
       hourlyFiles: json['hourly_files'] is List
           ? null
           : json['hourly_files']?.toString(),
-      certificates: json['certificates'] is List
-          ? null
-          : json['certificates']?.toString(),
+      certificates: (json['certificates'] as List?)
+          ?.map((e) => EgxuCertificate.fromJson(e as Map<String, dynamic>))
+          .toList(),
       egxuType: ConsumersEgxuType.fromJson(json['egxu_type']),
       oneFactory: json['one_factory'],
       twoFactory: json['two_factory'],
@@ -179,7 +180,7 @@ class ConsumersEgxuItem {
           indicatorImages?.map((e) => e.toJson()).toList() ??
           indicatorImagesRaw,
       'hourly_files': hourlyFiles,
-      'certificates': certificates,
+      'certificates': certificates?.map(_certificateToJson).toList(),
       'egxu_type': egxuType?.toJson(),
       'one_factory': oneFactory,
       'two_factory': twoFactory,
@@ -200,7 +201,7 @@ class ConsumersEgxuItem {
     List<ConsumersIndicatorImage>? indicatorImages,
     String? indicatorImagesRaw,
     String? hourlyFiles,
-    String? certificates,
+    List<EgxuCertificate>? certificates,
     ConsumersEgxuType? egxuType,
     String? oneFactory,
     String? twoFactory,
@@ -228,6 +229,30 @@ class ConsumersEgxuItem {
       isActive: isActive ?? this.isActive,
     );
   }
+}
+
+Map<String, dynamic> _certificateToJson(EgxuCertificate certificate) {
+  return {
+    if (certificate.id != null) 'id': certificate.id,
+    'certificate_type': certificate.certificateType ?? 'first_certificate',
+    'certificate_number': _certificateText(certificate.certificateNumber),
+    'issued_date': _certificateDate(certificate.issuedDate),
+    'expiry_date': _certificateDate(certificate.expiryDate),
+    'warning_letter': certificate.warningLetter?.trim() ?? '',
+    'warning_date': _certificateDate(certificate.warningDate),
+    'warning_reason': certificate.warningReason?.trim() ?? '',
+    'is_active': certificate.isActive,
+  };
+}
+
+String _certificateText(String? value) {
+  final normalized = value?.trim();
+  return normalized?.isNotEmpty == true ? normalized! : '-';
+}
+
+String? _certificateDate(String? value) {
+  final normalized = value?.trim();
+  return normalized?.isEmpty == true ? null : normalized;
 }
 
 class ConsumerRelationEgxu {

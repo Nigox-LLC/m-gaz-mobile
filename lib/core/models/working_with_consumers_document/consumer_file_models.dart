@@ -26,8 +26,7 @@ class ConsumerFile {
 /// Manba: GET /api/consumer-relations-documents/egxu/certificates/
 class EgxuCertificate {
   final int? id;
-  final String? file;
-  final String? createdAt;
+  final String? localId;
   final String? certificateType;
   final String? certificateNumber;
   final String? issuedDate;
@@ -35,11 +34,12 @@ class EgxuCertificate {
   final String? warningLetter;
   final String? warningDate;
   final String? warningReason;
+  final bool isActive;
+  final List<ConsumerUploadFile> files;
 
   const EgxuCertificate({
     this.id,
-    this.file,
-    this.createdAt,
+    this.localId,
     this.certificateType,
     this.certificateNumber,
     this.issuedDate,
@@ -47,26 +47,88 @@ class EgxuCertificate {
     this.warningLetter,
     this.warningDate,
     this.warningReason,
+    this.isActive = true,
+    this.files = const [],
   });
 
-  factory EgxuCertificate.fromJson(Map<String, dynamic> json) {
+  factory EgxuCertificate.draft() {
     return EgxuCertificate(
-      id: json['id'],
-      file:
-          json['file'] ??
-          json['egxu_image'] ??
-          json['filename'] ??
-          json['image'],
-      createdAt: json['created_at'] ?? json['created_add'],
-      certificateType: json['certificate_type'],
-      certificateNumber: json['certificate_number'],
-      issuedDate: json['issued_date'],
-      expiryDate: json['expiry_date'],
-      warningLetter: json['warning_letter'],
-      warningDate: json['warning_date'],
-      warningReason: json['warning_reason'],
+      localId: DateTime.now().microsecondsSinceEpoch.toString(),
+      certificateType: 'first_certificate',
     );
   }
+
+  factory EgxuCertificate.fromJson(Map<String, dynamic> json) {
+    final files =
+        (json['files'] as List?)
+            ?.whereType<Map>()
+            .map(
+              (file) => ConsumerUploadFile.fromCertificateFile(
+                Map<String, dynamic>.from(file),
+              ),
+            )
+            .toList() ??
+        <ConsumerUploadFile>[];
+    final legacyUrl = json['file'] ?? json['egxu_image'];
+    if (files.isEmpty && legacyUrl is String && legacyUrl.isNotEmpty) {
+      files.add(
+        ConsumerUploadFile.remote(
+          id: json['id'],
+          url: legacyUrl,
+          createdAt: json['created_at'] ?? json['created_add'],
+        ),
+      );
+    }
+    return EgxuCertificate(
+      id: json['id'],
+      certificateType: json['certificate_type']?.toString(),
+      certificateNumber: json['certificate_number']?.toString(),
+      issuedDate: json['issued_date']?.toString(),
+      expiryDate: json['expiry_date']?.toString(),
+      warningLetter: json['warning_letter']?.toString(),
+      warningDate: json['warning_date']?.toString(),
+      warningReason: json['warning_reason']?.toString(),
+      isActive: json['is_active'] ?? true,
+      files: files,
+    );
+  }
+
+  EgxuCertificate copyWith({
+    int? id,
+    String? localId,
+    String? certificateType,
+    String? certificateNumber,
+    String? issuedDate,
+    String? expiryDate,
+    String? warningLetter,
+    String? warningDate,
+    String? warningReason,
+    bool? isActive,
+    List<ConsumerUploadFile>? files,
+  }) {
+    return EgxuCertificate(
+      id: id ?? this.id,
+      localId: localId ?? this.localId,
+      certificateType: certificateType ?? this.certificateType,
+      certificateNumber: certificateNumber ?? this.certificateNumber,
+      issuedDate: issuedDate ?? this.issuedDate,
+      expiryDate: expiryDate ?? this.expiryDate,
+      warningLetter: warningLetter ?? this.warningLetter,
+      warningDate: warningDate ?? this.warningDate,
+      warningReason: warningReason ?? this.warningReason,
+      isActive: isActive ?? this.isActive,
+      files: files ?? this.files,
+    );
+  }
+
+  bool get hasMetadata => [
+    certificateNumber,
+    issuedDate,
+    expiryDate,
+    warningLetter,
+    warningDate,
+    warningReason,
+  ].any((value) => value?.trim().isNotEmpty == true);
 }
 
 /// UI uchun yagona fayl modeli — mavjud (remote) yoki yangi tanlangan (local).
@@ -79,13 +141,6 @@ class ConsumerUploadFile extends Equatable {
     this.remoteUrl,
     this.localPath,
     this.sizeBytes = 0,
-    this.certificateType,
-    this.certificateNumber,
-    this.issuedDate,
-    this.expiryDate,
-    this.warningLetter,
-    this.warningDate,
-    this.warningReason,
   });
 
   final int? id;
@@ -95,13 +150,6 @@ class ConsumerUploadFile extends Equatable {
   final bool isImage;
   final int sizeBytes;
   final DateTime createdAt;
-  final String? certificateType;
-  final String? certificateNumber;
-  final String? issuedDate;
-  final String? expiryDate;
-  final String? warningLetter;
-  final String? warningDate;
-  final String? warningReason;
 
   bool get isRemote => remoteUrl != null;
 
@@ -146,48 +194,50 @@ class ConsumerUploadFile extends Equatable {
     );
   }
 
-  factory ConsumerUploadFile.fromCertificate(EgxuCertificate cert) {
-    final url = cert.file ?? '';
+  factory ConsumerUploadFile.remote({
+    int? id,
+    required String url,
+    String? createdAt,
+  }) {
     return ConsumerUploadFile(
-      id: cert.id,
+      id: id,
       remoteUrl: url,
       name: fileNameFromUrl(url),
       isImage: isImagePath(url),
-      createdAt: DateTime.tryParse(cert.createdAt ?? '') ?? DateTime.now(),
-      certificateType: cert.certificateType,
-      certificateNumber: cert.certificateNumber,
-      issuedDate: cert.issuedDate,
-      expiryDate: cert.expiryDate,
-      warningLetter: cert.warningLetter,
-      warningDate: cert.warningDate,
-      warningReason: cert.warningReason,
+      createdAt: DateTime.tryParse(createdAt ?? '') ?? DateTime.now(),
+    );
+  }
+
+  factory ConsumerUploadFile.fromCertificateFile(Map<String, dynamic> json) {
+    final url = json['file']?.toString() ?? '';
+    return ConsumerUploadFile(
+      id: json['id'],
+      remoteUrl: url,
+      name: fileNameFromUrl(url),
+      isImage: isImagePath(url),
+      createdAt:
+          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 
   ConsumerUploadFile copyWith({
-    String? certificateType,
-    String? certificateNumber,
-    String? issuedDate,
-    String? expiryDate,
-    String? warningLetter,
-    String? warningDate,
-    String? warningReason,
+    int? id,
+    String? remoteUrl,
+    String? localPath,
+    String? name,
+    bool? isImage,
+    int? sizeBytes,
+    DateTime? createdAt,
   }) {
     return ConsumerUploadFile(
-      id: id,
-      remoteUrl: remoteUrl,
-      localPath: localPath,
-      name: name,
-      isImage: isImage,
-      sizeBytes: sizeBytes,
-      createdAt: createdAt,
-      certificateType: certificateType ?? this.certificateType,
-      certificateNumber: certificateNumber ?? this.certificateNumber,
-      issuedDate: issuedDate ?? this.issuedDate,
-      expiryDate: expiryDate ?? this.expiryDate,
-      warningLetter: warningLetter ?? this.warningLetter,
-      warningDate: warningDate ?? this.warningDate,
-      warningReason: warningReason ?? this.warningReason,
+      id: id ?? this.id,
+      remoteUrl: remoteUrl ?? this.remoteUrl,
+      localPath: localPath ?? this.localPath,
+      name: name ?? this.name,
+      isImage: isImage ?? this.isImage,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -221,12 +271,5 @@ class ConsumerUploadFile extends Equatable {
     isImage,
     sizeBytes,
     createdAt,
-    certificateType,
-    certificateNumber,
-    issuedDate,
-    expiryDate,
-    warningLetter,
-    warningDate,
-    warningReason,
   ];
 }

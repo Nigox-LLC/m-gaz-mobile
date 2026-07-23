@@ -56,6 +56,7 @@ class ConsumerUploadSection extends StatefulWidget {
     this.helpText,
     this.helpKey,
     this.sectionKey,
+    this.emptyUsesTile = false,
   });
 
   final String title;
@@ -66,6 +67,7 @@ class ConsumerUploadSection extends StatefulWidget {
   final String? helpText;
   final Key? helpKey;
   final String? sectionKey;
+  final bool emptyUsesTile;
 
   @override
   State<ConsumerUploadSection> createState() => _ConsumerUploadSectionState();
@@ -127,7 +129,8 @@ class _ConsumerUploadSectionState extends State<ConsumerUploadSection> {
                 ],
               ),
             ),
-            _AddChip(onTap: widget.onAdd, keyName: widget.sectionKey),
+            if (!widget.emptyUsesTile)
+              _AddChip(onTap: widget.onAdd, keyName: widget.sectionKey),
           ],
         ),
         if (_showDetails && infoFile != null) ...[
@@ -136,7 +139,15 @@ class _ConsumerUploadSectionState extends State<ConsumerUploadSection> {
         ],
         const SizedBox(height: 10),
         if (widget.files.isEmpty)
-          _DropZone(onTap: widget.onAdd, text: Words.addInformation.tr())
+          widget.emptyUsesTile
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: _AddTile(
+                    onTap: widget.onAdd,
+                    keyName: widget.sectionKey,
+                  ),
+                )
+              : _DropZone(onTap: widget.onAdd, text: Words.addInformation.tr())
         else
           Wrap(
             spacing: 10,
@@ -148,7 +159,7 @@ class _ConsumerUploadSectionState extends State<ConsumerUploadSection> {
                   onRemove: file.isRemote ? null : () => widget.onRemove(file),
                   onTap: () => widget.onView(file),
                 ),
-              _AddTile(onTap: widget.onAdd),
+              _AddTile(onTap: widget.onAdd, keyName: widget.sectionKey),
             ],
           ),
       ],
@@ -163,16 +174,136 @@ class _ConsumerUploadSectionState extends State<ConsumerUploadSection> {
   }
 }
 
+/// EGHU sertifikatlari: sertifikat yozuvi va uning fayllari alohida boshqariladi.
+class ConsumerCertificateList extends StatelessWidget {
+  const ConsumerCertificateList({
+    super.key,
+    required this.certificates,
+    required this.onAddCertificate,
+    required this.onAddFile,
+    required this.onRemoveFile,
+    required this.onViewFile,
+    required this.onChanged,
+  });
+
+  final List<EgxuCertificate> certificates;
+  final VoidCallback onAddCertificate;
+  final ValueChanged<EgxuCertificate> onAddFile;
+  final void Function(EgxuCertificate, ConsumerUploadFile) onRemoveFile;
+  final ValueChanged<ConsumerUploadFile> onViewFile;
+  final ValueChanged<EgxuCertificate> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const Key('consumer-certificate-list'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              Words.eghuCertificate.tr(),
+              style: consumerText(
+                fontSize: 15,
+                lineHeight: 24,
+                fontWeight: FontWeight.w800,
+                color: ConsumerDetailColors.textStrong,
+              ),
+            ),
+            _AddChip(
+              onTap: onAddCertificate,
+              keyName: 'certificate-record-add',
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (certificates.isEmpty)
+          Text(
+            Words.addInformation.tr(),
+            style: consumerText(
+              fontSize: 13,
+              lineHeight: 20,
+              color: ConsumerDetailColors.textSub,
+            ),
+          )
+        else
+          for (final certificate in certificates) ...[
+            _CertificateCard(
+              certificate: certificate,
+              onAddFile: () => onAddFile(certificate),
+              onRemoveFile: (file) => onRemoveFile(certificate, file),
+              onViewFile: onViewFile,
+              onChanged: onChanged,
+            ),
+            if (certificate != certificates.last) const SizedBox(height: 12),
+          ],
+      ],
+    );
+  }
+}
+
+class _CertificateCard extends StatelessWidget {
+  const _CertificateCard({
+    required this.certificate,
+    required this.onAddFile,
+    required this.onRemoveFile,
+    required this.onViewFile,
+    required this.onChanged,
+  });
+
+  final EgxuCertificate certificate;
+  final VoidCallback onAddFile;
+  final ValueChanged<ConsumerUploadFile> onRemoveFile;
+  final ValueChanged<ConsumerUploadFile> onViewFile;
+  final ValueChanged<EgxuCertificate> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final keyName =
+        certificate.id?.toString() ?? certificate.localId ?? 'draft';
+    return Container(
+      key: Key('consumer-certificate-card-$keyName'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ConsumerDetailColors.stroke),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ConsumerUploadSection(
+            title: Words.certificate.tr(),
+            sectionKey: 'certificate-files-$keyName',
+            files: certificate.files,
+            onAdd: onAddFile,
+            onRemove: onRemoveFile,
+            onView: onViewFile,
+            emptyUsesTile: true,
+          ),
+          const SizedBox(height: 10),
+          ConsumerCertificateDetailsCard(
+            certificate: certificate,
+            editable: true,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ConsumerCertificateDetailsCard extends StatefulWidget {
   const ConsumerCertificateDetailsCard({
     super.key,
-    required this.file,
+    required this.certificate,
     required this.onChanged,
     this.editable = true,
   });
 
-  final ConsumerUploadFile file;
-  final ValueChanged<ConsumerUploadFile> onChanged;
+  final EgxuCertificate certificate;
+  final ValueChanged<EgxuCertificate> onChanged;
   final bool editable;
 
   @override
@@ -182,18 +313,21 @@ class ConsumerCertificateDetailsCard extends StatefulWidget {
 
 class _ConsumerCertificateDetailsCardState
     extends State<ConsumerCertificateDetailsCard> {
-  late bool _expanded = widget.editable;
+  late bool _expanded = widget.certificate.id == null;
 
   @override
   Widget build(BuildContext context) {
-    final fileKey = widget.file.id ?? widget.file.localPath ?? widget.file.name;
+    final certificateKey =
+        widget.certificate.id?.toString() ??
+        widget.certificate.localId ??
+        'draft';
 
     return Column(
-      key: Key('consumer-certificate-details-$fileKey'),
+      key: Key('consumer-certificate-details-$certificateKey'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          key: Key('consumer-certificate-details-toggle-$fileKey'),
+          key: Key('consumer-certificate-details-toggle-$certificateKey'),
           borderRadius: BorderRadius.circular(8),
           onTap: () => setState(() => _expanded = !_expanded),
           child: Padding(
@@ -225,65 +359,72 @@ class _ConsumerCertificateDetailsCardState
         if (_expanded) ...[
           const SizedBox(height: 8),
           _CertificateField(
-            fieldKey: Key('consumer-certificate-number-$fileKey'),
+            fieldKey: Key('consumer-certificate-number-$certificateKey'),
             label: Words.number.tr(),
-            value: widget.file.certificateNumber,
+            value: widget.certificate.certificateNumber,
             keyboardType: TextInputType.number,
             onChanged: widget.editable
                 ? (value) => widget.onChanged(
-                    widget.file.copyWith(certificateNumber: value),
+                    widget.certificate.copyWith(certificateNumber: value),
                   )
                 : null,
           ),
           _CertificateField(
-            fieldKey: Key('consumer-certificate-issued-date-$fileKey'),
+            fieldKey: Key('consumer-certificate-issued-date-$certificateKey'),
             label: Words.givenDate.tr(),
-            value: widget.file.issuedDate,
+            value: widget.certificate.issuedDate,
             isDate: true,
-            onChanged: widget.editable
-                ? (value) =>
-                      widget.onChanged(widget.file.copyWith(issuedDate: value))
-                : null,
-          ),
-          _CertificateField(
-            fieldKey: Key('consumer-certificate-expiry-date-$fileKey'),
-            label: Words.endDate.tr(),
-            value: widget.file.expiryDate,
-            isDate: true,
-            onChanged: widget.editable
-                ? (value) =>
-                      widget.onChanged(widget.file.copyWith(expiryDate: value))
-                : null,
-          ),
-          _CertificateField(
-            fieldKey: Key('consumer-certificate-warning-letter-$fileKey'),
-            label: Words.warningLetterNumber.tr(),
-            value: widget.file.warningLetter,
-            keyboardType: TextInputType.number,
             onChanged: widget.editable
                 ? (value) => widget.onChanged(
-                    widget.file.copyWith(warningLetter: value),
+                    widget.certificate.copyWith(issuedDate: value),
                   )
                 : null,
           ),
           _CertificateField(
-            fieldKey: Key('consumer-certificate-warning-date-$fileKey'),
-            label: Words.warningDate.tr(),
-            value: widget.file.warningDate,
+            fieldKey: Key('consumer-certificate-expiry-date-$certificateKey'),
+            label: Words.endDate.tr(),
+            value: widget.certificate.expiryDate,
             isDate: true,
             onChanged: widget.editable
-                ? (value) =>
-                      widget.onChanged(widget.file.copyWith(warningDate: value))
+                ? (value) => widget.onChanged(
+                    widget.certificate.copyWith(expiryDate: value),
+                  )
                 : null,
           ),
           _CertificateField(
-            fieldKey: Key('consumer-certificate-warning-reason-$fileKey'),
+            fieldKey: Key(
+              'consumer-certificate-warning-letter-$certificateKey',
+            ),
+            label: Words.warningLetterNumber.tr(),
+            value: widget.certificate.warningLetter,
+            keyboardType: TextInputType.number,
+            onChanged: widget.editable
+                ? (value) => widget.onChanged(
+                    widget.certificate.copyWith(warningLetter: value),
+                  )
+                : null,
+          ),
+          _CertificateField(
+            fieldKey: Key('consumer-certificate-warning-date-$certificateKey'),
+            label: Words.warningDate.tr(),
+            value: widget.certificate.warningDate,
+            isDate: true,
+            onChanged: widget.editable
+                ? (value) => widget.onChanged(
+                    widget.certificate.copyWith(warningDate: value),
+                  )
+                : null,
+          ),
+          _CertificateField(
+            fieldKey: Key(
+              'consumer-certificate-warning-reason-$certificateKey',
+            ),
             label: Words.warningReason.tr(),
-            value: widget.file.warningReason,
+            value: widget.certificate.warningReason,
             bottom: 0,
             onChanged: widget.editable
                 ? (value) => widget.onChanged(
-                    widget.file.copyWith(warningReason: value),
+                    widget.certificate.copyWith(warningReason: value),
                   )
                 : null,
           ),
@@ -737,13 +878,15 @@ class _DropZone extends StatelessWidget {
 }
 
 class _AddTile extends StatelessWidget {
-  const _AddTile({required this.onTap});
+  const _AddTile({required this.onTap, this.keyName});
 
   final VoidCallback onTap;
+  final String? keyName;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: keyName == null ? null : Key('consumer-upload-add-tile-$keyName'),
       onTap: onTap,
       child: CustomPaint(
         painter: _DashedBorderPainter(radius: 16),
