@@ -18,13 +18,19 @@ enum TaskStatus {
     return TaskStatus.pending;
   }
 
+  static TaskStatus? fromFilterValue(String? value) {
+    for (final status in TaskStatus.values) {
+      if (status.filterValue == value) return status;
+    }
+    return null;
+  }
+
   DateTime displayDateFor(TaskModel task) {
     return switch (this) {
       TaskStatus.completed => task.doneDate ?? task.created,
       TaskStatus.approved => task.approvedDate ?? task.created,
       TaskStatus.cancelled => task.canceledDate ?? task.created,
-      TaskStatus.overdue ||
-      TaskStatus.pending => task.deadline ?? task.created,
+      TaskStatus.overdue || TaskStatus.pending => task.deadline ?? task.created,
     };
   }
 

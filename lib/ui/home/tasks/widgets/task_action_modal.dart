@@ -28,6 +28,7 @@ typedef TaskLocationAddressResolver = Future<String?> Function(Position position
 
 class TaskActionModal extends StatefulWidget {
   final TaskModel task;
+  final TaskStatus? displayStatusOverride;
   final TaskCompletionCallback? onComplete;
   final TaskCancelCallback? onCancelTask;
   final Future<Position?> Function()? locationProvider;
@@ -37,6 +38,7 @@ class TaskActionModal extends StatefulWidget {
   const TaskActionModal({
     super.key,
     required this.task,
+    this.displayStatusOverride,
     this.onComplete,
     this.onCancelTask,
     this.locationProvider,
@@ -72,7 +74,8 @@ class _TaskActionModalState extends State<TaskActionModal> {
 
   @override
   Widget build(BuildContext context) {
-    final displayStatus = TaskStatus.fromTask(widget.task);
+    final displayStatus =
+        widget.displayStatusOverride ?? TaskStatus.fromTask(widget.task);
     final content = SafeArea(
       top: false,
       child: Align(

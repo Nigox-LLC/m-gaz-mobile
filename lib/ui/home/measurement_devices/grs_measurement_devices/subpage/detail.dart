@@ -365,7 +365,7 @@ class _GrsDetailScreenState extends State<GrsDetailScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemBuilder: (context, index) {
           return Padding(
             padding: EdgeInsets.only(left: index == 0 ? 0 : 20),

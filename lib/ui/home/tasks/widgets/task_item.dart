@@ -10,13 +10,19 @@ import 'task_action_modal.dart';
 
 class TaskItemWidget extends StatelessWidget {
   final TaskModel task;
+  final TaskStatus? displayStatusOverride;
   final VoidCallback? onTap;
 
-  const TaskItemWidget({super.key, required this.task, this.onTap});
+  const TaskItemWidget({
+    super.key,
+    required this.task,
+    this.displayStatusOverride,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final displayStatus = TaskStatus.fromTask(task);
+    final displayStatus = displayStatusOverride ?? TaskStatus.fromTask(task);
     final formattedDate = DateFormat(
       'dd.MM.yyyy, HH:mm:ss',
     ).format(displayStatus.displayDateFor(task));
@@ -164,11 +170,13 @@ class TaskItemWidget extends StatelessWidget {
   }
 
   void _showTaskActionDialog(BuildContext context) {
+    final displayStatus = displayStatusOverride ?? TaskStatus.fromTask(task);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TaskActionModal(task: task),
+      builder: (context) =>
+          TaskActionModal(task: task, displayStatusOverride: displayStatus),
     );
   }
 }

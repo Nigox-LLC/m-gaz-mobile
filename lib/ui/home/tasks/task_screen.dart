@@ -88,10 +88,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           }
 
                           final task = state.tasks[index];
-                          final displayStatus = TaskStatus.fromTask(task);
+                          final displayStatus =
+                              TaskStatus.fromFilterValue(state.filterType) ??
+                              TaskStatus.fromTask(task);
 
                           return TaskItemWidget(
                             task: task,
+                            displayStatusOverride: displayStatus,
                             onTap: () => _showTaskBottomSheet(
                               context,
                               task,
@@ -128,7 +131,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TaskActionModal(task: task, mode: mode),
+      builder: (context) => TaskActionModal(
+        task: task,
+        mode: mode,
+        displayStatusOverride: displayStatus,
+      ),
     );
   }
 
