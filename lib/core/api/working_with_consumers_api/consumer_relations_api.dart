@@ -49,9 +49,7 @@ class ConsumerRelationsApi {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("❌ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -92,9 +90,7 @@ class ConsumerRelationsApi {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("❌ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -119,9 +115,7 @@ class ConsumerRelationsApi {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("❌ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -145,9 +139,7 @@ class ConsumerRelationsApi {
       }
       throw Exception('Xatolik yuz berdi: ${response.statusCode}');
     } on DioException catch (e) {
-      final error = e.response?.data;
-      String errorMessage =
-          error?['message'] ?? error?['error'] ?? "So'rov bajarilmadi";
+      final errorMessage = _dioMessage(e);
       debugPrint("вќЊ DioException: $errorMessage");
       throw Exception(errorMessage);
     } catch (e) {
@@ -268,7 +260,12 @@ class ConsumerRelationsApi {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        final list = data is List ? data : (data?['certificate_files'] ?? []);
+        final list = data is List
+            ? data
+            : (data?['certificate_files'] ??
+                  data?['certificates'] ??
+                  data?['results'] ??
+                  []);
         return (list as List)
             .map((e) => EgxuCertificate.fromJson(e as Map<String, dynamic>))
             .toList();
@@ -283,14 +280,16 @@ class ConsumerRelationsApi {
   }
 
   /// POST /api/consumer-relations-documents/egxu/certificates/ (multipart)
-  Future<void> uploadEgxuCertificates({
+  Future<void> uploadEgxuCertificateFiles({
     required int egxuId,
+    required int certificateId,
     required List<String> paths,
   }) async {
     if (paths.isEmpty) return;
     try {
       final formData = FormData();
       formData.fields.add(MapEntry('egxu_id', egxuId.toString()));
+      formData.fields.add(MapEntry('certificate_id', certificateId.toString()));
       for (final path in paths) {
         formData.files.add(
           MapEntry('certificate_files', await MultipartFile.fromFile(path)),
@@ -308,7 +307,7 @@ class ConsumerRelationsApi {
     } on DioException catch (e) {
       throw Exception(_dioMessage(e));
     } catch (e) {
-      debugPrint("❌ uploadEgxuCertificates: $e");
+      debugPrint("❌ uploadEgxuCertificateFiles: $e");
       throw Exception("Kutilmagan xatolik: $e");
     }
   }
@@ -316,9 +315,25 @@ class ConsumerRelationsApi {
   String _dioMessage(DioException e) {
     final error = e.response?.data;
     if (error is Map) {
-      return error['message'] ?? error['error'] ?? "So'rov bajarilmadi";
+      final message = error['message'] ?? error['error'] ?? error['detail'];
+      if (message != null) return message.toString();
+      return error.entries
+          .map((entry) => '${entry.key}: ${_errorValue(entry.value)}')
+          .join('\n');
     }
+    if (error is List) return error.map(_errorValue).join('\n');
+    if (error is String && error.trim().isNotEmpty) return error.trim();
     return "So'rov bajarilmadi";
+  }
+
+  String _errorValue(Object? value) {
+    if (value is List) return value.map(_errorValue).join(', ');
+    if (value is Map) {
+      return value.entries
+          .map((entry) => '${entry.key}: ${_errorValue(entry.value)}')
+          .join(', ');
+    }
+    return value?.toString() ?? '';
   }
 
   Future<void> createEgxu(ConsumerCreateModel model) async {

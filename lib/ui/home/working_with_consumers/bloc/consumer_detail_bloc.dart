@@ -26,6 +26,10 @@ class ConsumerDetailBloc
     on<ConsumerDetailEgxuItemChanged>(_onEgxuItemChanged);
     on<ConsumerDetailFileAdded>(_onFileAdded);
     on<ConsumerDetailFileRemoved>(_onFileRemoved);
+    on<ConsumerDetailCertificateAdded>(_onCertificateAdded);
+    on<ConsumerDetailCertificateChanged>(_onCertificateChanged);
+    on<ConsumerDetailCertificateFileAdded>(_onCertificateFileAdded);
+    on<ConsumerDetailCertificateFileRemoved>(_onCertificateFileRemoved);
     on<ConsumerDetailSaved>(_onSaved);
   }
 
@@ -155,18 +159,6 @@ class ConsumerDetailBloc
   ) {
     switch (event.slot) {
       case ConsumerFileSlot.certificate:
-        final egxuId = event.egxuId;
-        if (egxuId == null) return;
-        final map = Map<int, List<ConsumerUploadFile>>.from(
-          state.pendingCertsByEgxu,
-        );
-        map[egxuId] = [...?map[egxuId], event.file];
-        emit(
-          state.copyWith(
-            pendingCertsByEgxu: map,
-            saveStatus: ConsumerDetailSaveStatus.idle,
-          ),
-        );
         break;
       case ConsumerFileSlot.technical:
         emit(
@@ -193,15 +185,6 @@ class ConsumerDetailBloc
   ) {
     switch (event.slot) {
       case ConsumerFileSlot.certificate:
-        final egxuId = event.egxuId;
-        if (egxuId == null) return;
-        final map = Map<int, List<ConsumerUploadFile>>.from(
-          state.pendingCertsByEgxu,
-        );
-        map[egxuId] = (map[egxuId] ?? [])
-            .where((f) => f != event.file)
-            .toList();
-        emit(state.copyWith(pendingCertsByEgxu: map));
         break;
       case ConsumerFileSlot.technical:
         emit(
@@ -224,34 +207,159 @@ class ConsumerDetailBloc
     }
   }
 
+  void _onCertificateAdded(
+    ConsumerDetailCertificateAdded event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final map = _copyCertificates(state.certsByEgxu);
+    map[event.egxuId] = [...?map[event.egxuId], EgxuCertificate.draft()];
+    emit(
+      state.copyWith(
+        certsByEgxu: map,
+        isDirty: true,
+        saveStatus: ConsumerDetailSaveStatus.idle,
+      ),
+    );
+  }
+
+  void _onCertificateChanged(
+    ConsumerDetailCertificateChanged event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final map = _copyCertificates(state.certsByEgxu);
+    final certificates = map[event.egxuId];
+    if (certificates == null) return;
+
+    map[event.egxuId] = _replaceCertificate(certificates, event.certificate);
+    emit(_certificateState(state, map));
+  }
+
+  void _onCertificateFileAdded(
+    ConsumerDetailCertificateFileAdded event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final map = _copyCertificates(state.certsByEgxu);
+    final certificates = map[event.egxuId];
+    if (certificates == null) return;
+    final certificate = _findCertificate(certificates, event.certificate);
+    if (certificate == null) return;
+    final updated = certificate.copyWith(
+      files: [...certificate.files, event.file],
+    );
+    map[event.egxuId] = _replaceCertificate(certificates, updated);
+    emit(_certificateState(state, map));
+  }
+
+  void _onCertificateFileRemoved(
+    ConsumerDetailCertificateFileRemoved event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final map = _copyCertificates(state.certsByEgxu);
+    final certificates = map[event.egxuId];
+    if (certificates == null) return;
+    final certificate = _findCertificate(certificates, event.certificate);
+    if (certificate == null || event.file.isRemote) return;
+    final updated = certificate.copyWith(
+      files: certificate.files.where((file) => file != event.file).toList(),
+    );
+    map[event.egxuId] = _replaceCertificate(certificates, updated);
+    emit(_certificateState(state, map));
+  }
+
+  ConsumerDetailState _certificateState(
+    ConsumerDetailState current,
+    Map<int, List<EgxuCertificate>> map,
+  ) {
+    final draft = current.draftDocument;
+    return current.copyWith(
+      certsByEgxu: map,
+      draftDocument: draft == null
+          ? null
+          : _documentWithCertificates(draft, map, includeEmpty: true),
+      isDirty: true,
+      saveStatus: ConsumerDetailSaveStatus.idle,
+    );
+  }
+
   Future<void> _onSaved(
     ConsumerDetailSaved event,
     Emitter<ConsumerDetailState> emit,
   ) async {
     final document = state.draftDocument ?? state.document;
-    final hasDocumentChanges = _hasDocumentChanges(state);
-    if (document == null || (!state.hasPending && !hasDocumentChanges)) return;
+    if (document == null) return;
+    final patchDocument = _documentWithCertificates(
+      document,
+      state.certsByEgxu,
+      includeEmpty: false,
+    );
+    final hasDocumentChanges = _hasDocumentChangesAgainst(
+      state.document,
+      patchDocument,
+    );
+    final certificatesNeedPatch = _certificatesNeedPatch(state);
+    if (!state.hasPending && !hasDocumentChanges && !certificatesNeedPatch) {
+      return;
+    }
 
     emit(state.copyWith(saveStatus: ConsumerDetailSaveStatus.saving));
 
     try {
       var savedDocument = document;
       final documentId = document.id;
-      if (hasDocumentChanges && documentId != null) {
+
+      if (documentId != null && (hasDocumentChanges || certificatesNeedPatch)) {
         savedDocument = await _api.patchDocument(
           id: documentId,
-          document: document,
+          document: patchDocument,
         );
       }
 
-      // EGHU sertifikatlari
-      for (final entry in state.pendingCertsByEgxu.entries) {
-        final paths = entry.value
-            .map((f) => f.localPath)
-            .whereType<String>()
-            .toList();
-        if (paths.isNotEmpty) {
-          await _api.uploadEgxuCertificates(egxuId: entry.key, paths: paths);
+      // Avval PATCH orqali yangi sertifikat ID larini olamiz, keyin fayllarni yuboramiz.
+      var certificatesAfterPatch = _certificatesFromDocument(savedDocument);
+      final needsCertificateRefresh = state.certsByEgxu.entries.any((entry) {
+        final response = certificatesAfterPatch[entry.key];
+        return entry.value.asMap().entries.any(
+          (item) =>
+              item.value.id == null &&
+              (item.value.hasMetadata || item.value.files.isNotEmpty) &&
+              _resolveCertificateId(response, item.key) == null,
+        );
+      });
+      if (needsCertificateRefresh) {
+        final refreshed = savedDocument.id == null
+            ? savedDocument
+            : await _api.getDocumentById(savedDocument.id!);
+        certificatesAfterPatch = _certificatesFromDocument(refreshed);
+      }
+      for (final entry in state.certsByEgxu.entries) {
+        final egxuId = entry.key;
+        for (
+          var certificateIndex = 0;
+          certificateIndex < entry.value.length;
+          certificateIndex++
+        ) {
+          final certificate = entry.value[certificateIndex];
+          final paths = certificate.files
+              .map((file) => file.localPath)
+              .whereType<String>()
+              .where((path) => path.isNotEmpty)
+              .toList();
+          if (paths.isEmpty) continue;
+
+          final certificateId =
+              certificate.id ??
+              _resolveCertificateId(
+                certificatesAfterPatch[egxuId],
+                certificateIndex,
+              );
+          if (certificateId == null) {
+            throw StateError('Sertifikat ID sini aniqlab bo\'lmadi');
+          }
+          await _api.uploadEgxuCertificateFiles(
+            egxuId: egxuId,
+            certificateId: certificateId,
+            paths: paths,
+          );
         }
       }
 
@@ -287,7 +395,6 @@ class ConsumerDetailBloc
           certsByEgxu: files.certsByEgxu,
           technicalDocs: files.technical,
           contracts: files.contracts,
-          pendingCertsByEgxu: const {},
           pendingTechnical: const [],
           pendingContracts: const [],
           saveStatus: ConsumerDetailSaveStatus.success,
@@ -306,21 +413,13 @@ class ConsumerDetailBloc
   Future<_RemoteFiles> _loadRemoteFiles(
     WorkingWithConsumersDetailModel document,
   ) async {
-    final certsByEgxu = <int, List<ConsumerUploadFile>>{};
+    final certsByEgxu = <int, List<EgxuCertificate>>{};
     final egxuItems = document.egxuList ?? const <ConsumersEgxuItem>[];
-
-    await Future.wait(
-      egxuItems.where((e) => e.id != null).map((e) async {
-        try {
-          final certs = await _api.getEgxuCertificates(egxuId: e.id!);
-          certsByEgxu[e.id!] = certs
-              .map(ConsumerUploadFile.fromCertificate)
-              .toList();
-        } catch (_) {
-          certsByEgxu[e.id!] = const [];
-        }
-      }),
-    );
+    for (final item in egxuItems) {
+      if (item.id != null) {
+        certsByEgxu[item.id!] = [...?item.certificates];
+      }
+    }
 
     var technical = <ConsumerUploadFile>[];
     var contracts = <ConsumerUploadFile>[];
@@ -348,12 +447,121 @@ class ConsumerDetailBloc
     );
   }
 
-  bool _hasDocumentChanges(ConsumerDetailState state) {
-    final document = state.document;
-    final draft = state.draftDocument;
+  bool _hasDocumentChangesAgainst(
+    WorkingWithConsumersDetailModel? document,
+    WorkingWithConsumersDetailModel? draft,
+  ) {
     if (document == null || draft == null) return false;
     return jsonEncode(_normalizeJson(document.toJson())) !=
         jsonEncode(_normalizeJson(draft.toJson()));
+  }
+
+  Map<int, List<EgxuCertificate>> _copyCertificates(
+    Map<int, List<EgxuCertificate>> source,
+  ) => source.map((key, value) => MapEntry(key, [...value]));
+
+  EgxuCertificate? _findCertificate(
+    List<EgxuCertificate> certificates,
+    EgxuCertificate target,
+  ) {
+    for (final certificate in certificates) {
+      if (certificate.id != null && certificate.id == target.id) {
+        return certificate;
+      }
+      if (certificate.localId != null &&
+          certificate.localId == target.localId) {
+        return certificate;
+      }
+    }
+    return null;
+  }
+
+  List<EgxuCertificate> _replaceCertificate(
+    List<EgxuCertificate> certificates,
+    EgxuCertificate replacement,
+  ) => certificates
+      .map(
+        (certificate) => _findCertificate([certificate], replacement) != null
+            ? replacement
+            : certificate,
+      )
+      .toList();
+
+  WorkingWithConsumersDetailModel _documentWithCertificates(
+    WorkingWithConsumersDetailModel document,
+    Map<int, List<EgxuCertificate>> certificates, {
+    required bool includeEmpty,
+  }) {
+    final items = document.egxuList
+        ?.map(
+          (item) => item.id == null
+              ? item
+              : item.copyWith(
+                  certificates:
+                      (certificates[item.id!] ?? item.certificates ?? const [])
+                          .where(
+                            (certificate) =>
+                                includeEmpty ||
+                                certificate.hasMetadata ||
+                                certificate.files.isNotEmpty,
+                          )
+                          .toList(),
+                ),
+        )
+        .toList();
+    return document.copyWith(egxuList: items);
+  }
+
+  bool _certificatesNeedPatch(ConsumerDetailState current) {
+    final original = <int, List<EgxuCertificate>>{
+      for (final item
+          in current.document?.egxuList ?? const <ConsumersEgxuItem>[])
+        if (item.id != null) item.id!: [...?item.certificates],
+    };
+    for (final entry in current.certsByEgxu.entries) {
+      final before = original[entry.key] ?? const <EgxuCertificate>[];
+      for (final certificate in entry.value) {
+        if (certificate.id == null &&
+            (certificate.hasMetadata || certificate.files.isNotEmpty)) {
+          return true;
+        }
+        if (certificate.id == null) {
+          continue;
+        }
+        final previous = before.cast<EgxuCertificate?>().firstWhere(
+          (candidate) => candidate?.id == certificate.id,
+          orElse: () => null,
+        );
+        if (previous == null ||
+            !_sameCertificateMetadata(previous, certificate)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _sameCertificateMetadata(EgxuCertificate a, EgxuCertificate b) =>
+      a.certificateType == b.certificateType &&
+      a.certificateNumber == b.certificateNumber &&
+      a.issuedDate == b.issuedDate &&
+      a.expiryDate == b.expiryDate &&
+      a.warningLetter == b.warningLetter &&
+      a.warningDate == b.warningDate &&
+      a.warningReason == b.warningReason &&
+      a.isActive == b.isActive;
+
+  Map<int, List<EgxuCertificate>> _certificatesFromDocument(
+    WorkingWithConsumersDetailModel document,
+  ) => {
+    for (final item in document.egxuList ?? const <ConsumersEgxuItem>[])
+      if (item.id != null) item.id!: [...?item.certificates],
+  };
+
+  int? _resolveCertificateId(List<EgxuCertificate>? response, int index) {
+    if (response == null) return null;
+    if (index >= 0 && index < response.length) return response[index].id;
+    return response.length == 1 ? response.first.id : null;
   }
 
   Object? _normalizeJson(Object? value) {
@@ -372,7 +580,7 @@ class ConsumerDetailBloc
 }
 
 class _RemoteFiles {
-  final Map<int, List<ConsumerUploadFile>> certsByEgxu;
+  final Map<int, List<EgxuCertificate>> certsByEgxu;
   final List<ConsumerUploadFile> technical;
   final List<ConsumerUploadFile> contracts;
 

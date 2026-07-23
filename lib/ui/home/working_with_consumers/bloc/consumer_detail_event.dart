@@ -90,6 +90,58 @@ class ConsumerDetailFileRemoved extends ConsumerDetailEvent {
   List<Object?> get props => [slot, egxuId, file];
 }
 
+class ConsumerDetailCertificateAdded extends ConsumerDetailEvent {
+  final int egxuId;
+
+  const ConsumerDetailCertificateAdded({required this.egxuId});
+
+  @override
+  List<Object?> get props => [egxuId];
+}
+
+class ConsumerDetailCertificateChanged extends ConsumerDetailEvent {
+  final int egxuId;
+  final EgxuCertificate certificate;
+
+  const ConsumerDetailCertificateChanged({
+    required this.egxuId,
+    required this.certificate,
+  });
+
+  @override
+  List<Object?> get props => [egxuId, certificate];
+}
+
+class ConsumerDetailCertificateFileAdded extends ConsumerDetailEvent {
+  final int egxuId;
+  final EgxuCertificate certificate;
+  final ConsumerUploadFile file;
+
+  const ConsumerDetailCertificateFileAdded({
+    required this.egxuId,
+    required this.certificate,
+    required this.file,
+  });
+
+  @override
+  List<Object?> get props => [egxuId, certificate, file];
+}
+
+class ConsumerDetailCertificateFileRemoved extends ConsumerDetailEvent {
+  final int egxuId;
+  final EgxuCertificate certificate;
+  final ConsumerUploadFile file;
+
+  const ConsumerDetailCertificateFileRemoved({
+    required this.egxuId,
+    required this.certificate,
+    required this.file,
+  });
+
+  @override
+  List<Object?> get props => [egxuId, certificate, file];
+}
+
 class ConsumerDetailSaved extends ConsumerDetailEvent {
   const ConsumerDetailSaved();
 }

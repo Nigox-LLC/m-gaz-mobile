@@ -46,6 +46,29 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> pumpCertificate(
+    WidgetTester tester, {
+    required EgxuCertificate certificate,
+    void Function(EgxuCertificate)? onChanged,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            child: SingleChildScrollView(
+              child: ConsumerCertificateDetailsCard(
+                certificate: certificate,
+                onChanged: onChanged ?? (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('shows dropzone when empty', (tester) async {
     await pump(tester, files: const []);
 
@@ -117,5 +140,137 @@ void main() {
     await tester.tap(removeButton);
     await tester.pump();
     expect(removed, pending);
+  });
+
+  testWidgets('new certificate opens editable details and reports changes', (
+    tester,
+  ) async {
+    final pending = EgxuCertificate.draft();
+    EgxuCertificate? changed;
+
+    await pumpCertificate(
+      tester,
+      certificate: pending,
+      onChanged: (certificate) => changed = certificate,
+    );
+
+    expect(find.text(Words.certificateDetails.tr()), findsOneWidget);
+    expect(
+      find.byKey(Key('consumer-certificate-number-${pending.localId}')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(Key('consumer-certificate-number-${pending.localId}')),
+      'CERT-10',
+    );
+
+    expect(changed?.certificateNumber, 'CERT-10');
+
+    final numberField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(Key('consumer-certificate-number-${pending.localId}')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(numberField.keyboardType, TextInputType.number);
+    final warningField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(
+          Key('consumer-certificate-warning-letter-${pending.localId}'),
+        ),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(warningField.keyboardType, TextInputType.number);
+  });
+
+  testWidgets('remote certificate metadata is editable', (tester) async {
+    final remote = const EgxuCertificate(
+      id: 7,
+      certificateNumber: 'CERT-7',
+      issuedDate: '2026-02-01',
+    );
+
+    await pumpCertificate(tester, certificate: remote);
+
+    expect(find.text('CERT-7'), findsNothing);
+    await tester.tap(
+      find.byKey(const Key('consumer-certificate-details-toggle-7')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('CERT-7'), findsOneWidget);
+    expect(find.text('01.02.2026'), findsOneWidget);
+  });
+
+  testWidgets('certificate list separates record add from file add', (
+    tester,
+  ) async {
+    var records = 0;
+    EgxuCertificate? fileTarget;
+    final certificate = EgxuCertificate.draft();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ConsumerCertificateList(
+              certificates: [certificate],
+              onAddCertificate: () => records++,
+              onAddFile: (value) => fileTarget = value,
+              onRemoveFile: (_, __) {},
+              onViewFile: (_) {},
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        Key('consumer-upload-add-certificate-files-${certificate.localId}'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('consumer-upload-add-certificate-record-add')),
+    );
+    await tester.pump();
+    expect(records, 1);
+
+    await tester.tap(
+      find.byKey(
+        Key(
+          'consumer-upload-add-tile-certificate-files-${certificate.localId}',
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(fileTarget, same(certificate));
+  });
+
+  testWidgets('multiple certificates render separate metadata sections', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ConsumerCertificateList(
+              certificates: [EgxuCertificate.draft(), EgxuCertificate.draft()],
+              onAddCertificate: () {},
+              onAddFile: (_) {},
+              onRemoveFile: (_, __) {},
+              onViewFile: (_) {},
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(Words.certificateDetails.tr()), findsNWidgets(2));
   });
 }
