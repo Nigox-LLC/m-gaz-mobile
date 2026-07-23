@@ -10,17 +10,11 @@ void main() {
     });
 
     test('is_done maps to completed', () {
-      expect(
-        TaskStatus.fromTask(_task(isDone: true)),
-        TaskStatus.completed,
-      );
+      expect(TaskStatus.fromTask(_task(isDone: true)), TaskStatus.completed);
     });
 
     test('is_approved maps to approved', () {
-      expect(
-        TaskStatus.fromTask(_task(isApproved: true)),
-        TaskStatus.approved,
-      );
+      expect(TaskStatus.fromTask(_task(isApproved: true)), TaskStatus.approved);
     });
 
     test('is_canceled maps to cancelled', () {
@@ -31,10 +25,7 @@ void main() {
     });
 
     test('is_overdue maps to overdue', () {
-      expect(
-        TaskStatus.fromTask(_task(isOverdue: true)),
-        TaskStatus.overdue,
-      );
+      expect(TaskStatus.fromTask(_task(isOverdue: true)), TaskStatus.overdue);
     });
 
     test('precedence: cancelled beats approved, done and overdue', () {
@@ -75,6 +66,18 @@ void main() {
       expect(TaskStatus.cancelled.label, Words.taskCanceled);
       expect(TaskStatus.overdue.label, Words.taskExpired);
       expect(TaskStatus.pending.label, Words.pending);
+    });
+  });
+
+  group('TaskStatus.fromFilterValue', () {
+    test('maps backend list filters to display statuses', () {
+      expect(TaskStatus.fromFilterValue('done-list'), TaskStatus.completed);
+      expect(TaskStatus.fromFilterValue('approved-list'), TaskStatus.approved);
+      expect(TaskStatus.fromFilterValue('canceled-list'), TaskStatus.cancelled);
+      expect(TaskStatus.fromFilterValue('overdue-list'), TaskStatus.overdue);
+      expect(TaskStatus.fromFilterValue('not-done-list'), TaskStatus.pending);
+      expect(TaskStatus.fromFilterValue(null), isNull);
+      expect(TaskStatus.fromFilterValue('unknown'), isNull);
     });
   });
 
