@@ -663,6 +663,9 @@ class _TechMeasureDetailScreenState extends State<TechMeasureDetailScreen> {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  minimumSize: const Size(140, 44),
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(Words.close.tr()),
