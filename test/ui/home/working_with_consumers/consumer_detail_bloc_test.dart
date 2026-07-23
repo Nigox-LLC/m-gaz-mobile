@@ -39,6 +39,8 @@ class _FakeApi implements ConsumerRelationsApi {
   bool throwOnUpload = false;
   bool throwOnPatch = false;
   WorkingWithConsumersDetailModel? patchedDocument;
+  Map<int, List<ConsumerUploadFile>>? patchedCertificateDetails;
+  List<String> uploadedCertificatePaths = const [];
 
   @override
   Future<WorkingWithConsumersDetailModel> getDocumentById(int id) async {
@@ -54,6 +56,9 @@ class _FakeApi implements ConsumerRelationsApi {
         id: 8,
         file: 'https://example.com/cert1.png',
         createdAt: '2026-06-01T20:10:00Z',
+        certificateNumber: 'CERT-8',
+        issuedDate: '2026-01-01',
+        expiryDate: '2027-01-01',
       ),
     ];
   }
@@ -83,10 +88,12 @@ class _FakeApi implements ConsumerRelationsApi {
   Future<WorkingWithConsumersDetailModel> patchDocument({
     required int id,
     required WorkingWithConsumersDetailModel document,
+    Map<int, List<ConsumerUploadFile>> certificateDetailsByEgxu = const {},
   }) async {
     if (throwOnPatch) throw Exception('patch failed');
     patchCalls++;
     patchedDocument = document;
+    patchedCertificateDetails = certificateDetailsByEgxu;
     return document;
   }
 
@@ -97,6 +104,7 @@ class _FakeApi implements ConsumerRelationsApi {
   }) async {
     if (throwOnUpload) throw Exception('upload failed');
     certUploadCalls++;
+    uploadedCertificatePaths = paths;
   }
 
   @override
@@ -147,12 +155,51 @@ void main() {
     expect(payload['egxu_list'], isA<List<dynamic>>());
   });
 
+  test('certificate details are nested in document PATCH payload', () {
+    final document = WorkingWithConsumersDetailModel.fromJson(_detailJson());
+    final payload = buildConsumerDocumentPatchPayload(
+      document,
+      certificateDetailsByEgxu: {
+        _egxuId: [
+          _localFile().copyWith(
+            certificateNumber: ' CERT-9 ',
+            issuedDate: '2026-02-01',
+          ),
+        ],
+      },
+    );
+
+    final certificates =
+        (payload['egxu_list'] as List).single['certificates'] as List;
+    expect(certificates.single['certificate_number'], 'CERT-9');
+    expect(certificates.single['issued_date'], '2026-02-01');
+  });
+
+  test('certificate response maps file aliases and detail fields', () {
+    final certificate = EgxuCertificate.fromJson({
+      'id': 11,
+      'egxu_image': 'https://example.com/cert-11.pdf',
+      'certificate_type': 'first_certificate',
+      'certificate_number': 'CERT-11',
+      'issued_date': '2026-02-01',
+      'expiry_date': '2027-02-01',
+      'warning_letter': 'W-11',
+      'warning_date': '2026-12-01',
+      'warning_reason': 'Tekshiruv',
+    });
+
+    expect(certificate.file, 'https://example.com/cert-11.pdf');
+    expect(certificate.certificateNumber, 'CERT-11');
+    expect(certificate.warningReason, 'Tekshiruv');
+  });
+
   test('fetch loads document and remote files', () async {
     final bloc = await loaded();
 
     expect(bloc.state.status, ConsumerDetailStatus.loaded);
     expect(bloc.state.document?.id, 69483);
     expect(bloc.state.certsByEgxu[_egxuId]?.length, 1);
+    expect(bloc.state.certsByEgxu[_egxuId]?.single.certificateNumber, 'CERT-8');
     expect(bloc.state.technicalDocs.length, 1);
     expect(bloc.state.contracts.length, 1);
     expect(bloc.state.canSave, isFalse);
@@ -280,6 +327,58 @@ void main() {
 
     await bloc.close();
   });
+
+  test(
+    'edited certificate details are sent with matching pending file',
+    () async {
+      final bloc = await loaded();
+      final file = _localFile();
+
+      bloc.add(
+        ConsumerDetailFileAdded(
+          slot: ConsumerFileSlot.certificate,
+          egxuId: _egxuId,
+          file: file,
+        ),
+      );
+      await bloc.stream.firstWhere(
+        (state) => state.pendingCertsByEgxu[_egxuId]?.isNotEmpty == true,
+      );
+
+      bloc.add(
+        ConsumerDetailCertificateChanged(
+          egxuId: _egxuId,
+          certificate: file.copyWith(
+            certificateNumber: 'CERT-10',
+            issuedDate: '2026-02-01',
+            expiryDate: '2027-02-01',
+            warningLetter: 'W-1',
+            warningDate: '2026-12-01',
+            warningReason: 'Tekshiruv',
+          ),
+        ),
+      );
+      await bloc.stream.firstWhere(
+        (state) =>
+            state.pendingCertsByEgxu[_egxuId]?.single.certificateNumber ==
+            'CERT-10',
+      );
+
+      bloc.add(const ConsumerDetailSaved());
+      await bloc.stream.firstWhere(
+        (state) => state.saveStatus == ConsumerDetailSaveStatus.success,
+      );
+
+      expect(api.uploadedCertificatePaths, [file.localPath]);
+      final patchedCertificates = api.patchedCertificateDetails![_egxuId]!;
+      final patched = patchedCertificates.firstWhere(
+        (certificate) => certificate.certificateNumber == 'CERT-10',
+      );
+      expect(patched.warningReason, 'Tekshiruv');
+
+      await bloc.close();
+    },
+  );
 
   test(
     'file-only save skips patch when dirty flag has unchanged draft',

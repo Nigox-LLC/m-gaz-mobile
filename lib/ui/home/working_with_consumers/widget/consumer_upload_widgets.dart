@@ -8,6 +8,8 @@ import 'package:m_gaz/global_widget/app_tools.dart';
 
 import '../../../../core/common/words.dart';
 import '../../../../core/models/working_with_consumers_document/consumer_file_models.dart';
+import '../../../../core/utils/app_date_formatter.dart';
+import '../../../../features/actions/presentation/pages/eghu/presentation/widgets/eghu_calendar_dialog.dart';
 
 class ConsumerDetailColors {
   const ConsumerDetailColors._();
@@ -159,6 +161,290 @@ class _ConsumerUploadSectionState extends State<ConsumerUploadSection> {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return sorted.first;
   }
+}
+
+class ConsumerCertificateDetailsCard extends StatefulWidget {
+  const ConsumerCertificateDetailsCard({
+    super.key,
+    required this.file,
+    required this.onChanged,
+    this.editable = true,
+  });
+
+  final ConsumerUploadFile file;
+  final ValueChanged<ConsumerUploadFile> onChanged;
+  final bool editable;
+
+  @override
+  State<ConsumerCertificateDetailsCard> createState() =>
+      _ConsumerCertificateDetailsCardState();
+}
+
+class _ConsumerCertificateDetailsCardState
+    extends State<ConsumerCertificateDetailsCard> {
+  late bool _expanded = widget.editable;
+
+  @override
+  Widget build(BuildContext context) {
+    final fileKey = widget.file.id ?? widget.file.localPath ?? widget.file.name;
+
+    return Column(
+      key: Key('consumer-certificate-details-$fileKey'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          key: Key('consumer-certificate-details-toggle-$fileKey'),
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    Words.certificateDetails.tr(),
+                    style: consumerText(
+                      fontSize: 13,
+                      lineHeight: 20,
+                      fontWeight: FontWeight.w800,
+                      color: ConsumerDetailColors.textStrong,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 20,
+                  color: ConsumerDetailColors.textSub,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded) ...[
+          const SizedBox(height: 8),
+          _CertificateField(
+            fieldKey: Key('consumer-certificate-number-$fileKey'),
+            label: Words.number.tr(),
+            value: widget.file.certificateNumber,
+            keyboardType: TextInputType.number,
+            onChanged: widget.editable
+                ? (value) => widget.onChanged(
+                    widget.file.copyWith(certificateNumber: value),
+                  )
+                : null,
+          ),
+          _CertificateField(
+            fieldKey: Key('consumer-certificate-issued-date-$fileKey'),
+            label: Words.givenDate.tr(),
+            value: widget.file.issuedDate,
+            isDate: true,
+            onChanged: widget.editable
+                ? (value) =>
+                      widget.onChanged(widget.file.copyWith(issuedDate: value))
+                : null,
+          ),
+          _CertificateField(
+            fieldKey: Key('consumer-certificate-expiry-date-$fileKey'),
+            label: Words.endDate.tr(),
+            value: widget.file.expiryDate,
+            isDate: true,
+            onChanged: widget.editable
+                ? (value) =>
+                      widget.onChanged(widget.file.copyWith(expiryDate: value))
+                : null,
+          ),
+          _CertificateField(
+            fieldKey: Key('consumer-certificate-warning-letter-$fileKey'),
+            label: Words.warningLetterNumber.tr(),
+            value: widget.file.warningLetter,
+            keyboardType: TextInputType.number,
+            onChanged: widget.editable
+                ? (value) => widget.onChanged(
+                    widget.file.copyWith(warningLetter: value),
+                  )
+                : null,
+          ),
+          _CertificateField(
+            fieldKey: Key('consumer-certificate-warning-date-$fileKey'),
+            label: Words.warningDate.tr(),
+            value: widget.file.warningDate,
+            isDate: true,
+            onChanged: widget.editable
+                ? (value) =>
+                      widget.onChanged(widget.file.copyWith(warningDate: value))
+                : null,
+          ),
+          _CertificateField(
+            fieldKey: Key('consumer-certificate-warning-reason-$fileKey'),
+            label: Words.warningReason.tr(),
+            value: widget.file.warningReason,
+            bottom: 0,
+            onChanged: widget.editable
+                ? (value) => widget.onChanged(
+                    widget.file.copyWith(warningReason: value),
+                  )
+                : null,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CertificateField extends StatelessWidget {
+  const _CertificateField({
+    required this.fieldKey,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.bottom = 8,
+    this.isDate = false,
+    this.keyboardType,
+  });
+
+  final Key fieldKey;
+  final String label;
+  final String? value;
+  final ValueChanged<String>? onChanged;
+  final double bottom;
+  final bool isDate;
+  final TextInputType? keyboardType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: consumerText(
+              fontSize: 11,
+              lineHeight: 16,
+              color: ConsumerDetailColors.textSub,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          isDate
+              ? _CertificateDateField(
+                  key: fieldKey,
+                  value: value,
+                  enabled: onChanged != null,
+                  onChanged: onChanged,
+                )
+              : TextFormField(
+                  key: fieldKey,
+                  initialValue: value ?? '',
+                  readOnly: onChanged == null,
+                  onChanged: onChanged,
+                  keyboardType: keyboardType,
+                  style: consumerText(
+                    fontSize: 13,
+                    lineHeight: 20,
+                    fontWeight: FontWeight.w500,
+                    color: ConsumerDetailColors.textStrong,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '-',
+                    hintStyle: consumerText(
+                      fontSize: 13,
+                      lineHeight: 20,
+                      color: ConsumerDetailColors.textSub,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    border: _certificateBorder(),
+                    enabledBorder: _certificateBorder(),
+                    focusedBorder: _certificateBorder(
+                      ConsumerDetailColors.primary,
+                    ),
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CertificateDateField extends StatelessWidget {
+  const _CertificateDateField({
+    super.key,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String? value;
+  final bool enabled;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = AppDateFormatter.dateFromString(value, fallback: '-');
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: !enabled || onChanged == null
+            ? null
+            : () async {
+                final picked = await pickEghuDate(
+                  context,
+                  initialDate:
+                      AppDateFormatter.parseDate(value) ?? DateTime.now(),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) {
+                  onChanged!(DateFormat('yyyy-MM-dd').format(picked));
+                }
+              },
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: ConsumerDetailColors.stroke),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  displayValue,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: consumerText(
+                    fontSize: 13,
+                    lineHeight: 20,
+                    fontWeight: FontWeight.w500,
+                    color: displayValue == '-'
+                        ? ConsumerDetailColors.textSub
+                        : ConsumerDetailColors.textStrong,
+                  ),
+                ),
+              ),
+              AppTools.svg(AppTools.icCalendar, width: 18, height: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+OutlineInputBorder _certificateBorder([
+  Color color = ConsumerDetailColors.stroke,
+]) {
+  return OutlineInputBorder(
+    borderRadius: BorderRadius.circular(12),
+    borderSide: BorderSide(color: color),
+  );
 }
 
 class ConsumerUploadInfoPanel extends StatelessWidget {

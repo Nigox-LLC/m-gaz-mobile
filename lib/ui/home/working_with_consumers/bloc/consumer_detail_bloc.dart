@@ -26,6 +26,7 @@ class ConsumerDetailBloc
     on<ConsumerDetailEgxuItemChanged>(_onEgxuItemChanged);
     on<ConsumerDetailFileAdded>(_onFileAdded);
     on<ConsumerDetailFileRemoved>(_onFileRemoved);
+    on<ConsumerDetailCertificateChanged>(_onCertificateChanged);
     on<ConsumerDetailSaved>(_onSaved);
   }
 
@@ -224,6 +225,34 @@ class ConsumerDetailBloc
     }
   }
 
+  void _onCertificateChanged(
+    ConsumerDetailCertificateChanged event,
+    Emitter<ConsumerDetailState> emit,
+  ) {
+    final map = Map<int, List<ConsumerUploadFile>>.from(
+      state.pendingCertsByEgxu,
+    );
+    final certificates = map[event.egxuId];
+    if (certificates == null) return;
+
+    map[event.egxuId] = certificates
+        .map(
+          (file) =>
+              file.localPath == event.certificate.localPath &&
+                  file.createdAt == event.certificate.createdAt
+              ? event.certificate
+              : file,
+        )
+        .toList();
+    emit(
+      state.copyWith(
+        pendingCertsByEgxu: map,
+        isDirty: true,
+        saveStatus: ConsumerDetailSaveStatus.idle,
+      ),
+    );
+  }
+
   Future<void> _onSaved(
     ConsumerDetailSaved event,
     Emitter<ConsumerDetailState> emit,
@@ -237,22 +266,26 @@ class ConsumerDetailBloc
     try {
       var savedDocument = document;
       final documentId = document.id;
-      if (hasDocumentChanges && documentId != null) {
-        savedDocument = await _api.patchDocument(
-          id: documentId,
-          document: document,
-        );
-      }
 
       // EGHU sertifikatlari
       for (final entry in state.pendingCertsByEgxu.entries) {
         final paths = entry.value
-            .map((f) => f.localPath)
+            .map((file) => file.localPath)
             .whereType<String>()
             .toList();
         if (paths.isNotEmpty) {
           await _api.uploadEgxuCertificates(egxuId: entry.key, paths: paths);
         }
+      }
+
+      final certificateDetailsByEgxu = _certificateDetailsForPatch(state);
+      if (documentId != null &&
+          (hasDocumentChanges || certificateDetailsByEgxu.isNotEmpty)) {
+        savedDocument = await _api.patchDocument(
+          id: documentId,
+          document: document,
+          certificateDetailsByEgxu: certificateDetailsByEgxu,
+        );
       }
 
       // Iste'molchi fayllari (Loyiha texnik + Shartnoma)
@@ -355,6 +388,42 @@ class ConsumerDetailBloc
     return jsonEncode(_normalizeJson(document.toJson())) !=
         jsonEncode(_normalizeJson(draft.toJson()));
   }
+
+  Map<int, List<ConsumerUploadFile>> _certificateDetailsForPatch(
+    ConsumerDetailState state,
+  ) {
+    if (state.pendingCertsByEgxu.isEmpty) return const {};
+
+    final pendingDetails = state.pendingCertsByEgxu.map(
+      (egxuId, certificates) =>
+          MapEntry(egxuId, certificates.where(_hasCertificateDetails).toList()),
+    );
+    if (pendingDetails.values.every((certificates) => certificates.isEmpty)) {
+      return const {};
+    }
+
+    final result = <int, List<ConsumerUploadFile>>{};
+    for (final entry in state.certsByEgxu.entries) {
+      final certificates = entry.value.where(_hasCertificateDetails).toList();
+      if (certificates.isNotEmpty) result[entry.key] = certificates;
+    }
+    for (final entry in pendingDetails.entries) {
+      final certificates = entry.value;
+      if (certificates.isEmpty) continue;
+      result[entry.key] = [...?result[entry.key], ...certificates];
+    }
+    return result;
+  }
+
+  bool _hasCertificateDetails(ConsumerUploadFile certificate) => [
+    certificate.certificateType,
+    certificate.certificateNumber,
+    certificate.issuedDate,
+    certificate.expiryDate,
+    certificate.warningLetter,
+    certificate.warningDate,
+    certificate.warningReason,
+  ].any((value) => value?.trim().isNotEmpty == true);
 
   Object? _normalizeJson(Object? value) {
     if (value is Map) {

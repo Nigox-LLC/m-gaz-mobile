@@ -46,6 +46,31 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> pumpCertificate(
+    WidgetTester tester, {
+    required ConsumerUploadFile file,
+    required bool editable,
+    void Function(ConsumerUploadFile)? onChanged,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            child: SingleChildScrollView(
+              child: ConsumerCertificateDetailsCard(
+                file: file,
+                editable: editable,
+                onChanged: onChanged ?? (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('shows dropzone when empty', (tester) async {
     await pump(tester, files: const []);
 
@@ -117,5 +142,77 @@ void main() {
     await tester.tap(removeButton);
     await tester.pump();
     expect(removed, pending);
+  });
+
+  testWidgets('new certificate opens editable details and reports changes', (
+    tester,
+  ) async {
+    final pending = ConsumerUploadFile.local(
+      path: '/tmp/cert.pdf',
+      name: 'cert.pdf',
+      sizeBytes: 10,
+    );
+    ConsumerUploadFile? changed;
+
+    await pumpCertificate(
+      tester,
+      file: pending,
+      editable: true,
+      onChanged: (file) => changed = file,
+    );
+
+    expect(find.text(Words.certificateDetails.tr()), findsOneWidget);
+    expect(
+      find.byKey(const Key('consumer-certificate-number-/tmp/cert.pdf')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('consumer-certificate-number-/tmp/cert.pdf')),
+      'CERT-10',
+    );
+
+    expect(changed?.certificateNumber, 'CERT-10');
+
+    final numberField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('consumer-certificate-number-/tmp/cert.pdf')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(numberField.keyboardType, TextInputType.number);
+    final warningField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(
+          const Key('consumer-certificate-warning-letter-/tmp/cert.pdf'),
+        ),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(warningField.keyboardType, TextInputType.number);
+  });
+
+  testWidgets('remote certificate starts collapsed and shows API details', (
+    tester,
+  ) async {
+    final remote = ConsumerUploadFile.fromCertificate(
+      const EgxuCertificate(
+        id: 7,
+        file: 'https://example.com/cert.pdf',
+        certificateNumber: 'CERT-7',
+        issuedDate: '2026-02-01',
+      ),
+    );
+
+    await pumpCertificate(tester, file: remote, editable: false);
+
+    expect(find.text('CERT-7'), findsNothing);
+    await tester.tap(
+      find.byKey(const Key('consumer-certificate-details-toggle-7')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('CERT-7'), findsOneWidget);
+    expect(find.text('01.02.2026'), findsOneWidget);
   });
 }

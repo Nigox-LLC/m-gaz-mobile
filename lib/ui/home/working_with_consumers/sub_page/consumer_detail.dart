@@ -229,8 +229,14 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
               },
               onItemChanged: (item) => context.read<ConsumerDetailBloc>().add(ConsumerDetailEgxuItemChanged(item)),
               onAddCert: item.id == null ? null : () => _pickFile(ConsumerFileSlot.certificate, egxuId: item.id),
-              onRemoveCert: (file) =>
-                  context.read<ConsumerDetailBloc>().add(ConsumerDetailFileRemoved(slot: ConsumerFileSlot.certificate, egxuId: item.id, file: file)),
+              onRemoveCert: (file) => context.read<ConsumerDetailBloc>().add(
+                ConsumerDetailFileRemoved(slot: ConsumerFileSlot.certificate, egxuId: item.id, file: file),
+              ),
+              onCertificateChanged: (file) {
+                final id = item.id;
+                if (id == null) return;
+                context.read<ConsumerDetailBloc>().add(ConsumerDetailCertificateChanged(egxuId: id, certificate: file));
+              },
               onViewFile: _viewFile,
               onAction: (kind) => _openEghuAction(kind, document: doc, eghu: item),
               onSelectGlobal: _selectGlobal,
@@ -715,6 +721,7 @@ class _EgxuCard extends StatelessWidget {
     required this.onItemChanged,
     required this.onAddCert,
     required this.onRemoveCert,
+    required this.onCertificateChanged,
     required this.onViewFile,
     required this.onAction,
     required this.onSelectGlobal,
@@ -730,6 +737,7 @@ class _EgxuCard extends StatelessWidget {
   final ValueChanged<ConsumersEgxuItem> onItemChanged;
   final VoidCallback? onAddCert;
   final ValueChanged<ConsumerUploadFile> onRemoveCert;
+  final ValueChanged<ConsumerUploadFile> onCertificateChanged;
   final ValueChanged<ConsumerUploadFile> onViewFile;
   final ValueChanged<_EghuActionKind> onAction;
   final Future<GlobalModel?> Function({required String title, required List<GlobalModel> items, required int? selectedId}) onSelectGlobal;
@@ -776,6 +784,15 @@ class _EgxuCard extends StatelessWidget {
               onRemove: onRemoveCert,
               onView: onViewFile,
             ),
+            for (final certificate in certs) ...[
+              const SizedBox(height: 12),
+              ConsumerCertificateDetailsCard(
+                key: ValueKey(certificate.id ?? certificate.localPath ?? certificate.name),
+                file: certificate,
+                editable: !certificate.isRemote,
+                onChanged: onCertificateChanged,
+              ),
+            ],
             const SizedBox(height: 12),
             _EghuActionChip(title: Words.actionEghuReinstall.tr(), onTap: () => onAction(_EghuActionKind.reset)),
             const SizedBox(height: 8),

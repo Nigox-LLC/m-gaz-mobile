@@ -133,11 +133,15 @@ class ConsumerRelationsApi {
   Future<WorkingWithConsumersDetailModel> patchDocument({
     required int id,
     required WorkingWithConsumersDetailModel document,
+    Map<int, List<ConsumerUploadFile>> certificateDetailsByEgxu = const {},
   }) async {
     try {
       final response = await _base.dio.patch(
         'consumer-relations-documents/$id/',
-        data: buildConsumerDocumentPatchPayload(document),
+        data: buildConsumerDocumentPatchPayload(
+          document,
+          certificateDetailsByEgxu: certificateDetailsByEgxu,
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -268,7 +272,12 @@ class ConsumerRelationsApi {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        final list = data is List ? data : (data?['certificate_files'] ?? []);
+        final list = data is List
+            ? data
+            : (data?['certificate_files'] ??
+                  data?['certificates'] ??
+                  data?['results'] ??
+                  []);
         return (list as List)
             .map((e) => EgxuCertificate.fromJson(e as Map<String, dynamic>))
             .toList();
@@ -345,8 +354,9 @@ class ConsumerRelationsApi {
 
 @visibleForTesting
 Map<String, dynamic> buildConsumerDocumentPatchPayload(
-  WorkingWithConsumersDetailModel document,
-) {
+  WorkingWithConsumersDetailModel document, {
+  Map<int, List<ConsumerUploadFile>> certificateDetailsByEgxu = const {},
+}) {
   final payload = Map<String, dynamic>.from(document.toJson());
 
   // Backend PATCH expects top-level relations as PK values, not GET objects.
@@ -355,5 +365,40 @@ Map<String, dynamic> buildConsumerDocumentPatchPayload(
   payload['employee'] = document.employee?.id;
   payload['consumers'] = document.consumers?.id;
 
+  if (certificateDetailsByEgxu.isNotEmpty) {
+    payload['egxu_list'] = (document.egxuList ?? const <ConsumersEgxuItem>[])
+        .map((item) {
+          final itemPayload = Map<String, dynamic>.from(item.toJson());
+          final certificates = certificateDetailsByEgxu[item.id];
+          if (certificates != null) {
+            itemPayload['certificates'] = certificates
+                .map(_certificatePatchPayload)
+                .toList();
+          }
+          return itemPayload;
+        })
+        .toList();
+  }
+
   return payload;
+}
+
+Map<String, dynamic> _certificatePatchPayload(ConsumerUploadFile certificate) {
+  String text(String? value) => value?.trim() ?? '';
+  String? date(String? value) {
+    final normalized = value?.trim();
+    return normalized?.isEmpty == true ? null : normalized;
+  }
+
+  return {
+    if (certificate.id != null) 'id': certificate.id,
+    'certificate_type': text(certificate.certificateType),
+    'certificate_number': text(certificate.certificateNumber),
+    'issued_date': date(certificate.issuedDate),
+    'expiry_date': date(certificate.expiryDate),
+    'warning_letter': text(certificate.warningLetter),
+    'warning_date': date(certificate.warningDate),
+    'warning_reason': text(certificate.warningReason),
+    'is_active': true,
+  };
 }

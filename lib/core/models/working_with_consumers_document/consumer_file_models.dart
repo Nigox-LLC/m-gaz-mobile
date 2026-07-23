@@ -28,14 +28,43 @@ class EgxuCertificate {
   final int? id;
   final String? file;
   final String? createdAt;
+  final String? certificateType;
+  final String? certificateNumber;
+  final String? issuedDate;
+  final String? expiryDate;
+  final String? warningLetter;
+  final String? warningDate;
+  final String? warningReason;
 
-  const EgxuCertificate({this.id, this.file, this.createdAt});
+  const EgxuCertificate({
+    this.id,
+    this.file,
+    this.createdAt,
+    this.certificateType,
+    this.certificateNumber,
+    this.issuedDate,
+    this.expiryDate,
+    this.warningLetter,
+    this.warningDate,
+    this.warningReason,
+  });
 
   factory EgxuCertificate.fromJson(Map<String, dynamic> json) {
     return EgxuCertificate(
       id: json['id'],
-      file: json['file'],
-      createdAt: json['created_at'],
+      file:
+          json['file'] ??
+          json['egxu_image'] ??
+          json['filename'] ??
+          json['image'],
+      createdAt: json['created_at'] ?? json['created_add'],
+      certificateType: json['certificate_type'],
+      certificateNumber: json['certificate_number'],
+      issuedDate: json['issued_date'],
+      expiryDate: json['expiry_date'],
+      warningLetter: json['warning_letter'],
+      warningDate: json['warning_date'],
+      warningReason: json['warning_reason'],
     );
   }
 }
@@ -50,6 +79,13 @@ class ConsumerUploadFile extends Equatable {
     this.remoteUrl,
     this.localPath,
     this.sizeBytes = 0,
+    this.certificateType,
+    this.certificateNumber,
+    this.issuedDate,
+    this.expiryDate,
+    this.warningLetter,
+    this.warningDate,
+    this.warningReason,
   });
 
   final int? id;
@@ -59,6 +95,13 @@ class ConsumerUploadFile extends Equatable {
   final bool isImage;
   final int sizeBytes;
   final DateTime createdAt;
+  final String? certificateType;
+  final String? certificateNumber;
+  final String? issuedDate;
+  final String? expiryDate;
+  final String? warningLetter;
+  final String? warningDate;
+  final String? warningReason;
 
   bool get isRemote => remoteUrl != null;
 
@@ -66,7 +109,9 @@ class ConsumerUploadFile extends Equatable {
   String? get viewSource => remoteUrl ?? localPath;
 
   bool get existsLocal =>
-      localPath != null && localPath!.isNotEmpty && File(localPath!).existsSync();
+      localPath != null &&
+      localPath!.isNotEmpty &&
+      File(localPath!).existsSync();
 
   String get formattedSize {
     if (sizeBytes >= 1024 * 1024) {
@@ -109,6 +154,40 @@ class ConsumerUploadFile extends Equatable {
       name: fileNameFromUrl(url),
       isImage: isImagePath(url),
       createdAt: DateTime.tryParse(cert.createdAt ?? '') ?? DateTime.now(),
+      certificateType: cert.certificateType,
+      certificateNumber: cert.certificateNumber,
+      issuedDate: cert.issuedDate,
+      expiryDate: cert.expiryDate,
+      warningLetter: cert.warningLetter,
+      warningDate: cert.warningDate,
+      warningReason: cert.warningReason,
+    );
+  }
+
+  ConsumerUploadFile copyWith({
+    String? certificateType,
+    String? certificateNumber,
+    String? issuedDate,
+    String? expiryDate,
+    String? warningLetter,
+    String? warningDate,
+    String? warningReason,
+  }) {
+    return ConsumerUploadFile(
+      id: id,
+      remoteUrl: remoteUrl,
+      localPath: localPath,
+      name: name,
+      isImage: isImage,
+      sizeBytes: sizeBytes,
+      createdAt: createdAt,
+      certificateType: certificateType ?? this.certificateType,
+      certificateNumber: certificateNumber ?? this.certificateNumber,
+      issuedDate: issuedDate ?? this.issuedDate,
+      expiryDate: expiryDate ?? this.expiryDate,
+      warningLetter: warningLetter ?? this.warningLetter,
+      warningDate: warningDate ?? this.warningDate,
+      warningReason: warningReason ?? this.warningReason,
     );
   }
 
@@ -134,5 +213,20 @@ class ConsumerUploadFile extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, remoteUrl, localPath, name, isImage, sizeBytes, createdAt];
+  List<Object?> get props => [
+    id,
+    remoteUrl,
+    localPath,
+    name,
+    isImage,
+    sizeBytes,
+    createdAt,
+    certificateType,
+    certificateNumber,
+    issuedDate,
+    expiryDate,
+    warningLetter,
+    warningDate,
+    warningReason,
+  ];
 }
