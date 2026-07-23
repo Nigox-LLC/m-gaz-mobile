@@ -88,9 +88,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           }
 
                           final task = state.tasks[index];
-                          final displayStatus = TaskStatus.fromTask(
-                            task,
-                          );
+                          final displayStatus = TaskStatus.fromTask(task);
 
                           return TaskItemWidget(
                             task: task,
@@ -120,7 +118,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
     TaskModel task,
     TaskStatus displayStatus,
   ) {
-    final mode = displayStatus == TaskStatus.pending
+    final mode =
+        displayStatus == TaskStatus.pending ||
+            displayStatus == TaskStatus.overdue
         ? TaskActionModalMode.action
         : TaskActionModalMode.detail;
 
