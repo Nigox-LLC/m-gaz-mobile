@@ -25,3 +25,13 @@ class LoadUserProfile extends LoginEvent {
 class LoadSavedUsername extends LoginEvent {
   const LoadSavedUsername();
 }
+
+class ProfilePhotoUploaded extends LoginEvent {
+  const ProfilePhotoUploaded({required this.userId, required this.photo});
+
+  final int userId;
+  final File photo;
+
+  @override
+  List<Object?> get props => [userId, photo];
+}

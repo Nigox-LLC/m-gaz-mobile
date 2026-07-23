@@ -31,6 +31,8 @@ import '../features/auth/domain/usecases/load_user_profile_usecase.dart'
     as _i846;
 import '../features/auth/domain/usecases/login_usecase.dart' as _i406;
 import '../features/auth/domain/usecases/logout_usecase.dart' as _i11;
+import '../features/auth/domain/usecases/update_profile_photo_usecase.dart'
+    as _i11;
 import '../features/auth/presentation/bloc/login_bloc.dart' as _i724;
 import '../features/gas_networks/data/datasources/gas_networks_remote_data_source.dart'
     as _i35;
@@ -107,11 +109,15 @@ _i174.GetIt init(
   gh.factory<_i11.LogoutUseCase>(
     () => _i11.LogoutUseCase(gh<_i869.AuthRepository>()),
   );
+  gh.factory<_i11.UpdateProfilePhotoUseCase>(
+    () => _i11.UpdateProfilePhotoUseCase(gh<_i869.AuthRepository>()),
+  );
   gh.factory<_i724.LoginBloc>(
     () => _i724.LoginBloc(
       gh<_i406.LoginUseCase>(),
       gh<_i846.LoadUserProfileUseCase>(),
       gh<_i862.GetSavedUsernameUseCase>(),
+      gh<_i11.UpdateProfilePhotoUseCase>(),
     ),
   );
   gh.lazySingleton<_i943.GasNetworksRepository>(

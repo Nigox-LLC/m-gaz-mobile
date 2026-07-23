@@ -146,7 +146,7 @@ class AppTools {
   static const String icSun = "assets/icons/ic_sun.svg";
   static const String icSmile = "assets/icons/ic_smile.svg";
   static const String icBookOpen = "assets/icons/ic_book_open.svg";
-  static const String icMap = "assets/icons/ic_mao.svg";
+  static const String icMap = "assets/icons/ic_map.svg";
   static const String icApartment = "assets/icons/ic_apartment.svg";
   static const String icUser = "assets/icons/ic_user.svg";
   static const String icTag = "assets/icons/ic_tag.svg";

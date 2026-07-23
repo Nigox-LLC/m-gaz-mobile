@@ -15,9 +15,13 @@ import 'package:m_gaz/core/extension/message_extension.dart';
 import 'package:m_gaz/core/hive/api_hive.dart';
 import 'package:m_gaz/core/utils/colors.dart';
 import 'package:m_gaz/di.dart';
+import 'package:m_gaz/features/auth/domain/entities/user.dart';
+import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
+import 'package:m_gaz/features/auth/presentation/widgets/profile_photo_required_sheet.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
 import '../../../core/utils/services/in_app_camera_service.dart';
+import '../../../features/auth/presentation/pages/login_screen.dart';
 import '../../home/home_screen.dart';
 import 'bloc/attendance_bloc.dart';
 import 'bloc/attendance_event.dart';
@@ -127,12 +131,13 @@ double attendanceLaplacianVariance(List<int> luma, int width, int height) {
   for (var y = 1; y < height - 1; y++) {
     for (var x = 1; x < width - 1; x++) {
       final i = y * width + x;
-      final lap = (4 * luma[i] -
-              luma[i - 1] -
-              luma[i + 1] -
-              luma[i - width] -
-              luma[i + width])
-          .toDouble();
+      final lap =
+          (4 * luma[i] -
+                  luma[i - 1] -
+                  luma[i + 1] -
+                  luma[i - width] -
+                  luma[i + width])
+              .toDouble();
       responses.add(lap);
     }
   }
@@ -174,11 +179,7 @@ class AttendanceStabilityTracker {
     _since = null;
   }
 
-  bool update({
-    required bool valid,
-    int? trackingId,
-    required DateTime now,
-  }) {
+  bool update({required bool valid, int? trackingId, required DateTime now}) {
     if (!valid) {
       reset();
       return false;
@@ -195,18 +196,25 @@ class AttendanceStabilityTracker {
 enum _AttendanceCameraPhase { intro, checking, initializing, camera, error }
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  const CameraScreen({super.key, this.forProfilePhoto = false});
+
+  final bool forProfilePhoto;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
+class _CameraScreenState extends State<CameraScreen>
+    with WidgetsBindingObserver {
   static const int _lumaGridW = 32;
   static const int _lumaGridH = 32;
 
   final FaceDetector _faceDetector = FaceDetector(
-    options: FaceDetectorOptions(enableClassification: true, enableTracking: true, performanceMode: FaceDetectorMode.accurate),
+    options: FaceDetectorOptions(
+      enableClassification: true,
+      enableTracking: true,
+      performanceMode: FaceDetectorMode.accurate,
+    ),
   );
   final AttendanceStabilityTracker _stability = AttendanceStabilityTracker();
 
@@ -215,11 +223,82 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   bool _processingFrame = false;
   bool _isValidFace = false;
   Words _statusMessage = Words.faceNotFound;
+  LoginBloc? _loginBloc;
+  bool _profileCheckStarted = false;
+  bool _profileCheckFinished = true;
+  bool _profilePhotoDialogOpen = false;
+  bool _uploadingProfilePhoto = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startProfileCheck());
+  }
+
+  void _startProfileCheck() {
+    if (widget.forProfilePhoto || !mounted) return;
+    try {
+      _loginBloc = context.read<LoginBloc>();
+    } catch (_) {
+      return;
+    }
+    _profileCheckStarted = true;
+    setState(() => _profileCheckFinished = false);
+    _loginBloc!.add(const LoadUserProfile());
+  }
+
+  void _onProfileStateChanged(BuildContext context, LoginState state) {
+    if (!_profileCheckStarted) return;
+
+    if (state.status == LoginStatus.fail) {
+      if (_uploadingProfilePhoto) {
+        _uploadingProfilePhoto = false;
+        showToast(
+          context,
+          state.errorMessage.isEmpty
+              ? Words.errorOccurred.tr()
+              : state.errorMessage,
+        );
+        _showProfilePhotoDialog(state.user);
+      } else {
+        _profileCheckStarted = false;
+        showToast(
+          context,
+          state.errorMessage.isEmpty
+              ? Words.errorOccurred.tr()
+              : state.errorMessage,
+        );
+      }
+      return;
+    }
+
+    if (state.status != LoginStatus.success) return;
+
+    if (_uploadingProfilePhoto) {
+      _uploadingProfilePhoto = false;
+      _profileCheckStarted = false;
+      setState(() => _profileCheckFinished = true);
+      return;
+    }
+
+    _profileCheckStarted = false;
+    if (state.user?.hasProfilePhoto ?? false) {
+      setState(() => _profileCheckFinished = true);
+    } else {
+      _showProfilePhotoDialog(state.user);
+    }
+  }
+
+  Future<void> _showProfilePhotoDialog(User? user) async {
+    if (!mounted || user == null || _profilePhotoDialogOpen) return;
+    _profilePhotoDialogOpen = true;
+    final photo = await showProfilePhotoRequiredDialog(context);
+    _profilePhotoDialogOpen = false;
+    if (!mounted || photo == null) return;
+    _uploadingProfilePhoto = true;
+    _profileCheckStarted = true;
+    _loginBloc?.add(ProfilePhotoUploaded(userId: user.id, photo: photo));
   }
 
   @override
@@ -236,8 +315,28 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   // Intro'dagi "Boshlash" — kamerani ochishdan oldin bugungi yo'qlama
   // holatini GET orqali tekshiramiz.
   void _onStartPressed() {
+    if (!widget.forProfilePhoto && !_profileCheckFinished) return;
+    if (widget.forProfilePhoto) {
+      _initializeCamera();
+      return;
+    }
     setState(() => _phase = _AttendanceCameraPhase.checking);
     context.read<AttendanceBloc>().add(AttendanceCheckAccess());
+  }
+
+  void _returnToLogin() {
+    if (di.isRegistered<ApiHive>()) {
+      unawaited(di.get<ApiHive>().setPendingRelogin(false));
+    }
+    try {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (_) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   void _onAccessStateChanged(BuildContext context, AttendanceState state) {
@@ -288,7 +387,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
   void _startImageStream() {
     final controller = InAppCameraService.controller;
-    if (controller == null || !controller.value.isInitialized || controller.value.isStreamingImages) {
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        controller.value.isStreamingImages) {
       return;
     }
 
@@ -308,7 +409,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       // Yorug'lik (avg) va aniqlik (blur) — downsample qilingan luma to'ridan.
       final luma = _lumaGridFromImage(image);
       final avgLuma = attendanceAverageLuminance(luma);
-      final variance = attendanceLaplacianVariance(luma, _lumaGridW, _lumaGridH);
+      final variance = attendanceLaplacianVariance(
+        luma,
+        _lumaGridW,
+        _lumaGridH,
+      );
       final brightnessOk = attendanceBrightnessBalanced(avgLuma);
       final sharpOk = attendanceSharpEnough(variance);
 
@@ -321,10 +426,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       final faceDetected = face != null;
       final centered = faceDetected && attendanceFaceCentered(face);
       final largeEnough =
-          faceDetected && attendanceFaceLargeEnough(face.boundingBox, imageSize);
+          faceDetected &&
+          attendanceFaceLargeEnough(face.boundingBox, imageSize);
       final eyesOpen = faceDetected && attendanceHasOpenEyes(face);
 
-      final valid = faceDetected &&
+      final valid =
+          faceDetected &&
           centered &&
           largeEnough &&
           eyesOpen &&
@@ -397,8 +504,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             final b = bytes[idx];
             final g = bytes[idx + 1];
             final r = bytes[idx + 2];
-            grid[gy * _lumaGridW + gx] =
-                (0.114 * b + 0.587 * g + 0.299 * r).round();
+            grid[gy * _lumaGridW + gx] = (0.114 * b + 0.587 * g + 0.299 * r)
+                .round();
           }
         }
       }
@@ -450,15 +557,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       await InAppCameraService.controller?.stopImageStream();
     }
 
-    final hasPermission = await _checkLocationPermission();
-    if (!mounted) return;
-
-    if (!hasPermission) {
-      setState(() => _sending = false);
-      _startImageStream();
-      return;
-    }
-
     final xFile = await InAppCameraService.takePicture();
     if (!mounted) return;
 
@@ -470,10 +568,29 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
 
     final photo = File(xFile.path);
+    if (widget.forProfilePhoto) {
+      Navigator.pop(context, photo);
+      return;
+    }
+
+    final hasPermission = await _checkLocationPermission();
+    if (!mounted) return;
+
+    if (!hasPermission) {
+      setState(() => _sending = false);
+      _startImageStream();
+      return;
+    }
+
     final pos = await Geolocator.getCurrentPosition();
 
     if (!mounted) return;
-    context.read<AttendanceBloc>().add(AttendanceSubmit(photo: photo, data: {'lat': pos.latitude.toString(), 'lng': pos.longitude.toString()}));
+    context.read<AttendanceBloc>().add(
+      AttendanceSubmit(
+        photo: photo,
+        data: {'lat': pos.latitude.toString(), 'lng': pos.longitude.toString()},
+      ),
+    );
   }
 
   Future<bool> _checkLocationPermission() async {
@@ -490,7 +607,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       return false;
     }
 
-    return permission == LocationPermission.always || permission == LocationPermission.whileInUse;
+    return permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
   }
 
   @override
@@ -506,17 +624,39 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AttendanceBloc, AttendanceState>(
+    Widget content = _buildPhase();
+    if (!widget.forProfilePhoto) {
+      content = BlocListener<AttendanceBloc, AttendanceState>(
+        listenWhen: (prev, curr) => prev.status != curr.status,
+        listener: _onAccessStateChanged,
+        child: content,
+      );
+    }
+
+    final loginBloc = _loginBloc;
+    if (widget.forProfilePhoto || loginBloc == null) return content;
+
+    return BlocListener<LoginBloc, LoginState>(
+      bloc: loginBloc,
       listenWhen: (prev, curr) => prev.status != curr.status,
-      listener: _onAccessStateChanged,
-      child: _buildPhase(),
+      listener: _onProfileStateChanged,
+      child: content,
     );
   }
 
   Widget _buildPhase() {
     switch (_phase) {
       case _AttendanceCameraPhase.intro:
-        return _AttendanceIntroView(onBack: () => Navigator.maybePop(context), onStart: _onStartPressed);
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) _returnToLogin();
+          },
+          child: _AttendanceIntroView(
+            onBack: _returnToLogin,
+            onStart: _onStartPressed,
+          ),
+        );
       case _AttendanceCameraPhase.checking:
       case _AttendanceCameraPhase.initializing:
         return const Scaffold(
@@ -526,10 +666,24 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       case _AttendanceCameraPhase.error:
         return _CameraErrorView(onRetry: _initializeCamera);
       case _AttendanceCameraPhase.camera:
+        if (widget.forProfilePhoto) {
+          return Scaffold(
+            body: _CameraScannerView(
+              isValidFace: _isValidFace,
+              statusMessage: _statusMessage,
+              isSubmitting: _sending,
+              preview: _CameraPreviewFill(
+                controller: InAppCameraService.controller!,
+              ),
+            ),
+          );
+        }
         return _CameraAttendanceView(
           isValidFace: _isValidFace,
           statusMessage: _statusMessage,
-          preview: _CameraPreviewFill(controller: InAppCameraService.controller!),
+          preview: _CameraPreviewFill(
+            controller: InAppCameraService.controller!,
+          ),
           onSubmitFailed: _startImageStream,
           onSuccessResetSending: () {
             if (mounted) setState(() => _sending = false);
@@ -569,16 +723,26 @@ class _CameraAttendanceView extends StatelessWidget {
         listenWhen: (prev, curr) => prev.status != curr.status,
         listener: (context, state) {
           if (state.status == AttendanceStatus.success) {
-            showToast(context, Words.attendanceAllowed.tr(), backgroundColor: AppColors.c17B26A);
+            showToast(
+              context,
+              Words.attendanceAllowed.tr(),
+              backgroundColor: AppColors.c17B26A,
+            );
             onSuccessResetSending();
 
             // Yo'qlama topshirildi — Home ochilmoqda, login bayrog'ini tozalaymiz.
             di.get<ApiHive>().setPendingRelogin(false);
-            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+              (route) => false,
+            );
           }
 
           if (state.status == AttendanceStatus.fail) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.error ?? Words.errorOccurred.tr())));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.error ?? Words.errorOccurred.tr())),
+            );
             onFailResetSending();
             onSubmitFailed();
           }
@@ -587,7 +751,8 @@ class _CameraAttendanceView extends StatelessWidget {
           return _CameraScannerView(
             isValidFace: isValidFace,
             statusMessage: statusMessage,
-            isSubmitting: isSending || state.status == AttendanceStatus.uploading,
+            isSubmitting:
+                isSending || state.status == AttendanceStatus.uploading,
             preview: preview,
           );
         },
@@ -611,7 +776,10 @@ class _CameraErrorView extends StatelessWidget {
           children: [
             Text(Words.cameraFailed.tr()),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: Text(Words.tryAgain.tr())),
+            ElevatedButton(
+              onPressed: onRetry,
+              child: Text(Words.tryAgain.tr()),
+            ),
           ],
         ),
       ),
@@ -650,7 +818,11 @@ class _AttendanceIntroView extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final compact = constraints.maxHeight < 760;
-                final graphicHeight = (constraints.maxHeight * (compact ? 0.28 : 0.37)).clamp(150.0, 308.0);
+                final graphicHeight =
+                    (constraints.maxHeight * (compact ? 0.28 : 0.37)).clamp(
+                      150.0,
+                      308.0,
+                    );
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -666,7 +838,11 @@ class _AttendanceIntroView extends StatelessWidget {
                             IconButton(
                               key: const Key('attendance-intro-back'),
                               onPressed: onBack,
-                              icon: const Icon(Icons.chevron_left, color: Colors.black, size: 28),
+                              icon: const Icon(
+                                Icons.chevron_left,
+                                color: Colors.black,
+                                size: 28,
+                              ),
                               padding: EdgeInsets.zero,
                               alignment: Alignment.centerLeft,
                             ),
@@ -709,17 +885,26 @@ class _AttendanceIntroView extends StatelessWidget {
                           onPressed: onStart,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _AttendanceCameraColors.primary,
-                            foregroundColor: _AttendanceCameraColors.scannerWhite,
+                            foregroundColor:
+                                _AttendanceCameraColors.scannerWhite,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: Text(
                             Words.start.tr(),
-                            style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w800, height: 24 / 15),
+                            style: GoogleFonts.manrope(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              height: 24 / 15,
+                            ),
                           ),
                         ),
                       ),
-                      SizedBox(height: compact ? 12 : (bottomPadding > 0 ? 16 : 28)),
+                      SizedBox(
+                        height: compact ? 12 : (bottomPadding > 0 ? 16 : 28),
+                      ),
                     ],
                   ),
                 );
@@ -744,7 +929,10 @@ class _FaceIntroGraphic extends StatelessWidget {
       height: height,
       child: Container(
         key: const Key('attendance-intro-graphic'),
-        decoration: BoxDecoration(color: _AttendanceCameraColors.soft, borderRadius: BorderRadius.circular(28)),
+        decoration: BoxDecoration(
+          color: _AttendanceCameraColors.soft,
+          borderRadius: BorderRadius.circular(28),
+        ),
         child: Center(
           child: SizedBox.square(
             dimension: 228,
@@ -770,14 +958,22 @@ class _FaceGuidanceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = GoogleFonts.manrope(color: const Color(0xFF202020), fontSize: 15, fontWeight: FontWeight.w500, height: 24 / 15);
+    final textStyle = GoogleFonts.manrope(
+      color: const Color(0xFF202020),
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+      height: 24 / 15,
+    );
 
     return Row(
       children: [
         Expanded(
           child: _GuidanceItem(
             key: const Key('attendance-guidance-open-face'),
-            icon: AppTools.svg(AppTools.icSmile, colorFilter: ColorFilter.mode(Color(0xFF202020), BlendMode.srcIn)),
+            icon: AppTools.svg(
+              AppTools.icSmile,
+              colorFilter: ColorFilter.mode(Color(0xFF202020), BlendMode.srcIn),
+            ),
             label: Words.faceOpenFace.tr(),
             textStyle: textStyle,
           ),
@@ -786,7 +982,10 @@ class _FaceGuidanceRow extends StatelessWidget {
         Expanded(
           child: _GuidanceItem(
             key: const Key('attendance-guidance-lighting'),
-            icon: AppTools.svg(AppTools.icSun, colorFilter: ColorFilter.mode(Color(0xFF202020), BlendMode.srcIn)),
+            icon: AppTools.svg(
+              AppTools.icSun,
+              colorFilter: ColorFilter.mode(Color(0xFF202020), BlendMode.srcIn),
+            ),
             label: Words.faceGoodLighting.tr(),
             textStyle: textStyle,
           ),
@@ -797,7 +996,12 @@ class _FaceGuidanceRow extends StatelessWidget {
 }
 
 class _GuidanceItem extends StatelessWidget {
-  const _GuidanceItem({super.key, required this.icon, required this.label, required this.textStyle});
+  const _GuidanceItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.textStyle,
+  });
 
   final Widget icon;
   final String label;
@@ -811,7 +1015,12 @@ class _GuidanceItem extends StatelessWidget {
         SizedBox.square(dimension: 24, child: icon),
         const SizedBox(width: 8),
         Flexible(
-          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: textStyle),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textStyle,
+          ),
         ),
       ],
     );
@@ -832,7 +1041,11 @@ class _CameraPreviewFill extends StatelessWidget {
 
     return FittedBox(
       fit: BoxFit.cover,
-      child: SizedBox(width: previewSize.height, height: previewSize.width, child: CameraPreview(controller)),
+      child: SizedBox(
+        width: previewSize.height,
+        height: previewSize.width,
+        child: CameraPreview(controller),
+      ),
     );
   }
 }
@@ -867,15 +1080,24 @@ class _CameraScannerView extends StatelessWidget {
             final frameWidth = width - (frameLeft * 2);
             final frameBottom = media.padding.bottom + (height * 73 / 844);
             final frameHeight = height - frameTop - frameBottom;
-            final frameRect = Rect.fromLTWH(frameLeft, frameTop, frameWidth, frameHeight);
+            final frameRect = Rect.fromLTWH(
+              frameLeft,
+              frameTop,
+              frameWidth,
+              frameHeight,
+            );
 
             return Stack(
               fit: StackFit.expand,
               children: [
-                CustomPaint(painter: _ScannerOverlayPainter(frameRect: frameRect)),
+                CustomPaint(
+                  painter: _ScannerOverlayPainter(frameRect: frameRect),
+                ),
                 Positioned.fromRect(
                   rect: frameRect,
-                  child: IgnorePointer(child: CustomPaint(painter: const _ScannerFramePainter())),
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: const _ScannerFramePainter()),
+                  ),
                 ),
                 Positioned(
                   top: frameRect.bottom - 46,
@@ -900,7 +1122,12 @@ class _CameraScannerView extends StatelessWidget {
 
 @visibleForTesting
 class AttendanceScannerStatusBadge extends StatelessWidget {
-  const AttendanceScannerStatusBadge({super.key, required this.isValidFace, this.message, this.isSubmitting = false});
+  const AttendanceScannerStatusBadge({
+    super.key,
+    required this.isValidFace,
+    this.message,
+    this.isSubmitting = false,
+  });
 
   final bool isValidFace;
   final Words? message;
@@ -908,22 +1135,37 @@ class AttendanceScannerStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isValidFace ? _AttendanceCameraColors.success : _AttendanceCameraColors.error;
-    final icon = isValidFace ? Icons.check_circle_outline : Icons.cancel_outlined;
-    final label = (message ?? (isValidFace ? Words.faceConfirmed : Words.faceNotFound)).tr();
+    final color = isValidFace
+        ? _AttendanceCameraColors.success
+        : _AttendanceCameraColors.error;
+    final icon = isValidFace
+        ? Icons.check_circle_outline
+        : Icons.cancel_outlined;
+    final label =
+        (message ?? (isValidFace ? Words.faceConfirmed : Words.faceNotFound))
+            .tr();
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 150),
       opacity: isSubmitting ? 0.72 : 1,
       child: Row(
-        key: Key(isValidFace ? 'attendance-scanner-confirmed' : 'attendance-scanner-not-found'),
+        key: Key(
+          isValidFace
+              ? 'attendance-scanner-confirmed'
+              : 'attendance-scanner-not-found',
+        ),
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 24, color: color),
           const SizedBox(width: 8),
           Text(
             label,
-            style: GoogleFonts.manrope(color: _AttendanceCameraColors.scannerWhite, fontSize: 15, fontWeight: FontWeight.w800, height: 24 / 15),
+            style: GoogleFonts.manrope(
+              color: _AttendanceCameraColors.scannerWhite,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              height: 24 / 15,
+            ),
           ),
         ],
       ),
@@ -975,29 +1217,81 @@ class _ScannerFramePainter extends CustomPainter {
     }
 
     const corner = radius * 2;
-    arc(Rect.fromLTWH(rect.left, rect.top, corner, corner), math.pi, math.pi / 2);
-    line(Offset(rect.left + radius, rect.top), Offset(rect.left + segment, rect.top));
-    line(Offset(rect.left, rect.top + radius), Offset(rect.left, rect.top + segment));
+    arc(
+      Rect.fromLTWH(rect.left, rect.top, corner, corner),
+      math.pi,
+      math.pi / 2,
+    );
+    line(
+      Offset(rect.left + radius, rect.top),
+      Offset(rect.left + segment, rect.top),
+    );
+    line(
+      Offset(rect.left, rect.top + radius),
+      Offset(rect.left, rect.top + segment),
+    );
 
-    arc(Rect.fromLTWH(rect.right - corner, rect.top, corner, corner), -math.pi / 2, math.pi / 2);
-    line(Offset(rect.right - segment, rect.top), Offset(rect.right - radius, rect.top));
-    line(Offset(rect.right, rect.top + radius), Offset(rect.right, rect.top + segment));
+    arc(
+      Rect.fromLTWH(rect.right - corner, rect.top, corner, corner),
+      -math.pi / 2,
+      math.pi / 2,
+    );
+    line(
+      Offset(rect.right - segment, rect.top),
+      Offset(rect.right - radius, rect.top),
+    );
+    line(
+      Offset(rect.right, rect.top + radius),
+      Offset(rect.right, rect.top + segment),
+    );
 
-    arc(Rect.fromLTWH(rect.right - corner, rect.bottom - corner, corner, corner), 0, math.pi / 2);
-    line(Offset(rect.right, rect.bottom - segment), Offset(rect.right, rect.bottom - radius));
-    line(Offset(rect.right - segment, rect.bottom), Offset(rect.right - radius, rect.bottom));
+    arc(
+      Rect.fromLTWH(rect.right - corner, rect.bottom - corner, corner, corner),
+      0,
+      math.pi / 2,
+    );
+    line(
+      Offset(rect.right, rect.bottom - segment),
+      Offset(rect.right, rect.bottom - radius),
+    );
+    line(
+      Offset(rect.right - segment, rect.bottom),
+      Offset(rect.right - radius, rect.bottom),
+    );
 
-    arc(Rect.fromLTWH(rect.left, rect.bottom - corner, corner, corner), math.pi / 2, math.pi / 2);
-    line(Offset(rect.left, rect.bottom - segment), Offset(rect.left, rect.bottom - radius));
-    line(Offset(rect.left + radius, rect.bottom), Offset(rect.left + segment, rect.bottom));
+    arc(
+      Rect.fromLTWH(rect.left, rect.bottom - corner, corner, corner),
+      math.pi / 2,
+      math.pi / 2,
+    );
+    line(
+      Offset(rect.left, rect.bottom - segment),
+      Offset(rect.left, rect.bottom - radius),
+    );
+    line(
+      Offset(rect.left + radius, rect.bottom),
+      Offset(rect.left + segment, rect.bottom),
+    );
 
     final centerX = rect.center.dx;
-    line(Offset(centerX - centerSegment / 2, rect.top), Offset(centerX + centerSegment / 2, rect.top));
-    line(Offset(centerX - centerSegment / 2, rect.bottom), Offset(centerX + centerSegment / 2, rect.bottom));
+    line(
+      Offset(centerX - centerSegment / 2, rect.top),
+      Offset(centerX + centerSegment / 2, rect.top),
+    );
+    line(
+      Offset(centerX - centerSegment / 2, rect.bottom),
+      Offset(centerX + centerSegment / 2, rect.bottom),
+    );
 
     final centerY = rect.center.dy;
-    line(Offset(rect.left, centerY - sideSegment / 2), Offset(rect.left, centerY + sideSegment / 2));
-    line(Offset(rect.right, centerY - sideSegment / 2), Offset(rect.right, centerY + sideSegment / 2));
+    line(
+      Offset(rect.left, centerY - sideSegment / 2),
+      Offset(rect.left, centerY + sideSegment / 2),
+    );
+    line(
+      Offset(rect.right, centerY - sideSegment / 2),
+      Offset(rect.right, centerY + sideSegment / 2),
+    );
   }
 
   @override

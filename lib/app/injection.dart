@@ -10,4 +10,5 @@ final GetIt getIt = GetIt.instance;
   preferRelativeImports: true,
   asExtension: false,
 )
+/// Registers injectable dependencies for the application.
 Future<void> configureDependencies() async => init(getIt);

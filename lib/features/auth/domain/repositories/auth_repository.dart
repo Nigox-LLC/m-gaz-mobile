@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
@@ -17,6 +19,11 @@ abstract class AuthRepository {
 
   /// Fetches the current user's profile using the stored access token.
   Future<Either<Failure, User>> loadProfile();
+
+  Future<Either<Failure, User>> updateProfilePhoto({
+    required int userId,
+    required File photo,
+  });
 
   /// Clears the locally stored auth state.
   Future<Either<Failure, Unit>> logout();
