@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../models/auth_token_model.dart';
 import '../models/user_model.dart';
 
@@ -17,4 +19,6 @@ abstract class AuthRemoteDataSource {
   /// ensuring the access token has already been set on the request (the
   /// concrete implementation reads it from local storage).
   Future<UserModel> loadProfile();
+
+  Future<void> updateProfilePhoto({required int userId, required File photo});
 }

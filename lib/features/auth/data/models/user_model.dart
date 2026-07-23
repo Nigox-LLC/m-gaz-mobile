@@ -16,6 +16,7 @@ class UserModel extends User {
     super.regionName,
     super.districtId,
     super.districtName,
+    super.photoUrl,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -29,18 +30,20 @@ class UserModel extends User {
       regionName: json['region_name'],
       districtId: json['district_id'],
       districtName: json['district_name'],
+      photoUrl: json['photo_url'] ?? json['photo'],
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'username': username,
-        'role': role,
-        'device_language': deviceLanguage,
-        'employee_id': employeeId,
-        'region_id': regionId,
-        'region_name': regionName,
-        'district_id': districtId,
-        'district_name': districtName,
-      };
+    'id': id,
+    'username': username,
+    'role': role,
+    'device_language': deviceLanguage,
+    'employee_id': employeeId,
+    'region_id': regionId,
+    'region_name': regionName,
+    'district_id': districtId,
+    'district_name': districtName,
+    'photo_url': photoUrl,
+  };
 }

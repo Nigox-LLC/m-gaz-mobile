@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 
@@ -52,6 +54,27 @@ class AuthRepositoryImpl implements AuthRepository {
     } on UnauthorizedException catch (e) {
       // Token expired or invalid — purge local state so subsequent flows
       // re-authenticate cleanly (mirrors legacy `UserApi.loadUserProfile`).
+      await _local.clear();
+      return Left(UnauthorizedFailure(e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> updateProfilePhoto({
+    required int userId,
+    required File photo,
+  }) async {
+    try {
+      await _remote.updateProfilePhoto(userId: userId, photo: photo);
+      final user = await _remote.loadProfile();
+      return Right(user);
+    } on UnauthorizedException catch (e) {
       await _local.clear();
       return Left(UnauthorizedFailure(e.message));
     } on NetworkException catch (e) {

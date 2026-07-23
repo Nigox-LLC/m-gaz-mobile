@@ -14,6 +14,7 @@ class User extends Equatable {
   final String? regionName;
   final int? districtId;
   final String? districtName;
+  final String? photoUrl;
 
   const User({
     required this.id,
@@ -25,18 +26,22 @@ class User extends Equatable {
     this.regionName,
     this.districtId,
     this.districtName,
+    this.photoUrl,
   });
+
+  bool get hasProfilePhoto => photoUrl?.trim().isNotEmpty == true;
 
   @override
   List<Object?> get props => [
-        id,
-        username,
-        role,
-        deviceLanguage,
-        employeeId,
-        regionId,
-        regionName,
-        districtId,
-        districtName,
-      ];
+    id,
+    username,
+    role,
+    deviceLanguage,
+    employeeId,
+    regionId,
+    regionName,
+    districtId,
+    districtName,
+    photoUrl,
+  ];
 }

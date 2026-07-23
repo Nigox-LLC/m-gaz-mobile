@@ -131,12 +131,18 @@ class _LoginScreenState extends State<LoginScreen> {
       if (state.errorMessage.isNotEmpty) {
         showToast(context, state.errorMessage);
       }
+      return;
     }
 
     if (state.status == LoginStatus.success && !_checkingAttendance) {
-      setState(() => _checkingAttendance = true);
-      context.read<AttendanceBloc>().add(AttendanceCheckAccess());
+      _startAttendanceCheck(context);
     }
+  }
+
+  void _startAttendanceCheck(BuildContext context) {
+    if (_checkingAttendance) return;
+    setState(() => _checkingAttendance = true);
+    context.read<AttendanceBloc>().add(AttendanceCheckAccess());
   }
 
   // Backend javobiga ko'ra yo'naltirish:

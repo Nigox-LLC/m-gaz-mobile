@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
@@ -64,6 +66,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return UserModel.fromJson(data);
     } on DioException catch (e) {
       throw _mapDioError(e, defaultMessage: 'Profil yuklanmadi');
+    }
+  }
+
+  @override
+  Future<void> updateProfilePhoto({
+    required int userId,
+    required File photo,
+  }) async {
+    try {
+      await _client.dio.patch(
+        'directory/users/$userId/',
+        data: FormData.fromMap({
+          'photo': await MultipartFile.fromFile(photo.path),
+        }),
+        options: Options(
+          headers: {
+            if (_local.accessToken.isNotEmpty)
+              'Authorization': 'Bearer ${_local.accessToken}',
+          },
+        ),
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e, defaultMessage: 'Profil rasmi yuklanmadi');
     }
   }
 

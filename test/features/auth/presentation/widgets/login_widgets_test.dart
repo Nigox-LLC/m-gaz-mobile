@@ -15,6 +15,7 @@ import 'package:m_gaz/features/auth/domain/repositories/auth_repository.dart';
 import 'package:m_gaz/features/auth/domain/usecases/get_saved_username_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/load_user_profile_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/login_usecase.dart';
+import 'package:m_gaz/features/auth/domain/usecases/update_profile_photo_usecase.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/features/auth/presentation/pages/login_screen.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
@@ -213,6 +214,7 @@ Future<void> _pumpLoginScreen(WidgetTester tester) async {
                     LoginUseCase(repository),
                     LoadUserProfileUseCase(repository),
                     GetSavedUsernameUseCase(repository),
+                    UpdateProfilePhotoUseCase(repository),
                   ),
                 ),
                 BlocProvider(
@@ -255,6 +257,16 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<Either<Failure, User>> loadProfile() async {
     return const Right(User(id: 1, username: 'tester', role: 'tester'));
+  }
+
+  @override
+  Future<Either<Failure, User>> updateProfilePhoto({
+    required int userId,
+    required File photo,
+  }) async {
+    return const Right(
+      User(id: 1, username: 'tester', role: 'tester', photoUrl: 'photo.jpg'),
+    );
   }
 
   @override
