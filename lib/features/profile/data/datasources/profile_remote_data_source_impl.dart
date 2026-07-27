@@ -46,6 +46,28 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     }
   }
 
+  @override
+  Future<void> updatePassword({
+    required int userId,
+    required String password,
+  }) async {
+    try {
+      await _client.dio.patch(
+        'directory/users/$userId/',
+        data: {'password': password},
+        options: Options(
+          contentType: Headers.jsonContentType,
+          headers: {
+            if (_local.accessToken.isNotEmpty)
+              'Authorization': 'Bearer ${_local.accessToken}',
+          },
+        ),
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e, defaultMessage: "Parol o'zgartirilmadi");
+    }
+  }
+
   Exception _mapDioError(DioException e, {required String defaultMessage}) {
     final status = e.response?.statusCode;
     final data = e.response?.data;

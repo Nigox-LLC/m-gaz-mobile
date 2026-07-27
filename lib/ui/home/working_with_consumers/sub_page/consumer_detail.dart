@@ -73,6 +73,7 @@ class _ConsumerDetailViewState extends State<_ConsumerDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: ConsumerDetailColors.page,
       body: SafeArea(
         bottom: false,

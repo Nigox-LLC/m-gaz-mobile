@@ -52,6 +52,7 @@ class _GazUsageScreenState extends State<GazUsageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.cF5F5F5,
       appBar: CustomGlobalAppBar(title: Words.gasConsumption.tr()),
       body: BlocBuilder<GlobalBloc, GlobalState>(

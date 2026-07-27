@@ -57,6 +57,8 @@ import '../features/profile/data/repository/profile_repository_impl.dart'
 import '../features/profile/domain/repository/profile_repository.dart' as _i928;
 import '../features/profile/domain/usecases/load_profile_data_usecase.dart'
     as _i575;
+import '../features/profile/domain/usecases/update_password_usecase.dart'
+    as _i542;
 import '../features/profile/presentation/bloc/profile_bloc.dart' as _i570;
 
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -138,6 +140,9 @@ _i174.GetIt init(
   gh.factory<_i575.LoadProfileDataUseCase>(
     () => _i575.LoadProfileDataUseCase(gh<_i928.ProfileRepository>()),
   );
+  gh.factory<_i542.UpdatePasswordUseCase>(
+    () => _i542.UpdatePasswordUseCase(gh<_i928.ProfileRepository>()),
+  );
   gh.factory<_i356.MeasurementDevicesBloc>(
     () => _i356.MeasurementDevicesBloc(
       gh<_i1010.GetMeasuringDeviceDocuments>(),
@@ -145,7 +150,10 @@ _i174.GetIt init(
     ),
   );
   gh.factory<_i570.ProfileBloc>(
-    () => _i570.ProfileBloc(gh<_i575.LoadProfileDataUseCase>()),
+    () => _i570.ProfileBloc(
+      gh<_i575.LoadProfileDataUseCase>(),
+      gh<_i542.UpdatePasswordUseCase>(),
+    ),
   );
   return getIt;
 }

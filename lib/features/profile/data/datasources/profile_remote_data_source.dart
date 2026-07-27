@@ -6,4 +6,6 @@ import '../models/profile_model.dart';
 abstract class ProfileRemoteDataSource {
   /// Loads the authenticated user's profile from `directory/profile/`.
   Future<ProfileModel> loadProfile();
+
+  Future<void> updatePassword({required int userId, required String password});
 }
