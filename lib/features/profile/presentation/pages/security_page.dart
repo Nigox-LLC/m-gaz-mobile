@@ -14,6 +14,18 @@ class SecurityPage extends StatefulWidget {
 }
 
 class _SecurityPageState extends State<SecurityPage> {
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,7 +44,7 @@ class _SecurityPageState extends State<SecurityPage> {
           spacing: 12.h,
           children: [
             PersonalDataItem(
-              controller: TextEditingController(),
+              controller: _currentPasswordController,
               readOnly: false,
               hintText: Words.currentPasswordHint.tr(),
               label: Words.currentPassword.tr(),
@@ -40,7 +52,7 @@ class _SecurityPageState extends State<SecurityPage> {
               suffixWidget: AppTools.svg(AppTools.icEye),
             ),
             PersonalDataItem(
-              controller: TextEditingController(),
+              controller: _newPasswordController,
               readOnly: false,
               hintText: Words.newPasswordHint.tr(),
               label: Words.newPassword.tr(),
@@ -48,7 +60,7 @@ class _SecurityPageState extends State<SecurityPage> {
               errorText: Words.passwordsDoNotMatch.tr(),
             ),
             PersonalDataItem(
-              controller: TextEditingController(),
+              controller: _confirmPasswordController,
               readOnly: false,
               hintText: Words.confirmPasswordHint.tr(),
               label: Words.confirmPassword.tr(),
