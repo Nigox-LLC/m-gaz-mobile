@@ -27,4 +27,23 @@ class ProfileRepositoryImpl implements ProfileRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updatePassword({
+    required int userId,
+    required String password,
+  }) async {
+    try {
+      await _remote.updatePassword(userId: userId, password: password);
+      return const Right(null);
+    } on UnauthorizedException catch (e) {
+      return Left(UnauthorizedFailure(e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

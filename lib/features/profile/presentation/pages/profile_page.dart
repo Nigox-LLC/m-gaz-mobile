@@ -60,12 +60,16 @@ class _ProfileView extends StatelessWidget {
                   CustomListTile(
                     leadingIcon: AppTools.svg(
                       AppTools.icUser,
-                      colorFilter: const ColorFilter.mode(Color(0xFF202020), BlendMode.srcIn),
+                      colorFilter: const ColorFilter.mode(
+                        Color(0xFF202020),
+                        BlendMode.srcIn,
+                      ),
                       width: 20,
                       height: 20,
                     ),
                     title: Words.personalInfo.tr(),
-                    onTap: () => _openWithBloc(context, const PersonalDataPage()),
+                    onTap: () =>
+                        _openWithBloc(context, const PersonalDataPage()),
                     trailingIcon: AppTools.svg(AppTools.icChervonRight),
                   ),
                   CustomListTile(
@@ -88,9 +92,7 @@ class _ProfileView extends StatelessWidget {
                   CustomListTile(
                     leadingIcon: AppTools.svg(AppTools.icShield),
                     title: Words.security.tr(),
-                    onTap: () {
-                      Navigator.push(context, CupertinoPageRoute(builder: (_) => const SecurityPage()));
-                    },
+                    onTap: () => _openWithBloc(context, const SecurityPage()),
                     trailingIcon: AppTools.svg(AppTools.icChervonRight),
                   ),
                 ],
@@ -108,7 +110,12 @@ class _ProfileView extends StatelessWidget {
                     leadingIcon: AppTools.svg(AppTools.icSettings),
                     title: Words.settings.tr(),
                     onTap: () {
-                      Navigator.push(context, CupertinoPageRoute(builder: (_) => const SettingsPage()));
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const SettingsPage(),
+                        ),
+                      );
                     },
                     trailingIcon: AppTools.svg(AppTools.icChervonRight),
                   ),
@@ -155,7 +162,10 @@ class _ProfileHeader extends StatelessWidget {
       width: MediaQuery.of(context).size.width,
       padding: const EdgeInsets.symmetric(vertical: 15),
       decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(28), bottomRight: Radius.circular(28)),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
         color: Color(0xFFF0F0F0),
       ),
       child: Column(
@@ -163,11 +173,27 @@ class _ProfileHeader extends StatelessWidget {
           _ProfileAvatar(photoUrl: profile?.photoUrl),
           SizedBox(height: 8.h),
           if (isLoading)
-            const SizedBox(height: 21, width: 21, child: CircularProgressIndicator(strokeWidth: 2))
+            const SizedBox(
+              height: 21,
+              width: 21,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           else
-            Text(name, style: GoogleFonts.manrope(fontSize: 17, fontWeight: FontWeight.w800)),
+            Text(
+              name,
+              style: GoogleFonts.manrope(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           SizedBox(height: 8.h),
-          Text(role, style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(
+            role,
+            style: GoogleFonts.manrope(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -191,7 +217,8 @@ class _ProfileAvatar extends StatelessWidget {
               height: 80.h,
               width: 80.w,
               fit: BoxFit.cover,
-              placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
+              placeholder: (_, __) =>
+                  const Center(child: CircularProgressIndicator()),
               errorWidget: (_, __, ___) => _placeholder(),
             )
           : _placeholder(),
@@ -199,11 +226,11 @@ class _ProfileAvatar extends StatelessWidget {
   }
 
   Widget _placeholder() => SizedBox(
-        height: 80.h,
-        width: 80.w,
-        child: const ColoredBox(
-          color: Color(0xFFE8E8E8),
-          child: Icon(Icons.person, color: Color(0xFF8A8A8A), size: 40),
-        ),
-      );
+    height: 80.h,
+    width: 80.w,
+    child: const ColoredBox(
+      color: Color(0xFFE8E8E8),
+      child: Icon(Icons.person, color: Color(0xFF8A8A8A), size: 40),
+    ),
+  );
 }
