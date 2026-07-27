@@ -116,6 +116,7 @@ class _EgxuCreateViewState extends State<_EgxuCreateView> {
         ),
       ],
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: AppColors.cF5F5F5,
         appBar: CustomGlobalAppBar(title: Words.eghuEntry.tr()),
         body: profile == null

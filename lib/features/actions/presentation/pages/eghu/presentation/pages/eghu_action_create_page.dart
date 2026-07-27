@@ -124,6 +124,7 @@ class _EghuActionCreatePageState extends State<EghuActionCreatePage> {
         listener: _onSubmitStateChanged,
         builder: (context, state) {
           return Scaffold(
+            resizeToAvoidBottomInset: false,
             backgroundColor: EghuActionCreateColors.white,
             body: SafeArea(
               bottom: false,
