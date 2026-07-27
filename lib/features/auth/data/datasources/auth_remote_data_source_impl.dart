@@ -22,7 +22,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final AuthLocalDataSource _local;
 
   @override
-  Future<AuthTokenModel> login({
+  Future<int> validateCredentials({
     required String userName,
     required String password,
   }) async {
@@ -39,7 +39,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           "Server javobi noto'g'ri formatda: ${data.runtimeType}",
         );
       }
-      return AuthTokenModel.fromJson(data);
+      final employeeId = AuthTokenModel.fromJson(data).employeeId;
+      if (employeeId == null) {
+        throw ServerException(
+          'Login response employee_id qiymatini qaytarmadi',
+        );
+      }
+      // Access/refresh are intentionally discarded. E-Imzo establishes the
+      // authenticated session; only employee_id continues to that flow.
+      return employeeId;
     } on DioException catch (e) {
       throw _mapDioError(e, defaultMessage: 'Login muvaffaqiyatsiz');
     }

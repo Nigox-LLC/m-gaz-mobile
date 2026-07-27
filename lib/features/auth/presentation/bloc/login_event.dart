@@ -35,3 +35,11 @@ class ProfilePhotoUploaded extends LoginEvent {
   @override
   List<Object?> get props => [userId, photo];
 }
+
+class EImzoVerificationRequested extends LoginEvent {
+  const EImzoVerificationRequested();
+}
+
+class EImzoResetRequested extends LoginEvent {
+  const EImzoResetRequested();
+}

@@ -5,7 +5,6 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
-import '../../domain/entities/auth_token.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
@@ -19,18 +18,17 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _local;
 
   @override
-  Future<Either<Failure, AuthToken>> login({
+  Future<Either<Failure, int>> validateCredentials({
     required String userName,
     required String password,
   }) async {
     try {
-      final tokenModel = await _remote.login(
+      final employeeId = await _remote.validateCredentials(
         userName: userName,
         password: password,
       );
-      await _local.saveToken(tokenModel);
       await _local.saveUsername(userName);
-      return Right(tokenModel);
+      return Right(employeeId);
     } on UnauthorizedException catch (e) {
       return Left(UnauthorizedFailure(e.message));
     } on NetworkException catch (e) {

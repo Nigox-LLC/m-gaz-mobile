@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:m_gaz/app/injection.dart';
 import 'package:m_gaz/core/common/words.dart';
@@ -45,6 +46,14 @@ class _LoginScreenState extends State<LoginScreen> {
   // Login muvaffaqiyatli bo'lgandan keyin backend yo'qlama tekshiruvi
   // (AttendanceCheckAccess) davom etayotganini bildiradi.
   bool _checkingAttendance = false;
+
+  bool _isEimzoStep(LoginStatus status) => switch (status) {
+    LoginStatus.eimzoReady ||
+    LoginStatus.eimzoLaunching ||
+    LoginStatus.eimzoWaiting ||
+    LoginStatus.eimzoCompleting => true,
+    _ => false,
+  };
 
   bool get _hasInput =>
       userNameController.text.trim().isNotEmpty &&
@@ -131,6 +140,17 @@ class _LoginScreenState extends State<LoginScreen> {
       if (state.errorMessage.isNotEmpty) {
         showToast(context, state.errorMessage);
       }
+      return;
+    }
+
+    if (state.status == LoginStatus.eimzoFailure) {
+      setState(() {
+        _submitted = false;
+        _checkingAttendance = false;
+        _authErrorMessage = null;
+        passwordController.clear();
+      });
+      showToast(context, state.errorMessage);
       return;
     }
 
@@ -225,37 +245,58 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Center(
                       child: SizedBox(
                         width: formWidth,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            SizedBox(height: logoTopSpacing),
-                            AppTools.img(
-                              AppTools.splashLogo,
-                              width: 104,
-                              height: 104,
-                            ),
-                            SizedBox(height: logoFormSpacing),
-                            _LoginForm(
-                              userNameController: userNameController,
-                              passwordController: passwordController,
-                              obscurePassword: _obscurePassword,
-                              authErrorMessage: _authErrorMessage,
-                              onClearUserName: () =>
-                                  _clearController(userNameController),
-                              onClearPassword: () =>
-                                  _clearController(passwordController),
-                              onTogglePassword: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              onSubmit: () => _login(context),
-                              hasInput: _hasInput,
-                              hasAuthError: _hasAuthError,
-                              externalBusy: _checkingAttendance,
-                            ),
-                            const SizedBox(height: 24),
-                          ],
+                        child: BlocBuilder<LoginBloc, LoginState>(
+                          builder: (context, state) {
+                            final showEimzo = _isEimzoStep(state.status);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SizedBox(height: logoTopSpacing),
+                                AppTools.img(
+                                  AppTools.splashLogo,
+                                  width: 104,
+                                  height: 104,
+                                ),
+                                SizedBox(height: logoFormSpacing),
+                                if (showEimzo)
+                                  _EImzoVerificationCard(
+                                    status: state.status,
+                                    onVerify: () =>
+                                        context.read<LoginBloc>().add(
+                                          const EImzoVerificationRequested(),
+                                        ),
+                                    onBack: () {
+                                      passwordController.clear();
+                                      _submitted = false;
+                                      context.read<LoginBloc>().add(
+                                        const EImzoResetRequested(),
+                                      );
+                                    },
+                                  )
+                                else
+                                  _LoginForm(
+                                    userNameController: userNameController,
+                                    passwordController: passwordController,
+                                    obscurePassword: _obscurePassword,
+                                    authErrorMessage: _authErrorMessage,
+                                    onClearUserName: () =>
+                                        _clearController(userNameController),
+                                    onClearPassword: () =>
+                                        _clearController(passwordController),
+                                    onTogglePassword: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                    onSubmit: () => _login(context),
+                                    hasInput: _hasInput,
+                                    hasAuthError: _hasAuthError,
+                                    externalBusy: _checkingAttendance,
+                                  ),
+                                const SizedBox(height: 24),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -358,6 +399,171 @@ class _LoginForm extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _EImzoVerificationCard extends StatelessWidget {
+  const _EImzoVerificationCard({
+    required this.status,
+    required this.onVerify,
+    required this.onBack,
+  });
+
+  final LoginStatus status;
+  final VoidCallback onVerify;
+  final VoidCallback onBack;
+
+  bool get _isBusy =>
+      status == LoginStatus.eimzoLaunching ||
+      status == LoginStatus.eimzoWaiting ||
+      status == LoginStatus.eimzoCompleting;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBFCFF),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE0E4F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D1A1D2E),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9ECF6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE6EDFF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: SvgPicture.asset(
+                    'assets/icons/ic_hugeicons_shield_key.svg',
+                    width: 24,
+                    height: 24,
+                    colorFilter: const ColorFilter.mode(
+                      Color(0xFF245BFF),
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: _EImzoCardText()),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: Material(
+              color: const Color(0xFF354B9A),
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _isBusy ? null : onVerify,
+                child: Center(
+                  child: _isBusy
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle_outline_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              Words.eimzoVerify.tr(),
+                              style: GoogleFonts.manrope(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: _isBusy ? null : onBack,
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Color(0xFF202020),
+              size: 20,
+            ),
+            label: Text(
+              Words.eimzoBack.tr(),
+              style: GoogleFonts.manrope(
+                color: const Color(0xFF202020),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EImzoCardText extends StatelessWidget {
+  const _EImzoCardText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          Words.eimzoTitle.tr(),
+          style: GoogleFonts.manrope(
+            color: const Color(0xFF1A1D2E),
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          Words.eimzoDescription.tr(),
+          style: GoogleFonts.manrope(
+            color: const Color(0xFF1A1D2E),
+            fontSize: 13,
+            height: 18 / 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

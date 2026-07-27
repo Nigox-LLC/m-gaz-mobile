@@ -33,7 +33,7 @@ class ApiHive {
   }
 
   Future<void> putToken(TokenModel value) async {
-    debugPrint("Token saqlanmoqda: ${value.access} / ${value.refresh}");
+    debugPrint('Auth tokenlari yangilanmoqda');
 
     if (value.access.isNotEmpty) {
       await _base.apiBox.put("access_token", value.access);

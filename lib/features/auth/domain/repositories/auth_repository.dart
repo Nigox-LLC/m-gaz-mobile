@@ -3,16 +3,13 @@ import 'dart:io';
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
-import '../entities/auth_token.dart';
 import '../entities/user.dart';
 
 /// Domain contract for authentication. Implementations live in the data
 /// layer (`AuthRepositoryImpl`).
 abstract class AuthRepository {
-  /// Performs username/password login. On success the token pair is also
-  /// persisted in local storage so subsequent authenticated calls can
-  /// retrieve it.
-  Future<Either<Failure, AuthToken>> login({
+  /// Validates username/password without persisting the legacy login tokens.
+  Future<Either<Failure, int>> validateCredentials({
     required String userName,
     required String password,
   });

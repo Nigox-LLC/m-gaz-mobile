@@ -23,8 +23,18 @@ import '../features/auth/data/datasources/auth_remote_data_source.dart'
     as _i719;
 import '../features/auth/data/datasources/auth_remote_data_source_impl.dart'
     as _i902;
+import '../features/auth/data/datasources/eimzo_remote_data_source.dart'
+    as _i511;
+import '../features/auth/data/datasources/eimzo_remote_data_source_impl.dart'
+    as _i846;
 import '../features/auth/data/repositories/auth_repository_impl.dart' as _i570;
+import '../features/auth/data/repositories/eimzo_auth_repository_impl.dart'
+    as _i537;
 import '../features/auth/domain/repositories/auth_repository.dart' as _i869;
+import '../features/auth/domain/repositories/eimzo_auth_repository.dart'
+    as _i212;
+import '../features/auth/domain/usecases/eimzo_mobile_auth_usecases.dart'
+    as _i484;
 import '../features/auth/domain/usecases/get_saved_username_usecase.dart'
     as _i862;
 import '../features/auth/domain/usecases/load_user_profile_usecase.dart'
@@ -34,6 +44,8 @@ import '../features/auth/domain/usecases/logout_usecase.dart' as _i11;
 import '../features/auth/domain/usecases/update_profile_photo_usecase.dart'
     as _i11;
 import '../features/auth/presentation/bloc/login_bloc.dart' as _i724;
+import '../features/auth/presentation/services/eimzo_mobile_service.dart'
+    as _i676;
 import '../features/gas_networks/data/datasources/gas_networks_remote_data_source.dart'
     as _i35;
 import '../features/gas_networks/data/datasources/gas_networks_remote_data_source_impl.dart'
@@ -79,12 +91,22 @@ _i174.GetIt init(
       gh<_i109.AuthLocalDataSource>(),
     ),
   );
+  gh.lazySingleton<_i511.EImzoRemoteDataSource>(
+    () => _i846.EImzoRemoteDataSourceImpl(gh<_i510.ApiClient>()),
+  );
   gh.lazySingleton<_i869.AuthRepository>(
     () => _i570.AuthRepositoryImpl(
       gh<_i719.AuthRemoteDataSource>(),
       gh<_i109.AuthLocalDataSource>(),
     ),
   );
+  gh.lazySingleton<_i212.EImzoAuthRepository>(
+    () => _i537.EImzoAuthRepositoryImpl(
+      gh<_i511.EImzoRemoteDataSource>(),
+      gh<_i109.AuthLocalDataSource>(),
+    ),
+  );
+  gh.lazySingleton<_i676.EImzoMobileService>(() => _i676.EImzoMobileService());
   gh.lazySingleton<_i1053.ProfileRemoteDataSource>(
     () => _i535.ProfileRemoteDataSourceImpl(
       gh<_i510.ApiClient>(),
@@ -106,6 +128,16 @@ _i174.GetIt init(
   gh.factory<_i406.LoginUseCase>(
     () => _i406.LoginUseCase(gh<_i869.AuthRepository>()),
   );
+  gh.factory<_i484.StartEImzoMobileSessionUseCase>(
+    () => _i484.StartEImzoMobileSessionUseCase(gh<_i212.EImzoAuthRepository>()),
+  );
+  gh.factory<_i484.GetEImzoMobileStatusUseCase>(
+    () => _i484.GetEImzoMobileStatusUseCase(gh<_i212.EImzoAuthRepository>()),
+  );
+  gh.factory<_i484.CompleteEImzoMobileLoginUseCase>(
+    () =>
+        _i484.CompleteEImzoMobileLoginUseCase(gh<_i212.EImzoAuthRepository>()),
+  );
   gh.factory<_i11.LogoutUseCase>(
     () => _i11.LogoutUseCase(gh<_i869.AuthRepository>()),
   );
@@ -118,6 +150,10 @@ _i174.GetIt init(
       gh<_i846.LoadUserProfileUseCase>(),
       gh<_i862.GetSavedUsernameUseCase>(),
       gh<_i11.UpdateProfilePhotoUseCase>(),
+      gh<_i484.StartEImzoMobileSessionUseCase>(),
+      gh<_i484.GetEImzoMobileStatusUseCase>(),
+      gh<_i484.CompleteEImzoMobileLoginUseCase>(),
+      gh<_i676.EImzoMobileService>(),
     ),
   );
   gh.lazySingleton<_i943.GasNetworksRepository>(

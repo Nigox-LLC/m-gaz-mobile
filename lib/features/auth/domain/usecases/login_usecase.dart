@@ -4,7 +4,6 @@ import 'package:injectable/injectable.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecase/usecase.dart';
-import '../entities/auth_token.dart';
 import '../repositories/auth_repository.dart';
 
 /// Input parameters for [LoginUseCase].
@@ -18,17 +17,16 @@ class LoginParams extends Equatable {
   List<Object?> get props => [userName, password];
 }
 
-/// Authenticates the user with username/password and returns the resulting
-/// [AuthToken] on success.
+/// Validates username/password before the mandatory E-Imzo verification.
 @injectable
-class LoginUseCase implements UseCase<AuthToken, LoginParams> {
+class LoginUseCase implements UseCase<int, LoginParams> {
   LoginUseCase(this._repository);
 
   final AuthRepository _repository;
 
   @override
-  Future<Either<Failure, AuthToken>> call(LoginParams params) {
-    return _repository.login(
+  Future<Either<Failure, int>> call(LoginParams params) {
+    return _repository.validateCredentials(
       userName: params.userName,
       password: params.password,
     );

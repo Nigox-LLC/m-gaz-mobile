@@ -9,15 +9,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:m_gaz/app/injection.dart';
 import 'package:m_gaz/core/error/failures.dart';
 import 'package:m_gaz/features/auth/domain/entities/auth_token.dart';
+import 'package:m_gaz/features/auth/domain/entities/eimzo_mobile_session.dart';
+import 'package:m_gaz/features/auth/domain/entities/eimzo_status.dart';
 import 'package:m_gaz/features/auth/domain/entities/user.dart';
 import 'package:m_gaz/core/api/attendance/attendance_api.dart';
 import 'package:m_gaz/features/auth/domain/repositories/auth_repository.dart';
+import 'package:m_gaz/features/auth/domain/repositories/eimzo_auth_repository.dart';
+import 'package:m_gaz/features/auth/domain/usecases/eimzo_mobile_auth_usecases.dart';
 import 'package:m_gaz/features/auth/domain/usecases/get_saved_username_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/load_user_profile_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/login_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/update_profile_photo_usecase.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/features/auth/presentation/pages/login_screen.dart';
+import 'package:m_gaz/features/auth/presentation/services/eimzo_mobile_service.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_text_field.dart';
 import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
@@ -176,6 +181,7 @@ void main() {
 
 Future<void> _pumpLoginScreen(WidgetTester tester) async {
   final repository = _FakeAuthRepository();
+  final eimzoRepository = _FakeEImzoAuthRepository();
 
   // LoginScreen storage'dan username'ni getIt orqali to'g'ridan-to'g'ri o'qiydi.
   if (getIt.isRegistered<GetSavedUsernameUseCase>()) {
@@ -215,6 +221,10 @@ Future<void> _pumpLoginScreen(WidgetTester tester) async {
                     LoadUserProfileUseCase(repository),
                     GetSavedUsernameUseCase(repository),
                     UpdateProfilePhotoUseCase(repository),
+                    StartEImzoMobileSessionUseCase(eimzoRepository),
+                    GetEImzoMobileStatusUseCase(eimzoRepository),
+                    CompleteEImzoMobileLoginUseCase(eimzoRepository),
+                    EImzoMobileService(),
                   ),
                 ),
                 BlocProvider(
@@ -243,15 +253,19 @@ const _loginTranslationKeys = [
   'loginPasswordLabel',
   'loginPasswordHint',
   'loginSubmit',
+  'eimzoTitle',
+  'eimzoDescription',
+  'eimzoVerify',
+  'eimzoBack',
 ];
 
 class _FakeAuthRepository implements AuthRepository {
   @override
-  Future<Either<Failure, AuthToken>> login({
+  Future<Either<Failure, int>> validateCredentials({
     required String userName,
     required String password,
   }) async {
-    return const Right(AuthToken(access: 'access', refresh: 'refresh'));
+    return const Right(123);
   }
 
   @override
@@ -278,6 +292,30 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Either<Failure, String>> getSavedUsername() async {
     return const Right('');
   }
+}
+
+class _FakeEImzoAuthRepository implements EImzoAuthRepository {
+  @override
+  Future<Either<Failure, AuthToken>> completeMobileLogin({
+    required String documentId,
+    required int employeeId,
+  }) async => const Right(AuthToken(access: 'access', refresh: 'refresh'));
+
+  @override
+  Future<Either<Failure, EImzoStatus>> getMobileStatus(
+    String documentId,
+  ) async => const Right(EImzoStatus(code: 2));
+
+  @override
+  Future<Either<Failure, EImzoMobileSession>> startMobileSession() async =>
+      const Right(
+        EImzoMobileSession(
+          siteId: 'b552',
+          documentId: '362811E9',
+          challenge: '59FC8CDAF823211E15F9EEB62B1CB6E1',
+          ttl: Duration(seconds: 120),
+        ),
+      );
 }
 
 class _FakeAttendanceApi implements AttendanceApi {

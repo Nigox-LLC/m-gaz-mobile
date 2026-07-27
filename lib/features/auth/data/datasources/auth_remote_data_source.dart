@@ -1,16 +1,14 @@
 import 'dart:io';
 
-import '../models/auth_token_model.dart';
 import '../models/user_model.dart';
 
 /// Contract for the remote auth data source. Implementations talk to the
 /// backend HTTP API and translate transport errors into the typed exceptions
 /// declared in `core/error/exceptions.dart`.
 abstract class AuthRemoteDataSource {
-  /// Sends username/password to the backend and returns the resulting token
-  /// pair. Token persistence is NOT a responsibility of this layer — the
-  /// repository decides how/where to store it.
-  Future<AuthTokenModel> login({
+  /// Checks username/password without making the returned JWT available to
+  /// the application. E-Imzo owns the final authenticated session.
+  Future<int> validateCredentials({
     required String userName,
     required String password,
   });
