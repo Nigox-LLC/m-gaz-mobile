@@ -25,6 +25,9 @@ class ApiHive {
   String get accessToken =>
       _base.apiBox.get("access_token", defaultValue: "") ?? "";
 
+  bool get hasStoredSession =>
+      accessToken.isNotEmpty && refreshToken.isNotEmpty;
+
   int? get employeeId {
     final value = _base.apiBox.get("employee_id");
     if (value is int) return value;

@@ -160,6 +160,7 @@ class AppTools {
   static const String icEye = "assets/icons/ic_eye.svg";
   static const String icRadio = "assets/icons/ic_radio.svg";
   static const String icBuilding = "assets/icons/ic_building.svg";
+  static const String biometricFaceId = "assets/icons/ic_hugeicons_face_id.svg";
 
   static const String splashLogo = "assets/icons/splash_logo.png";
   static const String appBanner = "assets/icons/app_banner.png";

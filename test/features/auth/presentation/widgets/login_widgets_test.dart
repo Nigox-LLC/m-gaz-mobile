@@ -13,12 +13,16 @@ import 'package:m_gaz/features/auth/domain/entities/user.dart';
 import 'package:m_gaz/core/api/attendance/attendance_api.dart';
 import 'package:m_gaz/features/auth/domain/repositories/auth_repository.dart';
 import 'package:m_gaz/features/auth/domain/usecases/get_saved_username_usecase.dart';
+import 'package:m_gaz/features/auth/domain/usecases/has_stored_session_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/load_user_profile_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/login_usecase.dart';
+import 'package:m_gaz/features/auth/domain/usecases/mark_session_active_usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/update_profile_photo_usecase.dart';
+import 'package:m_gaz/features/auth/domain/services/biometric_auth_service.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/features/auth/presentation/pages/login_screen.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
+import 'package:m_gaz/features/auth/presentation/widgets/biometric_login_button.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_text_field.dart';
 import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -141,6 +145,28 @@ void main() {
     });
   });
 
+  group('BiometricLoginButton', () {
+    testWidgets('shows Figma label and blocks disabled taps', (tester) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        wrap(
+          BiometricLoginButton(
+            title: 'Barmoq izi yo‘ki Face ID orqali',
+            isEnabled: false,
+            isLoading: false,
+            onPressed: () => taps++,
+          ),
+        ),
+      );
+
+      await tester.tap(find.byType(BiometricLoginButton));
+      await tester.pump();
+
+      expect(taps, 0);
+      expect(find.text('Barmoq izi yo‘ki Face ID orqali'), findsOneWidget);
+    });
+  });
+
   group('LoginTextField', () {
     testWidgets('shows error text and clear action', (tester) async {
       final controller = TextEditingController(text: 'Admin');
@@ -215,6 +241,9 @@ Future<void> _pumpLoginScreen(WidgetTester tester) async {
                     LoadUserProfileUseCase(repository),
                     GetSavedUsernameUseCase(repository),
                     UpdateProfilePhotoUseCase(repository),
+                    _FakeBiometricAuthService(),
+                    HasStoredSessionUseCase(repository),
+                    MarkSessionActiveUseCase(repository),
                   ),
                 ),
                 BlocProvider(
@@ -243,6 +272,13 @@ const _loginTranslationKeys = [
   'loginPasswordLabel',
   'loginPasswordHint',
   'loginSubmit',
+  'biometricLogin',
+  'biometricPromptReason',
+  'biometricNotAvailable',
+  'biometricNotEnrolled',
+  'biometricLockedOut',
+  'biometricTryPassword',
+  'sessionLoginAgain',
 ];
 
 class _FakeAuthRepository implements AuthRepository {
@@ -278,6 +314,22 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Either<Failure, String>> getSavedUsername() async {
     return const Right('');
   }
+
+  @override
+  Future<Either<Failure, bool>> hasStoredSession() async => const Right(false);
+
+  @override
+  Future<Either<Failure, Unit>> markSessionActive() async => const Right(unit);
+}
+
+class _FakeBiometricAuthService implements BiometricAuthService {
+  @override
+  Future<BiometricAvailability> availability() async =>
+      BiometricAvailability.notSupported;
+
+  @override
+  Future<BiometricResult> authenticate({required String reason}) async =>
+      BiometricResult.unavailable;
 }
 
 class _FakeAttendanceApi implements AttendanceApi {

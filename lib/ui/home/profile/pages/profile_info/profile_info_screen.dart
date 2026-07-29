@@ -56,11 +56,13 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen>
 
   void _logout() async {
     final apiHive = di.get<ApiHive>();
-    await apiHive.clear();
+    await apiHive.clearAll();
 
     if (!mounted) return;
 
     await _animationController.reverse();
+
+    if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(
       context,

@@ -35,3 +35,16 @@ class ProfilePhotoUploaded extends LoginEvent {
   @override
   List<Object?> get props => [userId, photo];
 }
+
+class CheckBiometricAvailability extends LoginEvent {
+  const CheckBiometricAvailability();
+}
+
+class BiometricUnlockRequested extends LoginEvent {
+  const BiometricUnlockRequested({required this.reason});
+
+  final String reason;
+
+  @override
+  List<Object?> get props => [reason];
+}

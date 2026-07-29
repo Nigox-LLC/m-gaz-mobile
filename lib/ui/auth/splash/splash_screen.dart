@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../core/constants/session_constants.dart';
 import '../../../core/extension/size_extension.dart';
 import '../../../core/hive/api_hive.dart';
 import '../../../core/utils/colors.dart';
@@ -8,7 +7,6 @@ import '../../../core/utils/style.dart';
 import '../../../di.dart';
 import '../../../global_widget/app_tools.dart';
 import '../../../features/auth/presentation/pages/login_screen.dart';
-import '../../home/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,30 +40,15 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    final hasToken = hive.accessToken.isNotEmpty;
-    final lastActive = hive.lastActiveMillis;
-    final elapsed = DateTime.now().millisecondsSinceEpoch - lastActive;
-    final sessionAlive =
-        lastActive > 0 && elapsed < kSessionTimeout.inMilliseconds;
-
-    if (hasToken && sessionAlive) {
-      _goHome();
-    } else {
-      _goLogin();
-    }
+    _goLogin(autoBiometric: hive.hasStoredSession);
   }
 
-  void _goHome() {
+  void _goLogin({bool autoBiometric = false}) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => HomeScreen()),
-    );
-  }
-
-  void _goLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => LoginScreen()),
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(autoBiometric: autoBiometric),
+      ),
     );
   }
 
