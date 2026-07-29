@@ -30,6 +30,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       await _local.saveToken(tokenModel);
       await _local.saveUsername(userName);
+      await _local.markSessionActive();
       return Right(tokenModel);
     } on UnauthorizedException catch (e) {
       return Left(UnauthorizedFailure(e.message));
@@ -100,6 +101,25 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, String>> getSavedUsername() async {
     try {
       return Right(_local.savedUsername);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> hasStoredSession() async {
+    try {
+      return Right(_local.hasStoredSession);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> markSessionActive() async {
+    try {
+      await _local.markSessionActive();
+      return const Right(unit);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }

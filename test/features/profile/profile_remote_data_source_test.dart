@@ -78,10 +78,16 @@ class _FakeAuthLocalDataSource implements AuthLocalDataSource {
   String get savedUsername => '';
 
   @override
+  bool get hasStoredSession => accessToken.isNotEmpty;
+
+  @override
   Future<void> clear() async {}
 
   @override
   Future<void> clearAll() async {}
+
+  @override
+  Future<void> markSessionActive() async {}
 
   @override
   Future<void> saveEmployeeId(int employeeId) async {}

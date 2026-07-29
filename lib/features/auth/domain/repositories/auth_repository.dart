@@ -31,4 +31,9 @@ abstract class AuthRepository {
   /// Returns the last successfully logged-in username (empty if none), used to
   /// pre-fill the login form on app launch.
   Future<Either<Failure, String>> getSavedUsername();
+
+  /// True only when the locally stored token pair can restore a session.
+  Future<Either<Failure, bool>> hasStoredSession();
+
+  Future<Either<Failure, Unit>> markSessionActive();
 }

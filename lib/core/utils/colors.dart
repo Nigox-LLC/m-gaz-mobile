@@ -54,13 +54,13 @@ class AppColors {
   static const Color cF79009 = Color(0xffF79009);
   static const Color c252B37 = Color(0xff252B37);
   static const Color fEF3F2 = Color(0xffFEF3F2);
-  static const Color c00A6FB =  Color(0xFF00A6FB);
-
+  static const Color c00A6FB = Color(0xFF00A6FB);
+  static const Color biometricButton = Color(0xFF526ED3);
+  static const Color biometricBorder = Color(0xFFE8E8E8);
 
   static const LinearGradient catalogGradient = LinearGradient(
     colors: [Color(0xff2A5F7F), Color(0xff0A1F2E)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-
 }

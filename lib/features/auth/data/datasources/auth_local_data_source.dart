@@ -8,6 +8,8 @@ abstract class AuthLocalDataSource {
 
   String get accessToken;
   String get refreshToken;
+  bool get hasStoredSession;
+  Future<void> markSessionActive();
 
   Future<void> clear();
 

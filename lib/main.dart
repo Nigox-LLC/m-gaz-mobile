@@ -73,31 +73,28 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final hive = di.get<ApiHive>();
       final lastActive = hive.lastActiveMillis;
       final elapsed = DateTime.now().millisecondsSinceEpoch - lastActive;
-      final timedOut = lastActive > 0 && elapsed >= kSessionTimeout.inMilliseconds;
+      final timedOut =
+          lastActive > 0 && elapsed >= kSessionTimeout.inMilliseconds;
       // pendingRelogin = kamera/face-verification bo'limidan chiqilgan — 30s
       // oynani kutmasdan darhol login. Aks holda — odatiy 30s timeout.
       if (hive.pendingRelogin || timedOut) {
-        _forceLogin();
+        _forceLogin(autoBiometric: timedOut && !hive.pendingRelogin);
       }
     }
   }
 
   // Orqa fondan qaytganda login ekraniga majburiy o'tish (soft logout: token va
   // saqlangan username qoladi, LoginScreen.initState username'ni avto-to'ldiradi).
-  void _forceLogin() {
+  void _forceLogin({bool autoBiometric = false}) {
     di.get<ApiHive>().setPendingRelogin(false);
     final nav = mainKey.currentState;
     if (nav == null) return;
-    // Splash anonim route'lar bilan push qiladi — nomli route'lar bilan aralashib
-    // ketsa fallback sifatida to'g'ridan-to'g'ri LoginScreen'ga o'tamiz.
-    try {
-      nav.pushNamedAndRemoveUntil('/login', (route) => false);
-    } catch (_) {
-      nav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => LoginScreen()),
-        (route) => false,
-      );
-    }
+    nav.pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(autoBiometric: autoBiometric),
+      ),
+      (route) => false,
+    );
   }
 
   @override

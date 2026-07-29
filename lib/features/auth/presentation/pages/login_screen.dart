@@ -12,7 +12,9 @@ import 'package:m_gaz/core/usecase/usecase.dart';
 import 'package:m_gaz/features/auth/domain/usecases/get_saved_username_usecase.dart';
 import 'package:m_gaz/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_button.dart';
+import 'package:m_gaz/features/auth/presentation/widgets/biometric_login_button.dart';
 import 'package:m_gaz/features/auth/presentation/widgets/login_text_field.dart';
+import 'package:m_gaz/features/auth/domain/services/biometric_auth_service.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 import 'package:m_gaz/ui/auth/attendance/agreement_screen.dart';
 import 'package:m_gaz/ui/auth/attendance/bloc/attendance_bloc.dart';
@@ -22,7 +24,9 @@ import 'package:m_gaz/ui/auth/attendance/bloc/attendance_state.dart';
 import '../../../../ui/home/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.autoBiometric = false});
+
+  final bool autoBiometric;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -45,6 +49,8 @@ class _LoginScreenState extends State<LoginScreen> {
   // Login muvaffaqiyatli bo'lgandan keyin backend yo'qlama tekshiruvi
   // (AttendanceCheckAccess) davom etayotganini bildiradi.
   bool _checkingAttendance = false;
+  bool _autoBiometricPrompted = false;
+  bool _biometricNavigationStarted = false;
 
   bool get _hasInput =>
       userNameController.text.trim().isNotEmpty &&
@@ -58,6 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
     userNameController.addListener(_handleInputChanged);
     passwordController.addListener(_handleInputChanged);
     _prefillSavedUsername();
+    context.read<LoginBloc>().add(const CheckBiometricAvailability());
   }
 
   // Saqlangan foydalanuvchi nomini har safar ekran ochilganda (cold start,
@@ -98,7 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login(BuildContext context) {
-    if (_checkingAttendance) return;
+    if (_checkingAttendance ||
+        context.read<LoginBloc>().state.isBiometricPromptInProgress) {
+      return;
+    }
 
     if (!_hasInput) {
       showToast(context, Words.loginRequiredFields.tr());
@@ -121,6 +131,22 @@ class _LoginScreenState extends State<LoginScreen> {
   // Auth muvaffaqiyatli — endi lokal sana emas, backend GET orqali bugungi
   // yo'qlama holatini so'raymiz (AttendanceCheckAccess).
   void _onLoginState(BuildContext context, LoginState state) {
+    _maybeAutoUnlock(context, state);
+
+    if (state.biometricResult == BiometricResult.success &&
+        !_biometricNavigationStarted) {
+      _biometricNavigationStarted = true;
+      _startAttendanceCheck(context);
+      return;
+    }
+
+    if (state.biometricResult != null &&
+        state.biometricResult != BiometricResult.canceled &&
+        state.biometricResult != BiometricResult.success &&
+        !state.isBiometricPromptInProgress) {
+      showToast(context, _biometricMessage(state.biometricResult!));
+    }
+
     if (!_submitted) return;
 
     if (state.status == LoginStatus.fail) {
@@ -136,6 +162,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (state.status == LoginStatus.success && !_checkingAttendance) {
       _startAttendanceCheck(context);
+    }
+  }
+
+  void _maybeAutoUnlock(BuildContext context, LoginState state) {
+    if (!widget.autoBiometric ||
+        _autoBiometricPrompted ||
+        state.biometricAvailability != BiometricAvailability.available ||
+        !state.hasStoredSession) {
+      return;
+    }
+    _autoBiometricPrompted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _unlockWithBiometrics(context);
+    });
+  }
+
+  void _unlockWithBiometrics(BuildContext context) {
+    if (_checkingAttendance ||
+        context.read<LoginBloc>().state.isBiometricPromptInProgress) {
+      return;
+    }
+    context.read<LoginBloc>().add(
+      BiometricUnlockRequested(reason: Words.biometricPromptReason.tr()),
+    );
+  }
+
+  String _biometricMessage(BiometricResult result) {
+    switch (result) {
+      case BiometricResult.lockedOut:
+        return Words.biometricLockedOut.tr();
+      case BiometricResult.unavailable:
+        return Words.biometricNotAvailable.tr();
+      case BiometricResult.failed:
+        return Words.biometricTryPassword.tr();
+      case BiometricResult.canceled:
+      case BiometricResult.success:
+        return '';
     }
   }
 
@@ -183,7 +246,12 @@ class _LoginScreenState extends State<LoginScreen> {
         body: MultiBlocListener(
           listeners: [
             BlocListener<LoginBloc, LoginState>(
-              listenWhen: (prev, curr) => prev.status != curr.status,
+              listenWhen: (prev, curr) =>
+                  prev.status != curr.status ||
+                  prev.biometricAvailability != curr.biometricAvailability ||
+                  prev.biometricResult != curr.biometricResult ||
+                  prev.isBiometricPromptInProgress !=
+                      curr.isBiometricPromptInProgress,
               listener: _onLoginState,
             ),
             BlocListener<AttendanceBloc, AttendanceState>(
@@ -250,6 +318,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 });
                               },
                               onSubmit: () => _login(context),
+                              onBiometricSubmit: () =>
+                                  _unlockWithBiometrics(context),
                               hasInput: _hasInput,
                               hasAuthError: _hasAuthError,
                               externalBusy: _checkingAttendance,
@@ -280,6 +350,7 @@ class _LoginForm extends StatelessWidget {
     required this.onClearPassword,
     required this.onTogglePassword,
     required this.onSubmit,
+    required this.onBiometricSubmit,
     required this.hasInput,
     required this.hasAuthError,
     required this.externalBusy,
@@ -293,6 +364,7 @@ class _LoginForm extends StatelessWidget {
   final VoidCallback onClearPassword;
   final VoidCallback onTogglePassword;
   final VoidCallback onSubmit;
+  final VoidCallback onBiometricSubmit;
   final bool hasInput;
   final bool hasAuthError;
   // Auth muvaffaqiyatli, lekin backend yo'qlama tekshiruvi davom etayotgan davr —
@@ -303,7 +375,10 @@ class _LoginForm extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<LoginBloc, LoginState>(
       builder: (context, state) {
-        final isLoading = state.status == LoginStatus.loading || externalBusy;
+        final isLoading =
+            state.status == LoginStatus.loading ||
+            externalBusy ||
+            state.isBiometricPromptInProgress;
         final isEnabled = hasInput && !hasAuthError && !isLoading;
         final hasError = authErrorMessage != null;
 
@@ -355,6 +430,18 @@ class _LoginForm extends StatelessWidget {
               isLoading: isLoading,
               onPressed: onSubmit,
             ),
+            if (state.biometricAvailability ==
+                    BiometricAvailability.available &&
+                state.hasStoredSession) ...[
+              const SizedBox(height: 12),
+              BiometricLoginButton(
+                key: const ValueKey('biometric_login_button'),
+                title: Words.biometricLogin.tr(),
+                isEnabled: !isLoading,
+                isLoading: state.isBiometricPromptInProgress,
+                onPressed: onBiometricSubmit,
+              ),
+            ],
           ],
         );
       },

@@ -44,6 +44,12 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   String get refreshToken => _hive.refreshToken;
 
   @override
+  bool get hasStoredSession => _hive.hasStoredSession;
+
+  @override
+  Future<void> markSessionActive() => _hive.setLastActiveNow();
+
+  @override
   Future<void> clear() => _hive.clear();
 
   @override

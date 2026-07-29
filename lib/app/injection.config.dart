@@ -24,13 +24,20 @@ import '../features/auth/data/datasources/auth_remote_data_source.dart'
 import '../features/auth/data/datasources/auth_remote_data_source_impl.dart'
     as _i902;
 import '../features/auth/data/repositories/auth_repository_impl.dart' as _i570;
+import '../features/auth/data/services/local_biometric_auth_service.dart'
+    as _i590;
 import '../features/auth/domain/repositories/auth_repository.dart' as _i869;
+import '../features/auth/domain/services/biometric_auth_service.dart' as _i470;
 import '../features/auth/domain/usecases/get_saved_username_usecase.dart'
     as _i862;
+import '../features/auth/domain/usecases/has_stored_session_usecase.dart'
+    as _i225;
 import '../features/auth/domain/usecases/load_user_profile_usecase.dart'
     as _i846;
 import '../features/auth/domain/usecases/login_usecase.dart' as _i406;
 import '../features/auth/domain/usecases/logout_usecase.dart' as _i11;
+import '../features/auth/domain/usecases/mark_session_active_usecase.dart'
+    as _i1054;
 import '../features/auth/domain/usecases/update_profile_photo_usecase.dart'
     as _i11;
 import '../features/auth/presentation/bloc/login_bloc.dart' as _i724;
@@ -70,6 +77,9 @@ _i174.GetIt init(
   final gh = _i526.GetItHelper(getIt, environment, environmentFilter);
   final registerModule = _$RegisterModule();
   gh.lazySingleton<_i361.Dio>(() => registerModule.dio);
+  gh.lazySingleton<_i470.BiometricAuthService>(
+    () => _i590.LocalBiometricAuthService(),
+  );
   gh.lazySingleton<_i510.ApiClient>(() => _i510.ApiClient(gh<_i361.Dio>()));
   gh.lazySingleton<_i109.AuthLocalDataSource>(
     () => _i889.AuthLocalDataSourceImpl(),
@@ -102,6 +112,9 @@ _i174.GetIt init(
   gh.factory<_i862.GetSavedUsernameUseCase>(
     () => _i862.GetSavedUsernameUseCase(gh<_i869.AuthRepository>()),
   );
+  gh.factory<_i225.HasStoredSessionUseCase>(
+    () => _i225.HasStoredSessionUseCase(gh<_i869.AuthRepository>()),
+  );
   gh.factory<_i846.LoadUserProfileUseCase>(
     () => _i846.LoadUserProfileUseCase(gh<_i869.AuthRepository>()),
   );
@@ -110,6 +123,9 @@ _i174.GetIt init(
   );
   gh.factory<_i11.LogoutUseCase>(
     () => _i11.LogoutUseCase(gh<_i869.AuthRepository>()),
+  );
+  gh.factory<_i1054.MarkSessionActiveUseCase>(
+    () => _i1054.MarkSessionActiveUseCase(gh<_i869.AuthRepository>()),
   );
   gh.factory<_i11.UpdateProfilePhotoUseCase>(
     () => _i11.UpdateProfilePhotoUseCase(gh<_i869.AuthRepository>()),
@@ -120,6 +136,9 @@ _i174.GetIt init(
       gh<_i846.LoadUserProfileUseCase>(),
       gh<_i862.GetSavedUsernameUseCase>(),
       gh<_i11.UpdateProfilePhotoUseCase>(),
+      gh<_i470.BiometricAuthService>(),
+      gh<_i225.HasStoredSessionUseCase>(),
+      gh<_i1054.MarkSessionActiveUseCase>(),
     ),
   );
   gh.lazySingleton<_i943.GasNetworksRepository>(
