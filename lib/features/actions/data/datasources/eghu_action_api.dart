@@ -6,6 +6,7 @@ import '../../domain/entities/action_menu_item.dart';
 import '../models/eghu_action_attachment.dart';
 import '../models/eghu_action_create_request.dart';
 import '../models/eghu_removal_detail.dart';
+import '../models/eghu_removal_flow.dart';
 import '../models/eghu_working_document.dart';
 
 abstract class EghuActionSubmitApi {
@@ -16,6 +17,15 @@ abstract class EghuActionDetailApi {
   Future<EghuRemovalDetail> getDetail(int id);
 
   Future<void> update(int id, EghuActionCreateRequest request);
+}
+
+abstract class EghuRemovalFlowApi {
+  Future<EghuTargetInfo> getTargetInfo({
+    required String documentType,
+    required int documentId,
+  });
+
+  Future<void> removeStamp(EghuStampRemovalRequest request);
 }
 
 abstract class EghuActionListApi {
@@ -35,7 +45,11 @@ abstract class EghuActionListApi {
 }
 
 class EghuActionApi
-    implements EghuActionSubmitApi, EghuActionListApi, EghuActionDetailApi {
+    implements
+        EghuActionSubmitApi,
+        EghuActionListApi,
+        EghuActionDetailApi,
+        EghuRemovalFlowApi {
   const EghuActionApi(this._base);
 
   final ApiBase _base;
@@ -45,6 +59,50 @@ class EghuActionApi
       '${egxuActionsBaseEndpoint}egxu-removals/';
   static const String egxuRemovalAktEndpoint =
       '${egxuActionsBaseEndpoint}egxu-removal-akt/';
+  static const String workingWithEgxuTargetInfoEndpoint =
+      'working-with-egxu/target-info/';
+  static const String workingWithEgxuRemovalsEndpoint =
+      'working-with-egxu/removals/';
+
+  @override
+  Future<EghuTargetInfo> getTargetInfo({
+    required String documentType,
+    required int documentId,
+  }) async {
+    try {
+      final response = await _base.dio.get(
+        workingWithEgxuTargetInfoEndpoint,
+        queryParameters: {
+          'document_type': documentType,
+          'document_id': documentId,
+        },
+      );
+      if (response.statusCode == 200 && response.data is Map) {
+        return EghuTargetInfo.fromJson(
+          Map<String, dynamic>.from(response.data as Map),
+        );
+      }
+      throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  @override
+  Future<void> removeStamp(EghuStampRemovalRequest request) async {
+    try {
+      final response = await _base.dio.post(
+        workingWithEgxuRemovalsEndpoint,
+        data: request.toJson(),
+        options: Options(contentType: Headers.jsonContentType),
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
 
   @override
   Future<PaginatedResponse<EghuWorkingDocument>> getDocuments({

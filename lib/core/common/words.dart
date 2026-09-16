@@ -25,6 +25,7 @@ enum Words {
   realDevices,
   noRealDevices,
   sealRemoved,
+  removeStamp,
   active,
   installed,
   sealLocation,

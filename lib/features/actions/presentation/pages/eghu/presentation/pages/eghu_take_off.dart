@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:m_gaz/core/common/words.dart';
 import 'package:m_gaz/features/actions/domain/entities/action_menu_item.dart';
-import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_detach_create_page.dart';
+import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/pages/eghu_removal_date_page.dart';
 import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/widgets/create/eghu_action_bottom_sheets.dart';
 import 'package:m_gaz/features/actions/presentation/pages/eghu/presentation/widgets/eghu_action_list_page.dart';
 
@@ -19,7 +19,7 @@ class EghuTakeOffPage extends StatelessWidget {
       facial: facial,
       onAdd: () => Navigator.of(context).push(
         MaterialPageRoute<bool>(
-          builder: (_) => EghuDetachCreatePage(preselection: preselection),
+          builder: (_) => EghuRemovalDatePage(preselection: preselection),
         ),
       ),
     );
