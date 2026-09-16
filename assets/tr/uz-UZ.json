@@ -394,6 +394,8 @@
   "personalAccountLabel": "Shaxsiy hisob",
   "factoryNumberLabel": "Zavod raqami",
   "documentTypeLabel": "Hujjat turi",
+  "consumerDocumentType": "Iste’molchi",
+  "continueAction": "Davom etish",
   "activityTypeLabel": "Faoliyat turi",
   "enterValue": "Qiymat kiriting",
   "basisInformation": "Asos ma'lumotlari",

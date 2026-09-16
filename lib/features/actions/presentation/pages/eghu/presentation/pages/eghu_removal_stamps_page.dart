@@ -146,6 +146,7 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
       await (widget.api ?? di.get<EghuActionApi>()).removeStamp(
         EghuStampRemovalRequest(
           datetime: widget.removalDateTime,
+          documentId: detail.id ?? widget.preselection.consumer.id,
           egxuId: _egxu!.id!,
           stamp: stamp,
           regionId: detail.region?.id ?? profile?.user?.regionId,

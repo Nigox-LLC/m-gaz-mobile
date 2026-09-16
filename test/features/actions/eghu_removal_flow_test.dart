@@ -25,6 +25,7 @@ void main() {
     final stamp = info.egxus.single.reals.single;
     final request = EghuStampRemovalRequest(
       datetime: DateTime(2026, 9, 15, 12),
+      documentId: 12,
       egxuId: info.egxus.single.id!,
       stamp: stamp,
       regionId: 1,
@@ -39,6 +40,7 @@ void main() {
     expect(stamp.number, 'T-00451');
     expect(item['egxu_id'], 25);
     expect(item['gas_usage_status'], 'tagged');
+    expect(request.toJson()['document_id'], 12);
     expect(real['real_number'], 'T-00451');
     expect(real['from_date'], '2026-01-10');
     expect(stamp.sealLocation, 'Kirish zulfini');

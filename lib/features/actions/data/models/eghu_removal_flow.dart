@@ -124,6 +124,7 @@ class EghuTargetInfoReal {
 class EghuStampRemovalRequest {
   const EghuStampRemovalRequest({
     required this.datetime,
+    required this.documentId,
     required this.egxuId,
     required this.stamp,
     this.regionId,
@@ -135,6 +136,7 @@ class EghuStampRemovalRequest {
   });
 
   final DateTime datetime;
+  final int documentId;
   final int egxuId;
   final EghuTargetInfoReal stamp;
   final int? regionId;
@@ -168,6 +170,7 @@ class EghuStampRemovalRequest {
       if (fullName?.trim().isNotEmpty == true) 'full_name': fullName!.trim(),
       if (organization?.trim().isNotEmpty == true)
         'organization': organization!.trim(),
+      'document_id': documentId,
       'list': [
         {
           'egxu_id': egxuId,

@@ -403,6 +403,8 @@ enum Words {
   personalAccountLabel,
   factoryNumberLabel,
   documentTypeLabel,
+  consumerDocumentType,
+  continueAction,
   activityTypeLabel,
   enterValue,
   basisInformation,
