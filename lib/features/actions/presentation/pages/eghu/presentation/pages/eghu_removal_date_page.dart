@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:m_gaz/core/api/global/global_api.dart';
 import 'package:m_gaz/core/models/global/global_model.dart';
 import 'package:m_gaz/di.dart';
+import 'package:m_gaz/global_widget/global_dropdown.dart';
 
 import '../../../../../../../core/common/words.dart';
 import '../widgets/create/eghu_action_bottom_sheets.dart';
@@ -22,28 +23,37 @@ class EghuRemovalDatePage extends StatefulWidget {
 
 class _EghuRemovalDatePageState extends State<EghuRemovalDatePage> {
   late DateTime _dateTime;
-  late final Future<GlobalModel?> _consumerActivityType;
+  late final Future<List<GlobalModel>> _activityTypes;
+  GlobalModel? _selectedActivityType;
 
   @override
   void initState() {
     super.initState();
     _dateTime = DateTime.now();
-    _consumerActivityType = _loadConsumerActivityType(
+    _activityTypes = _loadActivityTypes(
       widget.globalApi ?? di.get<GlobalApi>(),
     );
   }
 
-  Future<GlobalModel?> _loadConsumerActivityType(GlobalApi api) async {
+  Future<List<GlobalModel>> _loadActivityTypes(GlobalApi api) async {
     final activityTypes = await api.getActivityTypes();
+    final currentRelation = widget.preselection?.eghu.consumerRelationEgxu;
+    final currentId = currentRelation?.typeOfActivityId;
+    final currentName = _normalizeActivityName(
+      currentRelation?.typeOfActivity ?? '',
+    );
+
     for (final activityType in activityTypes) {
-      final name = _normalizeActivityName(
+      final activityName = _normalizeActivityName(
         activityType.name ?? activityType.fio ?? '',
       );
-      if (name == "iste'molchi" || name.contains("iste'molchi")) {
-        return activityType;
+      if ((currentId != null && activityType.id == currentId) ||
+          (currentName.isNotEmpty && activityName == currentName)) {
+        _selectedActivityType = activityType;
+        break;
       }
     }
-    return null;
+    return activityTypes;
   }
 
   String _normalizeActivityName(String value) {
@@ -114,7 +124,11 @@ class _EghuRemovalDatePageState extends State<EghuRemovalDatePage> {
                         const SizedBox(height: 12),
                         _ActivityTypeField(
                           label: Words.activityType.tr(),
-                          activityTypeFuture: _consumerActivityType,
+                          activityTypesFuture: _activityTypes,
+                          selectedActivityType: _selectedActivityType,
+                          onChanged: (value) {
+                            setState(() => _selectedActivityType = value);
+                          },
                         ),
                         if (!canContinue) ...[
                           const SizedBox(height: 12),
@@ -140,6 +154,7 @@ class _EghuRemovalDatePageState extends State<EghuRemovalDatePage> {
                         builder: (_) => EghuRemovalStampsPage(
                           preselection: selection,
                           removalDateTime: _dateTime,
+                          activityTypeId: _selectedActivityType?.id,
                         ),
                       ),
                     );
@@ -238,20 +253,34 @@ class _ReadOnlyField extends StatelessWidget {
 class _ActivityTypeField extends StatelessWidget {
   const _ActivityTypeField({
     required this.label,
-    required this.activityTypeFuture,
+    required this.activityTypesFuture,
+    required this.selectedActivityType,
+    required this.onChanged,
   });
 
   final String label;
-  final Future<GlobalModel?> activityTypeFuture;
+  final Future<List<GlobalModel>> activityTypesFuture;
+  final GlobalModel? selectedActivityType;
+  final ValueChanged<GlobalModel> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<GlobalModel?>(
-      future: activityTypeFuture,
+    return FutureBuilder<List<GlobalModel>>(
+      future: activityTypesFuture,
       builder: (context, snapshot) {
-        final activityType = snapshot.data;
-        final value = activityType?.name ?? activityType?.fio;
-        return _ReadOnlyField(label: label, value: value);
+        return GenericSelectableField<GlobalModel>(
+          title: label,
+          items: snapshot.data ?? const [],
+          selectedItem: selectedActivityType,
+          hintText: snapshot.hasError
+              ? Words.errorOccurred.tr()
+              : snapshot.connectionState == ConnectionState.waiting
+              ? Words.loading.tr()
+              : Words.select.tr(),
+          getTitle: (item) => item.name ?? item.fio ?? '-',
+          isEqual: (a, b) => a.id == b.id,
+          onChanged: onChanged,
+        );
       },
     );
   }

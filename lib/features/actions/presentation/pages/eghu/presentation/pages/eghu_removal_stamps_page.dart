@@ -16,12 +16,14 @@ class EghuRemovalStampsPage extends StatefulWidget {
     super.key,
     required this.preselection,
     required this.removalDateTime,
+    this.activityTypeId,
     this.api,
     this.targetInfo,
   });
 
   final EghuActionPreselection preselection;
   final DateTime removalDateTime;
+  final int? activityTypeId;
   final EghuRemovalFlowApi? api;
   final EghuTargetInfo? targetInfo;
 
@@ -149,6 +151,7 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
           regionId: detail.region?.id ?? profile?.user?.regionId,
           districtId: detail.district?.id ?? profile?.user?.districtId,
           typeOfActivityId:
+              widget.activityTypeId ??
               widget.preselection.eghu.consumerRelationEgxu?.typeOfActivityId,
           employeeId: profile?.user?.employeeId ?? detail.employee?.id,
           fullName: profile?.user?.username ?? detail.employee?.fio,
