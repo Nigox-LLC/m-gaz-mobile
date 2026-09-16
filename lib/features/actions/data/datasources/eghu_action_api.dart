@@ -26,6 +26,13 @@ abstract class EghuRemovalFlowApi {
   });
 
   Future<void> removeStamp(EghuStampRemovalRequest request);
+
+  Future<int> createRemoval(EghuStampRemovalRequest request);
+
+  Future<void> changeRemovalStatus({
+    required int documentId,
+    required String status,
+  });
 }
 
 abstract class EghuActionListApi {
@@ -94,6 +101,46 @@ class EghuActionApi
       final response = await _base.dio.post(
         workingWithEgxuRemovalsEndpoint,
         data: request.toJson(),
+        options: Options(contentType: Headers.jsonContentType),
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  @override
+  Future<int> createRemoval(EghuStampRemovalRequest request) async {
+    try {
+      final response = await _base.dio.post(
+        workingWithEgxuRemovalsEndpoint,
+        data: request.toJson(),
+        options: Options(contentType: Headers.jsonContentType),
+      );
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+      }
+      if (response.data is Map) {
+        final id = _parseInt((response.data as Map)['id']);
+        if (id != null) return id;
+      }
+      throw Exception('Yaratilgan hujjat ID raqami qaytmadi');
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  @override
+  Future<void> changeRemovalStatus({
+    required int documentId,
+    required String status,
+  }) async {
+    try {
+      final response = await _base.dio.post(
+        'working-with-egxu/$documentId/change-status/',
+        data: {'status': status},
         options: Options(contentType: Headers.jsonContentType),
       );
       if (response.statusCode != 200 && response.statusCode != 201) {

@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/core/api/global/global_api.dart';
+import 'package:m_gaz/core/models/global/global_model.dart';
 import 'package:m_gaz/di.dart';
 import 'package:m_gaz/global_widget/app_tools.dart';
 
 import '../../../../../../../core/common/words.dart';
-import '../../../../../../../core/extension/message_extension.dart';
-import '../../../../../../../features/auth/presentation/bloc/login_bloc.dart';
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_removal_flow.dart';
 import '../widgets/create/eghu_action_bottom_sheets.dart';
 import '../widgets/create/eghu_action_form_fields.dart';
 import 'eghu_removal_page_widgets.dart';
+import 'eghu_removal_summary_page.dart';
 
 class EghuRemovalDetailsPage extends StatefulWidget {
   const EghuRemovalDetailsPage({
@@ -45,7 +44,6 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
   final _selectedStamps = <EghuTargetInfoReal>[];
   String _removalReason = 'other_type_or_factory';
   String _gasUsageStatus = 'used';
-  bool _submitting = false;
 
   @override
   void initState() {
@@ -124,11 +122,7 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
                     ),
                   ),
                 ),
-                EghuRemovalNextBar(
-                  enabled: _canSubmit,
-                  onTap: _submit,
-                  label: _submitting ? Words.submitting.tr() : null,
-                ),
+                EghuRemovalNextBar(enabled: _canSubmit, onTap: _continue),
               ],
             ),
           ),
@@ -265,10 +259,6 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
   }
 
   Widget _buildStampSection() {
-    final available = (_egxu?.reals ?? const <EghuTargetInfoReal>[])
-        .where((stamp) => !widget.removedStampIds.contains(stamp.id))
-        .where((stamp) => !_selectedStamps.any((item) => item.id == stamp.id))
-        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -278,10 +268,7 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
             child: _SelectedStampCard(index: entry.key + 1, stamp: entry.value),
           ),
         ),
-        EghuDashedAddButton(
-          label: 'Tamg’a qoʻshish',
-          onTap: () => _addStamp(available),
-        ),
+        EghuDashedAddButton(label: 'Tamg’a qoʻshish', onTap: _addStamp),
       ],
     );
   }
@@ -297,7 +284,7 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
   );
 
   bool get _canSubmit {
-    if (_submitting || _egxu?.id == null) return false;
+    if (_egxu?.id == null) return false;
     if (_gasUsageStatus == 'used') {
       return _equipment.any((item) => item.operatingHours > 0);
     }
@@ -349,38 +336,24 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
     setState(() => current.option = selected);
   }
 
-  Future<void> _addStamp(List<EghuTargetInfoReal> available) async {
-    if (available.isEmpty) {
-      showToast(context, Words.noStampsAdded.tr());
-      return;
-    }
+  Future<void> _addStamp() async {
     final selected = await showDialog<EghuTargetInfoReal>(
       context: context,
       barrierColor: const Color(0x99000000),
-      builder: (_) => _StampPickerDialog(options: available),
+      builder: (_) => _StampAddDialog(globalApi: widget.globalApi),
     );
     if (!mounted || selected == null) return;
     setState(() => _selectedStamps.add(selected));
   }
 
-  Future<void> _submit() async {
+  Future<void> _continue() async {
     if (!_canSubmit || _egxu?.id == null) return;
-    setState(() => _submitting = true);
-    try {
-      final profile = _readProfile();
-      final detail = widget.preselection.detail;
-      await (widget.api ?? di.get<EghuActionApi>()).removeStamp(
-        EghuStampRemovalRequest(
-          datetime: widget.removalDateTime,
-          documentId: detail.id ?? widget.preselection.consumer.id,
-          egxuId: _egxu!.id!,
-          regionId: detail.region?.id ?? profile?.user?.regionId,
-          districtId: detail.district?.id ?? profile?.user?.districtId,
-          typeOfActivityId:
-              widget.activityTypeId ??
-              widget.preselection.eghu.consumerRelationEgxu?.typeOfActivityId,
-          employeeId: profile?.user?.employeeId ?? detail.employee?.id,
-          fullName: profile?.user?.username ?? detail.employee?.fio,
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => EghuRemovalSummaryPage(
+          preselection: widget.preselection,
+          removalDateTime: widget.removalDateTime,
+          targetInfo: widget.targetInfo,
           removalReason: _removalReason,
           gasUsageStatus: _gasUsageStatus,
           replacementReason: _replacementReason,
@@ -393,20 +366,12 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
           realNumbers: _gasUsageStatus == 'tagged'
               ? List.unmodifiable(_selectedStamps)
               : const [],
+          activityTypeId: widget.activityTypeId,
+          api: widget.api,
         ),
-      );
-      if (!mounted) return;
-      showToast(
-        context,
-        Words.save.tr(),
-        backgroundColor: const Color(0xFF17B26A),
-      );
-      Navigator.of(context).pop(true);
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      showToast(context, error.toString().replaceAll('Exception: ', ''));
-    }
+      ),
+    );
+    if (saved == true && mounted) Navigator.of(context).pop(true);
   }
 
   String get _replacementReason => switch (_removalReason) {
@@ -414,14 +379,6 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
     'for_repair' => 'Taʼmirlash uchun',
     _ => 'Boshqa EGHU bilan almashtirish',
   };
-
-  LoginState? _readProfile() {
-    try {
-      return context.read<LoginBloc>().state;
-    } catch (_) {
-      return null;
-    }
-  }
 
   String _format(num value, int decimals) {
     final text = value.toStringAsFixed(decimals);
@@ -1218,60 +1175,74 @@ class _EquipmentPickerDialogState extends State<_EquipmentPickerDialog> {
       value.toStringAsFixed(decimals).replaceAll('.', ',');
 }
 
-class _StampPickerDialog extends StatefulWidget {
-  const _StampPickerDialog({required this.options});
+class _StampAddDialog extends StatefulWidget {
+  const _StampAddDialog({this.globalApi});
 
-  final List<EghuTargetInfoReal> options;
+  final GlobalApi? globalApi;
 
   @override
-  State<_StampPickerDialog> createState() => _StampPickerDialogState();
+  State<_StampAddDialog> createState() => _StampAddDialogState();
 }
 
-class _StampPickerDialogState extends State<_StampPickerDialog> {
-  EghuTargetInfoReal? _selected;
+class _StampAddDialogState extends State<_StampAddDialog> {
+  final _numberController = TextEditingController();
+  GlobalModel? _location;
+
+  bool get _canAdd =>
+      _numberController.text.trim().isNotEmpty && _location?.name != null;
+
+  @override
+  void dispose() {
+    _numberController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Padding(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFCFCFC),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x38000000),
+              blurRadius: 36,
+              offset: Offset(0, 16),
+            ),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tamgʻani tanlang',
+              'Tamg’a qo’shish',
               style: eghuText(
                 fontSize: 17,
                 lineHeight: 28,
                 fontWeight: FontWeight.w800,
+                color: EghuActionCreateColors.textStrong,
               ),
             ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: widget.options.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 4),
-                itemBuilder: (_, index) {
-                  final stamp = widget.options[index];
-                  final selected = _selected?.id == stamp.id;
-                  return ListTile(
-                    dense: true,
-                    selected: selected,
-                    selectedTileColor: const Color(0xFFF2F2F2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    title: Text(stamp.number),
-                    subtitle: Text(stamp.sealLocation ?? '-'),
-                    onTap: () => setState(() => _selected = stamp),
-                  );
-                },
-              ),
+            const SizedBox(height: 8),
+            Text(
+              'Yangi tamg’a raqamini kiriting va joylashuvini tanlang.',
+              style: eghuText(fontSize: 13, lineHeight: 20),
             ),
+            const SizedBox(height: 14),
+            _stampLabel('Tamg’a raqami'),
+            const SizedBox(height: 4),
+            _numberField(),
             const SizedBox(height: 12),
+            _stampLabel('Joylashuvi'),
+            const SizedBox(height: 4),
+            _locationField(),
+            const SizedBox(height: 18),
             Row(
               children: [
                 Expanded(
@@ -1279,18 +1250,35 @@ class _StampPickerDialogState extends State<_StampPickerDialog> {
                     label: Words.cancel.tr(),
                     background: const Color(0xFFF0F0F0),
                     foreground: EghuActionCreateColors.textStrong,
+                    icon: AppTools.svg(AppTools.x, width: 16, height: 16),
                     onTap: () => Navigator.of(context).pop(),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _DialogAction(
-                    label: Words.select.tr(),
+                    label: Words.add.tr(),
                     background: const Color(0xFF3F57B3),
                     foreground: Colors.white,
-                    onTap: _selected == null
-                        ? null
-                        : () => Navigator.of(context).pop(_selected),
+                    icon: AppTools.svg(
+                      AppTools.check,
+                      width: 16,
+                      height: 16,
+                      colorFilter: const ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                    onTap: _canAdd
+                        ? () => Navigator.of(context).pop(
+                            EghuTargetInfoReal(
+                              id: null,
+                              number: _numberController.text.trim(),
+                              status: 'Muhrlangan',
+                              sealLocation: _location!.name,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               ],
@@ -1298,6 +1286,342 @@ class _StampPickerDialogState extends State<_StampPickerDialog> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _stampLabel(String value) =>
+      Text(value, style: eghuText(fontSize: 11, lineHeight: 16));
+
+  Widget _numberField() {
+    return SizedBox(
+      height: 44,
+      child: TextField(
+        controller: _numberController,
+        onChanged: (_) => setState(() {}),
+        style: eghuText(
+          fontSize: 13,
+          lineHeight: 20,
+          fontWeight: FontWeight.w800,
+          color: EghuActionCreateColors.textStrong,
+        ),
+        decoration: InputDecoration(
+          hintText: 'TM-441212',
+          hintStyle: eghuText(
+            fontSize: 13,
+            lineHeight: 20,
+            color: EghuActionCreateColors.textSub,
+          ),
+          filled: true,
+          fillColor: const Color(0xFFF1F1F1),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF3F57B3)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _locationField() {
+    return GestureDetector(
+      onTap: _selectLocation,
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F1F1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _location?.name ?? 'Joylashuvni tanlang',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: eghuText(
+                  fontSize: 13,
+                  lineHeight: 20,
+                  fontWeight: FontWeight.w800,
+                  color: _location == null
+                      ? EghuActionCreateColors.textSub
+                      : EghuActionCreateColors.textStrong,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 20,
+              color: EghuActionCreateColors.textSub,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectLocation() async {
+    final selected = await showDialog<GlobalModel>(
+      context: context,
+      barrierColor: const Color(0x99000000),
+      builder: (_) => _LocationPickerDialog(
+        globalApi: widget.globalApi,
+        selectedId: _location?.id,
+      ),
+    );
+    if (mounted && selected != null) setState(() => _location = selected);
+  }
+}
+
+class _LocationPickerDialog extends StatefulWidget {
+  const _LocationPickerDialog({this.globalApi, this.selectedId});
+
+  final GlobalApi? globalApi;
+  final int? selectedId;
+
+  @override
+  State<_LocationPickerDialog> createState() => _LocationPickerDialogState();
+}
+
+class _LocationPickerDialogState extends State<_LocationPickerDialog> {
+  final _searchController = TextEditingController();
+  late final Future<List<GlobalModel>> _places;
+  String _query = '';
+  GlobalModel? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      if (mounted) setState(() => _query = _searchController.text);
+    });
+    _places = _loadPlaces();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<List<GlobalModel>> _loadPlaces() async {
+    final response = await (widget.globalApi ?? di.get<GlobalApi>())
+        .getStampInstallationPlaces(limit: 100);
+    return response.results
+        .where((item) => item.name?.trim().isNotEmpty == true)
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFCFCFC),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x38000000),
+              blurRadius: 36,
+              offset: Offset(0, 16),
+            ),
+          ],
+        ),
+        child: FutureBuilder<List<GlobalModel>>(
+          future: _places,
+          builder: (context, snapshot) {
+            final all = snapshot.data ?? const <GlobalModel>[];
+            final query = _query.trim().toLowerCase();
+            final items = query.isEmpty
+                ? all
+                : all
+                      .where(
+                        (item) =>
+                            (item.name ?? '').toLowerCase().contains(query),
+                      )
+                      .toList();
+            final selected = _selected ?? _initialSelection(all);
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Joylashuv',
+                  style: eghuText(
+                    fontSize: 17,
+                    lineHeight: 28,
+                    fontWeight: FontWeight.w800,
+                    color: EghuActionCreateColors.textStrong,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _searchField(),
+                const SizedBox(height: 14),
+                SizedBox(height: 212, child: _list(snapshot, items, selected)),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DialogAction(
+                        label: 'Orqaga',
+                        background: const Color(0xFFF0F0F0),
+                        foreground: EghuActionCreateColors.textStrong,
+                        icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _DialogAction(
+                        label: Words.select.tr(),
+                        background: const Color(0xFF3F57B3),
+                        foreground: Colors.white,
+                        icon: AppTools.svg(
+                          AppTools.check,
+                          width: 16,
+                          height: 16,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        onTap: selected == null
+                            ? null
+                            : () => Navigator.of(context).pop(selected),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  GlobalModel? _initialSelection(List<GlobalModel> places) {
+    if (places.isEmpty) return null;
+    for (final item in places) {
+      if (item.id == widget.selectedId) return item;
+    }
+    return places.first;
+  }
+
+  Widget _searchField() {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F1F1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          AppTools.svg(AppTools.icSearchIcon, width: 16, height: 16),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Joylashuv nomi',
+                hintStyle: eghuText(
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: EghuActionCreateColors.textSub,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              style: eghuText(fontSize: 13, lineHeight: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _list(
+    AsyncSnapshot<List<GlobalModel>> snapshot,
+    List<GlobalModel> items,
+    GlobalModel? selected,
+  ) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (snapshot.hasError || items.isEmpty) {
+      return Center(child: Text(Words.noInformationFound.tr()));
+    }
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (_, index) {
+        final item = items[index];
+        final isSelected = item.id == selected?.id;
+        return GestureDetector(
+          onTap: () => setState(() => _selected = item),
+          child: Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFFF1F1F1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  '${index + 1}',
+                  style: eghuText(
+                    fontSize: 11,
+                    lineHeight: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.name ?? '-',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: eghuText(
+                      fontSize: 13,
+                      lineHeight: 20,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w500,
+                      color: EghuActionCreateColors.textStrong,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  AppTools.svg(
+                    AppTools.check,
+                    width: 16,
+                    height: 16,
+                    colorFilter: const ColorFilter.mode(
+                      Color(0xFF3F57B3),
+                      BlendMode.srcIn,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1308,12 +1632,14 @@ class _DialogAction extends StatelessWidget {
     required this.background,
     required this.foreground,
     required this.onTap,
+    this.icon,
   });
 
   final String label;
   final Color background;
   final Color foreground;
   final VoidCallback? onTap;
+  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -1327,14 +1653,20 @@ class _DialogAction extends StatelessWidget {
           color: disabled ? const Color(0xFFE8E8E8) : background,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Text(
-          label,
-          style: eghuText(
-            fontSize: 13,
-            lineHeight: 20,
-            fontWeight: FontWeight.w800,
-            color: disabled ? EghuActionCreateColors.textSub : foreground,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[icon!, const SizedBox(width: 6)],
+            Text(
+              label,
+              style: eghuText(
+                fontSize: 13,
+                lineHeight: 20,
+                fontWeight: FontWeight.w800,
+                color: disabled ? EghuActionCreateColors.textSub : foreground,
+              ),
+            ),
+          ],
         ),
       ),
     );

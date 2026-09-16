@@ -188,6 +188,7 @@ class EghuStampRemovalRequest {
     this.employeeId,
     this.fullName,
     this.organization,
+    this.documentNumber,
     this.removalReason = 'for_repair',
     this.gasUsageStatus = 'tagged',
     this.replacementReason = "Tamg'ani yechib olish",
@@ -205,6 +206,7 @@ class EghuStampRemovalRequest {
   final int? employeeId;
   final String? fullName;
   final String? organization;
+  final String? documentNumber;
   final String removalReason;
   final String gasUsageStatus;
   final String replacementReason;
@@ -224,6 +226,8 @@ class EghuStampRemovalRequest {
       if (fullName?.trim().isNotEmpty == true) 'full_name': fullName!.trim(),
       if (organization?.trim().isNotEmpty == true)
         'organization': organization!.trim(),
+      if (documentNumber?.trim().isNotEmpty == true)
+        'document_number': documentNumber!.trim(),
       'document_id': documentId,
       'list': [
         {
