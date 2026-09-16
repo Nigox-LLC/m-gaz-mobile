@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:m_gaz/core/api/global/global_api.dart';
 import 'package:m_gaz/di.dart';
+import 'package:m_gaz/global_widget/app_tools.dart';
 
 import '../../../../../../../core/common/words.dart';
 import '../../../../../../../core/extension/message_extension.dart';
@@ -318,7 +319,17 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
     );
     if (!mounted || selected == null || selected.id == null) return;
     if (_equipment.any((item) => item.option.id == selected.id)) return;
-    setState(() => _equipment.add(_SelectedGasEquipment(selected)));
+    final operatingHours = await showDialog<double>(
+      context: context,
+      barrierColor: const Color(0x99000000),
+      builder: (_) => _UsageTimeDialog(option: selected),
+    );
+    if (!mounted || operatingHours == null) return;
+    setState(
+      () => _equipment.add(
+        _SelectedGasEquipment(selected, operatingHours: operatingHours),
+      ),
+    );
   }
 
   Future<void> _selectEquipment(_SelectedGasEquipment current) async {
@@ -419,8 +430,12 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
 }
 
 class _SelectedGasEquipment {
-  _SelectedGasEquipment(this.option)
-    : hoursController = TextEditingController();
+  _SelectedGasEquipment(this.option, {double operatingHours = 0})
+    : hoursController = TextEditingController(
+        text: operatingHours > 0
+            ? operatingHours.toStringAsFixed(2).replaceAll('.', ',')
+            : '',
+      );
 
   EghuTargetInfoGasEquipment option;
   final TextEditingController hoursController;
@@ -634,6 +649,172 @@ class _HoursInput extends StatelessWidget {
       ],
     );
   }
+}
+
+class _UsageTimeDialog extends StatefulWidget {
+  const _UsageTimeDialog({required this.option});
+
+  final EghuTargetInfoGasEquipment option;
+
+  @override
+  State<_UsageTimeDialog> createState() => _UsageTimeDialogState();
+}
+
+class _UsageTimeDialogState extends State<_UsageTimeDialog> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  double get _hours =>
+      double.tryParse(_controller.text.trim().replaceAll(',', '.')) ?? 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '90,00');
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hours = _hours;
+    final total = widget.option.hourlyGasConsumption * hours;
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFCFCFC),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x38000000),
+              blurRadius: 36,
+              offset: Offset(0, 16),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ishlatilish vaqti',
+              style: eghuText(
+                fontSize: 17,
+                lineHeight: 28,
+                fontWeight: FontWeight.w800,
+                color: EghuActionCreateColors.textStrong,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${widget.option.name ?? 'Gaz anjomi'} uchun necha soat ishlatilgani',
+              style: eghuText(fontSize: 13, lineHeight: 20),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 64,
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                onChanged: (_) => setState(() {}),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                ],
+                textAlignVertical: TextAlignVertical.center,
+                style: eghuText(
+                  fontSize: 24,
+                  lineHeight: 32,
+                  fontWeight: FontWeight.w800,
+                  color: EghuActionCreateColors.textStrong,
+                ),
+                decoration: InputDecoration(
+                  suffixText: 'soat',
+                  suffixStyle: eghuText(fontSize: 13, lineHeight: 20),
+                  filled: true,
+                  fillColor: const Color(0xFFFCFCFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF3F57B3),
+                      width: 1.5,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFD0D5DD),
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF3F57B3),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Soatlik sarfi ${_format(widget.option.hourlyGasConsumption, 1)} m³ × '
+              '${_formatHours(hours)} soat = ${_format(total, 1)} m³',
+              style: eghuText(fontSize: 11, lineHeight: 16),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _DialogAction(
+                    label: Words.cancel.tr(),
+                    background: const Color(0xFFF0F0F0),
+                    foreground: EghuActionCreateColors.textStrong,
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _DialogAction(
+                    label: Words.confirm.tr(),
+                    background: const Color(0xFF3F57B3),
+                    foreground: Colors.white,
+                    onTap: hours > 0
+                        ? () => Navigator.of(context).pop(hours)
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _format(num value, int decimals) =>
+      value.toStringAsFixed(decimals).replaceAll('.', ',');
+
+  String _formatHours(double value) => value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : _format(value, 2);
 }
 
 class _RemovalReasonOption extends StatelessWidget {
@@ -950,20 +1131,25 @@ class _EquipmentPickerDialogState extends State<_EquipmentPickerDialog> {
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2),
+        color: const Color(0xFFF1F1F1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded, size: 16, color: Color(0xFF717680)),
+          AppTools.svg(AppTools.icSearchIcon, width: 16, height: 16),
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Anjom nomi',
                 border: InputBorder.none,
                 isDense: true,
+                hintStyle: eghuText(
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: const Color(0xFFBBBBBB),
+                ),
               ),
               style: eghuText(fontSize: 13, lineHeight: 20),
             ),

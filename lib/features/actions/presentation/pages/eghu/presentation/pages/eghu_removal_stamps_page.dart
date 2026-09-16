@@ -455,10 +455,18 @@ class _RemoveStampDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 20),
       backgroundColor: Colors.transparent,
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
         decoration: BoxDecoration(
           color: const Color(0xFFFCFCFC),
           borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x38000000),
+              blurRadius: 36,
+              offset: Offset(0, 16),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -474,7 +482,11 @@ class _RemoveStampDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(stamp.number, style: eghuText(fontSize: 13, lineHeight: 20)),
+            Text(
+              '${stamp.number} tamg’asi hujjatda yechilgan deb belgilanadi. '
+              'Amalni bekor qilib bo’lmaydi.',
+              style: eghuText(fontSize: 13, lineHeight: 20),
+            ),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -489,8 +501,8 @@ class _RemoveStampDialog extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _DialogButton(
-                    label: Words.confirm.tr(),
-                    background: const Color(0xFF3F57B3),
+                    label: 'Yechib olish',
+                    background: const Color(0xFFDC2626),
                     foreground: Colors.white,
                     onTap: () => Navigator.of(context).pop(true),
                   ),
