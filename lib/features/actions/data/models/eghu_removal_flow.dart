@@ -27,6 +27,7 @@ class EghuTargetInfoEgxu {
     this.typeName,
     this.oneFactory,
     this.twoFactory,
+    this.gasEquipments = const [],
     this.reals = const [],
   });
 
@@ -34,10 +35,15 @@ class EghuTargetInfoEgxu {
   final String? typeName;
   final String? oneFactory;
   final String? twoFactory;
+  final List<EghuTargetInfoGasEquipment> gasEquipments;
   final List<EghuTargetInfoReal> reals;
 
   factory EghuTargetInfoEgxu.fromJson(Map<String, dynamic> json) {
     final type = _asMap(json['egxu_type']);
+    final rawGasEquipments =
+        json['gas_equipments'] ??
+        json['gas_equipment_list'] ??
+        json['gas_equipment'];
     final rawReals = json['reals'] ?? json['real_numbers'] ?? json['real'];
 
     return EghuTargetInfoEgxu(
@@ -49,6 +55,17 @@ class EghuTargetInfoEgxu {
       ]),
       oneFactory: _asText([json['one_factory']]),
       twoFactory: _asText([json['two_factory']]),
+      gasEquipments: rawGasEquipments is List
+          ? rawGasEquipments
+                .whereType<Map>()
+                .map(
+                  (item) => EghuTargetInfoGasEquipment.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .where((item) => item.id != null || item.name != null)
+                .toList()
+          : const [],
       reals: rawReals is List
           ? rawReals
                 .whereType<Map>()
@@ -59,6 +76,44 @@ class EghuTargetInfoEgxu {
                 )
                 .toList()
           : const [],
+    );
+  }
+}
+
+class EghuTargetInfoGasEquipment {
+  const EghuTargetInfoGasEquipment({
+    this.id,
+    this.name,
+    this.hourlyGasConsumption = 0,
+    this.operatingHours,
+    this.quantity = 1,
+  });
+
+  final int? id;
+  final String? name;
+  final double hourlyGasConsumption;
+  final double? operatingHours;
+  final int quantity;
+
+  factory EghuTargetInfoGasEquipment.fromJson(Map<String, dynamic> json) {
+    final equipment = _asMap(json['gas_equipment']);
+    return EghuTargetInfoGasEquipment(
+      id: _asInt([
+        json['gas_equipment_id'],
+        json['gas_equipment'],
+        equipment?['id'],
+        json['id'],
+      ]),
+      name: _asText([json['equipment_name'], json['name'], equipment?['name']]),
+      hourlyGasConsumption: _asDouble([
+        json['hourly_gas_consumption'],
+        equipment?['hourly_gas_consumption'],
+      ]),
+      operatingHours: _asNullableDouble([
+        json['operating_hours'],
+        json['hours'],
+      ]),
+      quantity: _asInt([json['quantity']]) ?? 1,
     );
   }
 }
@@ -126,39 +181,38 @@ class EghuStampRemovalRequest {
     required this.datetime,
     required this.documentId,
     required this.egxuId,
-    required this.stamp,
+    this.stamp,
     this.regionId,
     this.districtId,
     this.typeOfActivityId,
     this.employeeId,
     this.fullName,
     this.organization,
+    this.removalReason = 'for_repair',
+    this.gasUsageStatus = 'tagged',
+    this.replacementReason = "Tamg'ani yechib olish",
+    this.gasEquipments = const [],
+    this.realNumbers = const [],
   });
 
   final DateTime datetime;
   final int documentId;
   final int egxuId;
-  final EghuTargetInfoReal stamp;
+  final EghuTargetInfoReal? stamp;
   final int? regionId;
   final int? districtId;
   final int? typeOfActivityId;
   final int? employeeId;
   final String? fullName;
   final String? organization;
+  final String removalReason;
+  final String gasUsageStatus;
+  final String replacementReason;
+  final List<EghuRemovalGasEquipment> gasEquipments;
+  final List<EghuTargetInfoReal> realNumbers;
 
   Map<String, Object?> toJson() {
-    final real = <String, Object?>{
-      'real_number': stamp.number.trim(),
-      if (stamp.status?.trim().isNotEmpty == true) 'seal_status': stamp.status,
-      if (stamp.installedDate != null)
-        'from_date': _dateOnly(stamp.installedDate!),
-      if (stamp.sealLocation?.trim().isNotEmpty == true)
-        'seal_location': stamp.sealLocation,
-      if (stamp.installedLocation?.trim().isNotEmpty == true)
-        'installed_location': stamp.installedLocation,
-      if (stamp.installedBy?.trim().isNotEmpty == true)
-        'installed_by': stamp.installedBy,
-    };
+    final realNumbersToSend = [...realNumbers, if (stamp != null) stamp!];
 
     return {
       'datetime': datetime.toUtc().toIso8601String(),
@@ -174,12 +228,32 @@ class EghuStampRemovalRequest {
       'list': [
         {
           'egxu_id': egxuId,
-          'removal_reason': 'for_repair',
-          'gas_usage_status': 'tagged',
-          'replacement_reason': "Tamg'ani yechib olish",
-          'real_numbers': [real],
+          'removal_reason': removalReason,
+          'gas_usage_status': gasUsageStatus,
+          'replacement_reason': replacementReason,
+          if (gasEquipments.isNotEmpty)
+            'gas_equipments': gasEquipments
+                .map((item) => item.toJson())
+                .toList(),
+          if (realNumbersToSend.isNotEmpty)
+            'real_numbers': realNumbersToSend.map(_realToJson).toList(),
         },
       ],
+    };
+  }
+
+  Map<String, Object?> _realToJson(EghuTargetInfoReal stamp) {
+    return {
+      'real_number': stamp.number.trim(),
+      if (stamp.status?.trim().isNotEmpty == true) 'seal_status': stamp.status,
+      if (stamp.installedDate != null)
+        'from_date': _dateOnly(stamp.installedDate!),
+      if (stamp.sealLocation?.trim().isNotEmpty == true)
+        'seal_location': stamp.sealLocation,
+      if (stamp.installedLocation?.trim().isNotEmpty == true)
+        'installed_location': stamp.installedLocation,
+      if (stamp.installedBy?.trim().isNotEmpty == true)
+        'installed_by': stamp.installedBy,
     };
   }
 }
@@ -190,9 +264,59 @@ Map<String, dynamic>? _asMap(Object? value) {
 }
 
 int? _asInt(Object? value) {
+  if (value is Iterable) {
+    for (final item in value) {
+      final parsed = _asInt(item);
+      if (parsed != null) return parsed;
+    }
+    return null;
+  }
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString() ?? '');
+}
+
+double _asDouble(Iterable<Object?> values) {
+  for (final value in values) {
+    final parsed = _asNullableDouble([value]);
+    if (parsed != null) return parsed;
+  }
+  return 0;
+}
+
+double? _asNullableDouble(Iterable<Object?> values) {
+  for (final value in values) {
+    if (value is num) return value.toDouble();
+    final parsed = double.tryParse(
+      value?.toString().replaceAll(',', '.') ?? '',
+    );
+    if (parsed != null) return parsed;
+  }
+  return null;
+}
+
+class EghuRemovalGasEquipment {
+  const EghuRemovalGasEquipment({
+    required this.id,
+    required this.name,
+    required this.hourlyGasConsumption,
+    required this.operatingHours,
+    this.quantity = 1,
+  });
+
+  final int id;
+  final String name;
+  final double hourlyGasConsumption;
+  final double operatingHours;
+  final int quantity;
+
+  Map<String, Object?> toJson() => {
+    'gas_equipment': id,
+    'equipment_name': name,
+    'hourly_gas_consumption': hourlyGasConsumption,
+    'operating_hours': operatingHours,
+    'quantity': quantity,
+  };
 }
 
 String? _asText(Iterable<Object?> values) {

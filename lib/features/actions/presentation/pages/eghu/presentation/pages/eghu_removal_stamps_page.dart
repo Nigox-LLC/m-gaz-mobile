@@ -10,6 +10,8 @@ import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_removal_flow.dart';
 import '../widgets/create/eghu_action_bottom_sheets.dart';
 import '../widgets/create/eghu_action_form_fields.dart';
+import 'eghu_removal_details_page.dart';
+import 'eghu_removal_page_widgets.dart';
 
 class EghuRemovalStampsPage extends StatefulWidget {
   const EghuRemovalStampsPage({
@@ -34,6 +36,7 @@ class EghuRemovalStampsPage extends StatefulWidget {
 class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
   late Future<EghuTargetInfo> _targetInfoFuture;
   EghuTargetInfoEgxu? _egxu;
+  EghuTargetInfo? _loadedTargetInfo;
   final _removedIds = <int?>{};
   int? _removingId;
 
@@ -46,10 +49,18 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
     _targetInfoFuture = widget.targetInfo != null
         ? Future<EghuTargetInfo>.value(widget.targetInfo!)
         : api.getTargetInfo(documentType: 'consumer', documentId: documentId);
+    _targetInfoFuture.then((info) {
+      if (!mounted) return;
+      setState(() {
+        _loadedTargetInfo = info;
+        _egxu = _findEgxu(info);
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final canContinue = _egxu?.id != null;
     return Scaffold(
       backgroundColor: EghuActionCreateColors.white,
       body: SafeArea(
@@ -57,17 +68,54 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 390),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Column(
-                children: [
-                  _Header(title: Words.stamps.tr()),
-                  const SizedBox(height: 20),
-                  _Summary(preselection: widget.preselection),
-                  const SizedBox(height: 20),
-                  Expanded(child: _buildBody()),
-                ],
-              ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                    child: FutureBuilder<EghuTargetInfo>(
+                      future: _targetInfoFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return Column(
+                            children: [
+                              EghuRemovalHeader(
+                                title: Words.actionEghuDetach.tr(),
+                              ),
+                              const SizedBox(height: 32),
+                              const CircularProgressIndicator(),
+                            ],
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return Column(
+                            children: [
+                              EghuRemovalHeader(
+                                title: Words.actionEghuDetach.tr(),
+                              ),
+                              const SizedBox(height: 32),
+                              _ErrorState(
+                                message: snapshot.error.toString().replaceAll(
+                                  'Exception: ',
+                                  '',
+                                ),
+                                onRetry: _retry,
+                              ),
+                            ],
+                          );
+                        }
+
+                        final info = snapshot.data!;
+                        final eghu = _egxu ??= _findEgxu(info);
+                        _loadedTargetInfo ??= info;
+                        return _buildContent(eghu);
+                      },
+                    ),
+                  ),
+                ),
+                EghuRemovalNextBar(enabled: canContinue, onTap: _continue),
+              ],
             ),
           ),
         ),
@@ -75,51 +123,87 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
     );
   }
 
-  Widget _buildBody() {
-    return FutureBuilder<EghuTargetInfo>(
-      future: _targetInfoFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return _ErrorState(
-            message: snapshot.error.toString().replaceAll('Exception: ', ''),
-            onRetry: () => setState(() {
-              final api = widget.api ?? di.get<EghuActionApi>();
-              final id =
-                  widget.preselection.detail.id ??
-                  widget.preselection.consumer.id;
-              _targetInfoFuture = api.getTargetInfo(
-                documentType: 'consumer',
-                documentId: id,
-              );
-            }),
-          );
-        }
+  Widget _buildContent(EghuTargetInfoEgxu? eghu) {
+    final selectedEghu = widget.preselection.eghu;
+    final typeName = eghu?.typeName ?? selectedEghu.egxuType?.name ?? '-';
+    final factoryNumber =
+        eghu?.oneFactory ??
+        eghu?.twoFactory ??
+        selectedEghu.oneFactory ??
+        selectedEghu.twoFactory ??
+        '-';
+    final stamps = (eghu?.reals ?? const <EghuTargetInfoReal>[])
+        .where((stamp) => !_removedIds.contains(stamp.id))
+        .toList();
 
-        _egxu ??= _findEgxu(snapshot.data!);
-        final stamps =
-            _egxu?.reals
-                .where((stamp) => !_removedIds.contains(stamp.id))
-                .toList() ??
-            const <EghuTargetInfoReal>[];
-        if (stamps.isEmpty) {
-          return Center(child: Text(Words.noStampsAdded.tr()));
-        }
-
-        return ListView.separated(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 24),
-          itemCount: stamps.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, index) => _StampCard(
-            stamp: stamps[index],
-            loading: _removingId == stamps[index].id,
-            onRemove: () => _removeStamp(stamps[index]),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        EghuRemovalHeader(title: Words.actionEghuDetach.tr()),
+        const SizedBox(height: 20),
+        EghuRemovalField(
+          label: 'Isteʼmolchiga tegishli boʻlgan EGHU turi',
+          value: typeName,
+          trailing: EghuRemovalFieldTrailing.close,
+        ),
+        const SizedBox(height: 12),
+        EghuRemovalField(
+          label: 'Isteʼmolchiga tegishli boʻlgan EGHU raqami',
+          value: factoryNumber,
+          trailing: EghuRemovalFieldTrailing.close,
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              Words.stamps.tr(),
+              style: eghuText(
+                fontSize: 13,
+                lineHeight: 20,
+                fontWeight: FontWeight.w800,
+                color: EghuActionCreateColors.textStrong,
+              ),
+            ),
+            Text(
+              '${stamps.length} ta',
+              style: eghuText(
+                fontSize: 11,
+                lineHeight: 16,
+                color: EghuActionCreateColors.textSub,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (stamps.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                Words.noStampsAdded.tr(),
+                style: eghuText(
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: EghuActionCreateColors.textSub,
+                ),
+              ),
+            ),
+          )
+        else
+          ...stamps.asMap().entries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _StampCard(
+                index: entry.key + 1,
+                stamp: entry.value,
+                loading: _removingId == entry.value.id,
+                onRemove: () => _removeStamp(entry.value),
+              ),
+            ),
           ),
-        );
-      },
+      ],
     );
   }
 
@@ -129,6 +213,45 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
       if (item.id == selectedId) return item;
     }
     return info.egxus.isEmpty ? null : info.egxus.first;
+  }
+
+  void _retry() {
+    final api = widget.api ?? di.get<EghuActionApi>();
+    final id = widget.preselection.detail.id ?? widget.preselection.consumer.id;
+    setState(() {
+      _egxu = null;
+      _loadedTargetInfo = null;
+      _targetInfoFuture = api.getTargetInfo(
+        documentType: 'consumer',
+        documentId: id,
+      );
+      _targetInfoFuture.then((info) {
+        if (!mounted) return;
+        setState(() {
+          _loadedTargetInfo = info;
+          _egxu = _findEgxu(info);
+        });
+      });
+    });
+  }
+
+  Future<void> _continue() async {
+    final eghu = _egxu;
+    final info = _loadedTargetInfo;
+    if (eghu?.id == null || info == null) return;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => EghuRemovalDetailsPage(
+          preselection: widget.preselection,
+          removalDateTime: widget.removalDateTime,
+          activityTypeId: widget.activityTypeId,
+          targetInfo: info,
+          removedStampIds: _removedIds,
+          api: widget.api,
+        ),
+      ),
+    );
+    if (saved == true && mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _removeStamp(EghuTargetInfoReal stamp) async {
@@ -184,222 +307,137 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).maybePop(),
-            child: const Icon(Icons.chevron_left_rounded, size: 28),
-          ),
-          Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: eghuText(
-                fontSize: 17,
-                lineHeight: 28,
-                fontWeight: FontWeight.w800,
-                color: EghuActionCreateColors.textStrong,
-              ),
-            ),
-          ),
-          const SizedBox(width: 28),
-        ],
-      ),
-    );
-  }
-}
-
-class _Summary extends StatelessWidget {
-  const _Summary({required this.preselection});
-
-  final EghuActionPreselection preselection;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: EghuActionCreateColors.field,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: EghuActionCreateColors.stroke),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            preselection.consumer.consumers,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: eghuText(
-              fontSize: 15,
-              lineHeight: 24,
-              fontWeight: FontWeight.w800,
-              color: EghuActionCreateColors.textStrong,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            eghuTitle(preselection.eghu),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: eghuText(
-              fontSize: 13,
-              lineHeight: 20,
-              color: EghuActionCreateColors.textSub,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _StampCard extends StatelessWidget {
   const _StampCard({
+    required this.index,
     required this.stamp,
     required this.loading,
     required this.onRemove,
   });
 
+  final int index;
   final EghuTargetInfoReal stamp;
   final bool loading;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
+    final defective = _isDefective(stamp.status);
+    final location =
+        stamp.sealLocation ??
+        stamp.installedLocation ??
+        (stamp.installedDate == null
+            ? '-'
+            : DateFormat('dd.MM.yyyy').format(stamp.installedDate!.toLocal()));
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: EghuActionCreateColors.stroke),
+        color: EghuActionCreateColors.field,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Text(
+                '$index',
+                style: eghuText(
+                  fontSize: 11,
+                  lineHeight: 16,
+                  fontWeight: FontWeight.w800,
+                  color: EghuActionCreateColors.text,
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   stamp.number,
                   style: eghuText(
-                    fontSize: 15,
-                    lineHeight: 24,
+                    fontSize: 13,
+                    lineHeight: 20,
                     fontWeight: FontWeight.w800,
                     color: EghuActionCreateColors.textStrong,
                   ),
                 ),
               ),
-              _StatusChip(status: stamp.status),
+              _StatusChip(defective: defective),
             ],
           ),
-          const SizedBox(height: 8),
-          if (stamp.installedDate != null)
-            _DetailLine(
-              label: Words.installedDate.tr(),
-              value: DateFormat(
-                'dd.MM.yyyy',
-              ).format(stamp.installedDate!.toLocal()),
-            ),
-          if (stamp.sealLocation?.isNotEmpty == true)
-            _DetailLine(
-              label: Words.sealLocation.tr(),
-              value: stamp.sealLocation!,
-            ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: OutlinedButton.icon(
-              key: Key('eghu-remove-stamp-${stamp.id}'),
-              onPressed: loading ? null : onRemove,
-              icon: loading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.remove_circle_outline_rounded, size: 18),
-              label: Text(Words.removeStamp.tr()),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: EghuActionCreateColors.primary,
-                side: const BorderSide(color: EghuActionCreateColors.primary),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  location,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: eghuText(fontSize: 11, lineHeight: 16),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                key: Key('eghu-remove-stamp-${stamp.id}'),
+                onTap: loading ? null : onRemove,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: loading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          Words.removeStamp.tr(),
+                          style: eghuText(
+                            fontSize: 11,
+                            lineHeight: 16,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFFDC2626),
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-}
 
-class _DetailLine extends StatelessWidget {
-  const _DetailLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 112,
-            child: Text(
-              label,
-              style: eghuText(
-                fontSize: 11,
-                lineHeight: 16,
-                color: EghuActionCreateColors.textSub,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: eghuText(fontSize: 12, lineHeight: 18)),
-          ),
-        ],
-      ),
-    );
+  bool _isDefective(String? status) {
+    final normalized = status?.toLowerCase() ?? '';
+    return normalized.contains('shikast') || normalized.contains('nosoz');
   }
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({this.status});
+  const _StatusChip({required this.defective});
 
-  final String? status;
+  final bool defective;
 
   @override
   Widget build(BuildContext context) {
-    final value = status?.trim();
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF8F2),
-        borderRadius: BorderRadius.circular(8),
+        color: defective ? const Color(0xFFFEF2F2) : const Color(0xFFEDF9F1),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        value,
+        defective ? 'Muhri shikastlangan' : 'Muhrlangan',
         style: eghuText(
           fontSize: 11,
           lineHeight: 16,
-          color: const Color(0xFF16854B),
+          fontWeight: FontWeight.w800,
+          color: defective ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
         ),
       ),
     );
@@ -417,61 +455,87 @@ class _RemoveStampDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 20),
       backgroundColor: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          color: const Color(0xFFFCFCFC),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               Words.removeStamp.tr(),
-              textAlign: TextAlign.center,
               style: eghuText(
-                fontSize: 20,
+                fontSize: 17,
                 lineHeight: 28,
                 fontWeight: FontWeight.w800,
                 color: EghuActionCreateColors.textStrong,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              stamp.number,
-              textAlign: TextAlign.center,
-              style: eghuText(
-                fontSize: 15,
-                lineHeight: 24,
-                color: EghuActionCreateColors.textSub,
-              ),
-            ),
-            const SizedBox(height: 24),
+            Text(stamp.number, style: eghuText(fontSize: 13, lineHeight: 20)),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text(Words.back.tr()),
+                  child: _DialogButton(
+                    label: Words.cancel.tr(),
+                    background: const Color(0xFFF0F0F0),
+                    foreground: EghuActionCreateColors.textStrong,
+                    onTap: () => Navigator.of(context).pop(false),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: EghuActionCreateColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(Words.confirm.tr()),
+                  child: _DialogButton(
+                    label: Words.confirm.tr(),
+                    background: const Color(0xFF3F57B3),
+                    foreground: Colors.white,
+                    onTap: () => Navigator.of(context).pop(true),
                   ),
                 ),
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogButton extends StatelessWidget {
+  const _DialogButton({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          label,
+          style: eghuText(
+            fontSize: 13,
+            lineHeight: 20,
+            fontWeight: FontWeight.w800,
+            color: foreground,
+          ),
         ),
       ),
     );
@@ -486,15 +550,13 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          TextButton(onPressed: onRetry, child: Text(Words.retry.tr())),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(message, textAlign: TextAlign.center),
+        const SizedBox(height: 12),
+        TextButton(onPressed: onRetry, child: Text(Words.retry.tr())),
+      ],
     );
   }
 }
