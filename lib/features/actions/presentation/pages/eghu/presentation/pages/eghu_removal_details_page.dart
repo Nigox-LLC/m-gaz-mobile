@@ -627,10 +627,15 @@ class _UsageTimeDialogState extends State<_UsageTimeDialog> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: '90,00');
+    _controller = TextEditingController(text: '0,00');
     _focusNode = FocusNode();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focusNode.requestFocus();
+      if (!mounted) return;
+      _focusNode.requestFocus();
+      _controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _controller.text.length,
+      );
     });
   }
 
@@ -1101,7 +1106,13 @@ class _EquipmentPickerDialogState extends State<_EquipmentPickerDialog> {
               decoration: InputDecoration(
                 hintText: 'Anjom nomi',
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                filled: true,
+                fillColor: Colors.transparent,
                 isDense: true,
+                contentPadding: EdgeInsets.zero,
                 hintStyle: eghuText(
                   fontSize: 13,
                   lineHeight: 20,
@@ -1545,6 +1556,12 @@ class _LocationPickerDialogState extends State<_LocationPickerDialog> {
                   color: EghuActionCreateColors.textSub,
                 ),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                filled: true,
+                fillColor: Colors.transparent,
+                contentPadding: EdgeInsets.zero,
                 isDense: true,
               ),
               style: eghuText(fontSize: 13, lineHeight: 20),

@@ -43,6 +43,10 @@ class EghuRemovalSummaryPage extends StatefulWidget {
 class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
   final _documentNumberController = TextEditingController();
   bool _submitting = false;
+  bool _documentNumberError = false;
+
+  bool get _hasDocumentNumber =>
+      _documentNumberController.text.trim().isNotEmpty;
 
   EghuTargetInfoEgxu? get _egxu {
     final selectedId = widget.preselection.eghu.id;
@@ -107,6 +111,7 @@ class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
           child: TextField(
             key: const Key('eghu-removal-document-number'),
             controller: _documentNumberController,
+            onChanged: (_) => setState(() => _documentNumberError = false),
             textCapitalization: TextCapitalization.characters,
             style: eghuText(
               fontSize: 17,
@@ -122,7 +127,10 @@ class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
               ),
               suffixIcon: IconButton(
                 tooltip: 'Tozalash',
-                onPressed: () => _documentNumberController.clear(),
+                onPressed: () {
+                  _documentNumberController.clear();
+                  setState(() => _documentNumberError = false);
+                },
                 icon: AppTools.svg(AppTools.x, width: 18, height: 18),
               ),
               filled: true,
@@ -152,6 +160,18 @@ class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
             ),
           ),
         ),
+        if (_documentNumberError)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 4),
+            child: Text(
+              'Hujjat nomeri kiritilishi shart',
+              style: eghuText(
+                fontSize: 11,
+                lineHeight: 16,
+                color: const Color(0xFFDC2626),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -315,15 +335,23 @@ class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
   }
 
   Future<void> _save() async {
+    if (!_validateDocumentNumber()) return;
     final accepted = await _showActionDialog(confirm: false);
     if (!mounted || accepted != true) return;
     await _submit(confirm: false);
   }
 
   Future<void> _confirm() async {
+    if (!_validateDocumentNumber()) return;
     final accepted = await _showActionDialog(confirm: true);
     if (!mounted || accepted != true) return;
     await _submit(confirm: true);
+  }
+
+  bool _validateDocumentNumber() {
+    if (_hasDocumentNumber) return true;
+    setState(() => _documentNumberError = true);
+    return false;
   }
 
   Future<bool?> _showActionDialog({required bool confirm}) {
