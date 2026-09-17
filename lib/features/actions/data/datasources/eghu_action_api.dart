@@ -33,6 +33,10 @@ abstract class EghuRemovalFlowApi {
   });
 }
 
+abstract class EghuReinstallationApi extends EghuRemovalFlowApi {
+  Future<void> createReinstallation(EghuReinstallationRequest request);
+}
+
 abstract class EghuActionListApi {
   Future<PaginatedResponse<EghuWorkingDocument>> getDocuments({
     int limit = 10,
@@ -54,7 +58,7 @@ class EghuActionApi
         EghuActionSubmitApi,
         EghuActionListApi,
         EghuActionDetailApi,
-        EghuRemovalFlowApi {
+        EghuReinstallationApi {
   const EghuActionApi(this._base);
 
   final ApiBase _base;
@@ -68,6 +72,8 @@ class EghuActionApi
       'working-with-egxu/target-info/';
   static const String workingWithEgxuRemovalsEndpoint =
       'working-with-egxu/removals/';
+  static const String workingWithEgxuReinstallationsEndpoint =
+      'working-with-egxu/reinstallations/';
 
   @override
   Future<EghuTargetInfo> getTargetInfo({
@@ -123,6 +129,24 @@ class EghuActionApi
       final response = await _base.dio.post(
         '$workingWithEgxuRemovalsEndpoint$documentId/change-status/',
         data: {'status': status},
+        options: Options(contentType: Headers.jsonContentType),
+      );
+      if (response.statusCode != 200 &&
+          response.statusCode != 201 &&
+          response.statusCode != 204) {
+        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  @override
+  Future<void> createReinstallation(EghuReinstallationRequest request) async {
+    try {
+      final response = await _base.dio.post(
+        workingWithEgxuReinstallationsEndpoint,
+        data: request.toJson(),
         options: Options(contentType: Headers.jsonContentType),
       );
       if (response.statusCode != 200 &&

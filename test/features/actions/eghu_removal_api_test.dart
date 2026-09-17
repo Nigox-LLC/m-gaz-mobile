@@ -61,6 +61,29 @@ void main() {
     );
     expect(adapter.requests[1].data, {'status': 'confirmed'});
   });
+
+  test('creates a reinstallation through the documented endpoint', () async {
+    final adapter = _RecordingAdapter([
+      _Response(201, {'id': 88}),
+    ]);
+    final dio = Dio()..httpClientAdapter = adapter;
+    final api = EghuActionApi(ApiBase(dio, _TestApiHive()));
+
+    await api.createReinstallation(
+      EghuReinstallationRequest(
+        removalId: 1,
+        datetime: DateTime.utc(2026, 9, 20, 10),
+        consumerDocumentId: 12,
+        installedEghuTypeId: 2,
+        oneFactory: '9988112',
+      ),
+    );
+
+    expect(adapter.requests.single.path, 'working-with-egxu/reinstallations/');
+    expect(adapter.requests.single.data['removal'], 1);
+    expect(adapter.requests.single.data['consumer_document'], 12);
+    expect(adapter.requests.single.data['installed_egxu_type'], 2);
+  });
 }
 
 class _RecordingAdapter implements HttpClientAdapter {

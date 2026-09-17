@@ -334,6 +334,65 @@ class EghuStampRemovalRequest {
   }
 }
 
+class EghuReinstallationRequest {
+  const EghuReinstallationRequest({
+    required this.removalId,
+    required this.datetime,
+    required this.consumerDocumentId,
+    required this.installedEghuTypeId,
+    this.regionId,
+    this.districtId,
+    this.typeOfActivityId,
+    this.removalReason,
+    this.documentNumber,
+    this.oneFactory,
+    this.twoFactory,
+    this.employeeId,
+    this.organization,
+    this.notes,
+  });
+
+  final int removalId;
+  final DateTime datetime;
+  final int consumerDocumentId;
+  final int installedEghuTypeId;
+  final int? regionId;
+  final int? districtId;
+  final int? typeOfActivityId;
+  final String? removalReason;
+  final String? documentNumber;
+  final String? oneFactory;
+  final String? twoFactory;
+  final int? employeeId;
+  final String? organization;
+  final String? notes;
+
+  Map<String, Object?> toJson() {
+    return {
+      'removal': removalId,
+      'datetime': datetime.toUtc().toIso8601String(),
+      if (regionId != null) 'region': regionId,
+      if (districtId != null) 'district': districtId,
+      if (typeOfActivityId != null) 'type_of_activity': typeOfActivityId,
+      'document_type': 'consumer',
+      'consumer_document': consumerDocumentId,
+      if (removalReason?.trim().isNotEmpty == true)
+        'removal_reason': removalReason!.trim(),
+      if (documentNumber?.trim().isNotEmpty == true)
+        'document_number': documentNumber!.trim(),
+      if (oneFactory?.trim().isNotEmpty == true)
+        'one_factory': oneFactory!.trim(),
+      if (twoFactory?.trim().isNotEmpty == true)
+        'two_factory': twoFactory!.trim(),
+      'installed_egxu_type': installedEghuTypeId,
+      if (employeeId != null) 'employee': employeeId,
+      if (organization?.trim().isNotEmpty == true)
+        'organization': organization!.trim(),
+      if (notes?.trim().isNotEmpty == true) 'notes': notes!.trim(),
+    };
+  }
+}
+
 Map<String, dynamic>? _asMap(Object? value) {
   if (value is Map) return Map<String, dynamic>.from(value);
   return null;
