@@ -62,6 +62,27 @@ void main() {
     expect(payload.containsKey('real_numbers'), isFalse);
   });
 
+  test('builds the documented reinstallation payload', () {
+    final payload = EghuReinstallationRequest(
+      removalId: 1,
+      datetime: DateTime.utc(2026, 9, 20, 10),
+      consumerDocumentId: 12,
+      installedEghuTypeId: 2,
+      removalReason: 'for_repair',
+      documentNumber: 'ORN-20260920-001',
+      oneFactory: '9988112',
+      twoFactory: '3344556',
+    ).toJson();
+
+    expect(payload['removal'], 1);
+    expect(payload['consumer_document'], 12);
+    expect(payload['document_type'], 'consumer');
+    expect(payload['installed_egxu_type'], 2);
+    expect(payload['one_factory'], '9988112');
+    expect(payload['two_factory'], '3344556');
+    expect(payload.containsKey('reals'), isFalse);
+  });
+
   test('EGHU targets remain available when their seals are inactive', () {
     final info = EghuTargetInfo.fromJson({
       'egxu_list': [
