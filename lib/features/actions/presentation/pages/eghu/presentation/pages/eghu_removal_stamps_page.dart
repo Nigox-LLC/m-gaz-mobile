@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../../../core/common/words.dart';
-import '../../../../../../../core/extension/message_extension.dart';
 import '../../../../../../../di.dart';
-import '../../../../../../../features/auth/presentation/bloc/login_bloc.dart';
 import '../../../../../data/datasources/eghu_action_api.dart';
 import '../../../../../data/models/eghu_removal_flow.dart';
 import '../widgets/create/eghu_action_bottom_sheets.dart';
@@ -37,8 +34,6 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
   late Future<EghuTargetInfo> _targetInfoFuture;
   EghuTargetInfoEgxu? _egxu;
   EghuTargetInfo? _loadedTargetInfo;
-  final _removedIds = <int?>{};
-  int? _removingId;
 
   @override
   void initState() {
@@ -60,7 +55,9 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final canContinue = _egxu?.id != null;
+    final canContinue =
+        _egxu?.id != null ||
+        (_loadedTargetInfo?.egxus.any(_isSelectable) ?? false);
     return Scaffold(
       backgroundColor: EghuActionCreateColors.white,
       body: SafeArea(
@@ -107,8 +104,7 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
                         }
 
                         final info = snapshot.data!;
-                        final eghu = _egxu ??= _findEgxu(info);
-                        _loadedTargetInfo ??= info;
+                        final eghu = _egxu ?? _findEgxu(info);
                         return _buildContent(eghu);
                       },
                     ),
@@ -133,7 +129,7 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
         selectedEghu.twoFactory ??
         '-';
     final stamps = (eghu?.reals ?? const <EghuTargetInfoReal>[])
-        .where((stamp) => !_removedIds.contains(stamp.id))
+        .where((stamp) => stamp.removeSeal != true)
         .toList();
 
     return Column(
@@ -195,12 +191,7 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
           ...stamps.asMap().entries.map(
             (entry) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _StampCard(
-                index: entry.key + 1,
-                stamp: entry.value,
-                loading: _removingId == entry.value.id,
-                onRemove: () => _removeStamp(entry.value),
-              ),
+              child: _StampCard(index: entry.key + 1, stamp: entry.value),
             ),
           ),
       ],
@@ -210,10 +201,15 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
   EghuTargetInfoEgxu? _findEgxu(EghuTargetInfo info) {
     final selectedId = widget.preselection.eghu.id;
     for (final item in info.egxus) {
-      if (item.id == selectedId) return item;
+      if (item.id == selectedId && _isSelectable(item)) return item;
     }
-    return info.egxus.isEmpty ? null : info.egxus.first;
+    for (final item in info.egxus) {
+      if (_isSelectable(item)) return item;
+    }
+    return null;
   }
+
+  bool _isSelectable(EghuTargetInfoEgxu item) => item.canBeRemoved;
 
   void _retry() {
     final api = widget.api ?? di.get<EghuActionApi>();
@@ -236,8 +232,8 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
   }
 
   Future<void> _continue() async {
-    final eghu = _egxu;
     final info = _loadedTargetInfo;
+    final eghu = _egxu ?? (info == null ? null : _findEgxu(info));
     if (eghu?.id == null || info == null) return;
     final saved = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
@@ -246,79 +242,19 @@ class _EghuRemovalStampsPageState extends State<EghuRemovalStampsPage> {
           removalDateTime: widget.removalDateTime,
           activityTypeId: widget.activityTypeId,
           targetInfo: info,
-          removedStampIds: _removedIds,
           api: widget.api,
         ),
       ),
     );
     if (saved == true && mounted) Navigator.of(context).pop(true);
   }
-
-  Future<void> _removeStamp(EghuTargetInfoReal stamp) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierColor: const Color(0x99000000),
-      builder: (_) => _RemoveStampDialog(stamp: stamp),
-    );
-    if (!mounted || confirmed != true || _egxu?.id == null) return;
-
-    setState(() => _removingId = stamp.id);
-    try {
-      final profile = _profile();
-      final detail = widget.preselection.detail;
-      await (widget.api ?? di.get<EghuActionApi>()).removeStamp(
-        EghuStampRemovalRequest(
-          datetime: widget.removalDateTime,
-          documentId: detail.id ?? widget.preselection.consumer.id,
-          egxuId: _egxu!.id!,
-          stamp: stamp,
-          regionId: detail.region?.id ?? profile?.user?.regionId,
-          districtId: detail.district?.id ?? profile?.user?.districtId,
-          typeOfActivityId:
-              widget.activityTypeId ??
-              widget.preselection.eghu.consumerRelationEgxu?.typeOfActivityId,
-          employeeId: profile?.user?.employeeId ?? detail.employee?.id,
-          fullName: profile?.user?.username ?? detail.employee?.fio,
-        ),
-      );
-      if (!mounted) return;
-      setState(() {
-        _removedIds.add(stamp.id);
-        _removingId = null;
-      });
-      showToast(
-        context,
-        Words.sealRemoved.tr(),
-        backgroundColor: const Color(0xFF17B26A),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _removingId = null);
-      showToast(context, error.toString().replaceAll('Exception: ', ''));
-    }
-  }
-
-  LoginState? _profile() {
-    try {
-      return context.read<LoginBloc>().state;
-    } catch (_) {
-      return null;
-    }
-  }
 }
 
 class _StampCard extends StatelessWidget {
-  const _StampCard({
-    required this.index,
-    required this.stamp,
-    required this.loading,
-    required this.onRemove,
-  });
+  const _StampCard({required this.index, required this.stamp});
 
   final int index;
   final EghuTargetInfoReal stamp;
-  final bool loading;
-  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -375,36 +311,6 @@ class _StampCard extends StatelessWidget {
                   style: eghuText(fontSize: 11, lineHeight: 16),
                 ),
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                key: Key('eghu-remove-stamp-${stamp.id}'),
-                onTap: loading ? null : onRemove,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0F0),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: loading
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          Words.removeStamp.tr(),
-                          style: eghuText(
-                            fontSize: 11,
-                            lineHeight: 16,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFFDC2626),
-                          ),
-                        ),
-                ),
-              ),
             ],
           ),
         ],
@@ -438,116 +344,6 @@ class _StatusChip extends StatelessWidget {
           lineHeight: 16,
           fontWeight: FontWeight.w800,
           color: defective ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
-        ),
-      ),
-    );
-  }
-}
-
-class _RemoveStampDialog extends StatelessWidget {
-  const _RemoveStampDialog({required this.stamp});
-
-  final EghuTargetInfoReal stamp;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      backgroundColor: Colors.transparent,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFCFCFC),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x38000000),
-              blurRadius: 36,
-              offset: Offset(0, 16),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              Words.removeStamp.tr(),
-              style: eghuText(
-                fontSize: 17,
-                lineHeight: 28,
-                fontWeight: FontWeight.w800,
-                color: EghuActionCreateColors.textStrong,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${stamp.number} tamg’asi hujjatda yechilgan deb belgilanadi. '
-              'Amalni bekor qilib bo’lmaydi.',
-              style: eghuText(fontSize: 13, lineHeight: 20),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _DialogButton(
-                    label: Words.cancel.tr(),
-                    background: const Color(0xFFF0F0F0),
-                    foreground: EghuActionCreateColors.textStrong,
-                    onTap: () => Navigator.of(context).pop(false),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _DialogButton(
-                    label: 'Yechib olish',
-                    background: const Color(0xFFDC2626),
-                    foreground: Colors.white,
-                    onTap: () => Navigator.of(context).pop(true),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogButton extends StatelessWidget {
-  const _DialogButton({
-    required this.label,
-    required this.background,
-    required this.foreground,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Text(
-          label,
-          style: eghuText(
-            fontSize: 13,
-            lineHeight: 20,
-            fontWeight: FontWeight.w800,
-            color: foreground,
-          ),
         ),
       ),
     );

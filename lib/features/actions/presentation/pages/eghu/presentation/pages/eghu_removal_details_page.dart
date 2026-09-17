@@ -50,6 +50,14 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
     super.initState();
     _egxu = _findEgxu(widget.targetInfo);
     _equipmentOptions = _loadEquipmentOptions();
+    for (final option in _egxu?.gasEquipments ?? const []) {
+      _equipment.add(
+        _SelectedGasEquipment(
+          option,
+          operatingHours: option.operatingHours ?? 0,
+        ),
+      );
+    }
   }
 
   @override
@@ -63,19 +71,21 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
   EghuTargetInfoEgxu? _findEgxu(EghuTargetInfo info) {
     final selectedId = widget.preselection.eghu.id;
     for (final item in info.egxus) {
-      if (item.id == selectedId) return item;
+      if (item.id == selectedId && _isSelectable(item)) return item;
     }
-    return info.egxus.isEmpty ? null : info.egxus.first;
+    for (final item in info.egxus) {
+      if (_isSelectable(item)) return item;
+    }
+    return null;
   }
 
-  Future<List<EghuTargetInfoGasEquipment>> _loadEquipmentOptions() async {
-    final fromTarget = _egxu?.gasEquipments ?? const [];
-    if (fromTarget.isNotEmpty) return fromTarget;
+  bool _isSelectable(EghuTargetInfoEgxu item) => item.canBeRemoved;
 
+  Future<List<EghuTargetInfoGasEquipment>> _loadEquipmentOptions() async {
     try {
       final response = await (widget.globalApi ?? di.get<GlobalApi>())
           .getGasEquipment(limit: 100);
-      return response.results
+      final options = response.results
           .map(
             (item) => EghuTargetInfoGasEquipment(
               id: item.id,
@@ -85,10 +95,19 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
           )
           .where((item) => item.id != null || item.name != null)
           .toList();
+      final knownIds = options.map((item) => item.id).toSet();
+      for (final item in _egxu?.gasEquipments ?? const []) {
+        if (item.id == null || knownIds.contains(item.id)) continue;
+        options.add(item);
+      }
+      return options;
     } catch (_) {
-      return const [];
+      return _egxu?.gasEquipments ?? const [];
     }
   }
+
+  String _format(num value, int decimals) =>
+      value.toStringAsFixed(decimals).replaceAll('.', ',');
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +256,7 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
       child: Row(
         children: [
           Expanded(child: _totalValue('Jami: ${_equipment.length} ta')),
-          Expanded(child: _totalValue('${_format(hours, 0)} soat')),
+          Expanded(child: _totalValue('${_format(hours, 2)} soat')),
           Expanded(child: _totalValue('${_format(total, 1)} m³')),
         ],
       ),
@@ -285,10 +304,7 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
 
   bool get _canSubmit {
     if (_egxu?.id == null) return false;
-    if (_gasUsageStatus == 'used') {
-      return _equipment.any((item) => item.operatingHours > 0);
-    }
-    return _selectedStamps.isNotEmpty;
+    return _gasUsageStatus == 'used' || _selectedStamps.isNotEmpty;
   }
 
   void _selectReason(String value) {
@@ -340,7 +356,10 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
     final selected = await showDialog<EghuTargetInfoReal>(
       context: context,
       barrierColor: const Color(0x99000000),
-      builder: (_) => _StampAddDialog(globalApi: widget.globalApi),
+      builder: (_) => _StampAddDialog(
+        globalApi: widget.globalApi,
+        installedDate: widget.removalDateTime,
+      ),
     );
     if (!mounted || selected == null) return;
     setState(() => _selectedStamps.add(selected));
@@ -357,12 +376,9 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
           removalReason: _removalReason,
           gasUsageStatus: _gasUsageStatus,
           replacementReason: _replacementReason,
-          gasEquipments: _gasUsageStatus == 'used'
-              ? _equipment
-                    .where((item) => item.operatingHours > 0)
-                    .map((item) => item.toRequest())
-                    .toList()
-              : const [],
+          gasEquipments: _equipment
+              .map((item) => item.toTargetInfo())
+              .toList(growable: false),
           realNumbers: _gasUsageStatus == 'tagged'
               ? List.unmodifiable(_selectedStamps)
               : const [],
@@ -379,19 +395,12 @@ class _EghuRemovalDetailsPageState extends State<EghuRemovalDetailsPage> {
     'for_repair' => 'Taʼmirlash uchun',
     _ => 'Boshqa EGHU bilan almashtirish',
   };
-
-  String _format(num value, int decimals) {
-    final text = value.toStringAsFixed(decimals);
-    return text.replaceAll('.', ',');
-  }
 }
 
 class _SelectedGasEquipment {
   _SelectedGasEquipment(this.option, {double operatingHours = 0})
     : hoursController = TextEditingController(
-        text: operatingHours > 0
-            ? operatingHours.toStringAsFixed(2).replaceAll('.', ',')
-            : '',
+        text: operatingHours.toStringAsFixed(2).replaceAll('.', ','),
       );
 
   EghuTargetInfoGasEquipment option;
@@ -403,11 +412,12 @@ class _SelectedGasEquipment {
   double get totalConsumption =>
       option.hourlyGasConsumption * operatingHours * option.quantity;
 
-  EghuRemovalGasEquipment toRequest() => EghuRemovalGasEquipment(
-    id: option.id!,
-    name: option.name ?? '-',
+  EghuTargetInfoGasEquipment toTargetInfo() => EghuTargetInfoGasEquipment(
+    id: option.id,
+    name: option.name,
     hourlyGasConsumption: option.hourlyGasConsumption,
     operatingHours: operatingHours,
+    totalConsumed: totalConsumption,
     quantity: option.quantity,
   );
 
@@ -606,6 +616,235 @@ class _HoursInput extends StatelessWidget {
       ],
     );
   }
+}
+
+class _EquipmentPickerDialog extends StatefulWidget {
+  const _EquipmentPickerDialog({
+    required this.options,
+    required this.selectedIds,
+  });
+
+  final Future<List<EghuTargetInfoGasEquipment>> options;
+  final Set<int?> selectedIds;
+
+  @override
+  State<_EquipmentPickerDialog> createState() => _EquipmentPickerDialogState();
+}
+
+class _EquipmentPickerDialogState extends State<_EquipmentPickerDialog> {
+  final _searchController = TextEditingController();
+  String _query = '';
+  EghuTargetInfoGasEquipment? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      if (mounted) setState(() => _query = _searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 600),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFCFCFC),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x38000000),
+              blurRadius: 36,
+              offset: Offset(0, 16),
+            ),
+          ],
+        ),
+        child: FutureBuilder<List<EghuTargetInfoGasEquipment>>(
+          future: widget.options,
+          builder: (context, snapshot) {
+            final all = snapshot.data ?? const <EghuTargetInfoGasEquipment>[];
+            final query = _query.trim().toLowerCase();
+            final items = query.isEmpty
+                ? all
+                : all
+                      .where(
+                        (item) =>
+                            (item.name ?? '').toLowerCase().contains(query),
+                      )
+                      .toList();
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Gaz anjomini tanlang',
+                  style: eghuText(
+                    fontSize: 17,
+                    lineHeight: 28,
+                    fontWeight: FontWeight.w800,
+                    color: EghuActionCreateColors.textStrong,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _searchField(),
+                const SizedBox(height: 14),
+                if (snapshot.connectionState != ConnectionState.done)
+                  const SizedBox(
+                    height: 180,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (items.isEmpty)
+                  const SizedBox(
+                    height: 120,
+                    child: Center(child: Text('Anjomlar topilmadi')),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 2),
+                      itemBuilder: (_, index) => _equipmentOption(items[index]),
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DialogAction(
+                        label: Words.cancel.tr(),
+                        background: const Color(0xFFF0F0F0),
+                        foreground: EghuActionCreateColors.textStrong,
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _DialogAction(
+                        label: Words.select.tr(),
+                        background: const Color(0xFF3F57B3),
+                        foreground: Colors.white,
+                        onTap: _selected == null
+                            ? null
+                            : () => Navigator.of(context).pop(_selected),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _searchField() {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F1F1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          AppTools.svg(AppTools.icSearchIcon, width: 16, height: 16),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Anjom nomi',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                filled: true,
+                fillColor: Colors.transparent,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+                hintStyle: eghuText(
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: const Color(0xFFBBBBBB),
+                ),
+              ),
+              style: eghuText(fontSize: 13, lineHeight: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _equipmentOption(EghuTargetInfoGasEquipment option) {
+    final selected =
+        _selected?.id == option.id ||
+        (_selected == null && widget.selectedIds.contains(option.id));
+    return GestureDetector(
+      onTap: () => setState(() => _selected = option),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFF2F2F2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Text(
+              '${option.id ?? '-'}',
+              style: eghuText(
+                fontSize: 11,
+                lineHeight: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    option.name ?? '-',
+                    style: eghuText(
+                      fontSize: 13,
+                      lineHeight: 20,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                      color: EghuActionCreateColors.textStrong,
+                    ),
+                  ),
+                  Text(
+                    '${_format(option.hourlyGasConsumption, 1)} m³/soat',
+                    style: eghuText(fontSize: 11, lineHeight: 16),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(
+                Icons.check_rounded,
+                size: 16,
+                color: Color(0xFF3F57B3),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _format(num value, int decimals) =>
+      value.toStringAsFixed(decimals).replaceAll('.', ',');
 }
 
 class _UsageTimeDialog extends StatefulWidget {
@@ -957,239 +1196,11 @@ class _SelectedStampCard extends StatelessWidget {
       '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}';
 }
 
-class _EquipmentPickerDialog extends StatefulWidget {
-  const _EquipmentPickerDialog({
-    required this.options,
-    required this.selectedIds,
-  });
-
-  final Future<List<EghuTargetInfoGasEquipment>> options;
-  final Set<int?> selectedIds;
-
-  @override
-  State<_EquipmentPickerDialog> createState() => _EquipmentPickerDialogState();
-}
-
-class _EquipmentPickerDialogState extends State<_EquipmentPickerDialog> {
-  final _searchController = TextEditingController();
-  String _query = '';
-  EghuTargetInfoGasEquipment? _selected;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() {
-      if (mounted) setState(() => _query = _searchController.text);
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      backgroundColor: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxHeight: 600),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFCFCFC),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x38000000),
-              blurRadius: 36,
-              offset: Offset(0, 16),
-            ),
-          ],
-        ),
-        child: FutureBuilder<List<EghuTargetInfoGasEquipment>>(
-          future: widget.options,
-          builder: (context, snapshot) {
-            final all = snapshot.data ?? const <EghuTargetInfoGasEquipment>[];
-            final query = _query.trim().toLowerCase();
-            final items = query.isEmpty
-                ? all
-                : all
-                      .where(
-                        (item) =>
-                            (item.name ?? '').toLowerCase().contains(query),
-                      )
-                      .toList();
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Gaz anjomini tanlang',
-                  style: eghuText(
-                    fontSize: 17,
-                    lineHeight: 28,
-                    fontWeight: FontWeight.w800,
-                    color: EghuActionCreateColors.textStrong,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _searchField(),
-                const SizedBox(height: 14),
-                if (snapshot.connectionState != ConnectionState.done)
-                  const SizedBox(
-                    height: 180,
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (items.isEmpty)
-                  const SizedBox(
-                    height: 120,
-                    child: Center(child: Text('Anjomlar topilmadi')),
-                  )
-                else
-                  Flexible(
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 2),
-                      itemBuilder: (_, index) => _equipmentOption(items[index]),
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DialogAction(
-                        label: Words.cancel.tr(),
-                        background: const Color(0xFFF0F0F0),
-                        foreground: EghuActionCreateColors.textStrong,
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _DialogAction(
-                        label: Words.select.tr(),
-                        background: const Color(0xFF3F57B3),
-                        foreground: Colors.white,
-                        onTap: _selected == null
-                            ? null
-                            : () => Navigator.of(context).pop(_selected),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _searchField() {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F1F1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          AppTools.svg(AppTools.icSearchIcon, width: 16, height: 16),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Anjom nomi',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                filled: true,
-                fillColor: Colors.transparent,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-                hintStyle: eghuText(
-                  fontSize: 13,
-                  lineHeight: 20,
-                  color: const Color(0xFFBBBBBB),
-                ),
-              ),
-              style: eghuText(fontSize: 13, lineHeight: 20),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _equipmentOption(EghuTargetInfoGasEquipment option) {
-    final selected =
-        _selected?.id == option.id ||
-        (_selected == null && widget.selectedIds.contains(option.id));
-    return GestureDetector(
-      onTap: () => setState(() => _selected = option),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF2F2F2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Text(
-              '${option.id ?? '-'}',
-              style: eghuText(
-                fontSize: 11,
-                lineHeight: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    option.name ?? '-',
-                    style: eghuText(
-                      fontSize: 13,
-                      lineHeight: 20,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                      color: EghuActionCreateColors.textStrong,
-                    ),
-                  ),
-                  Text(
-                    '${_format(option.hourlyGasConsumption, 1)} m³/soat',
-                    style: eghuText(fontSize: 11, lineHeight: 16),
-                  ),
-                ],
-              ),
-            ),
-            if (selected)
-              const Icon(
-                Icons.check_rounded,
-                size: 16,
-                color: Color(0xFF3F57B3),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _format(num value, int decimals) =>
-      value.toStringAsFixed(decimals).replaceAll('.', ',');
-}
-
 class _StampAddDialog extends StatefulWidget {
-  const _StampAddDialog({this.globalApi});
+  const _StampAddDialog({this.globalApi, this.installedDate});
 
   final GlobalApi? globalApi;
+  final DateTime? installedDate;
 
   @override
   State<_StampAddDialog> createState() => _StampAddDialogState();
@@ -1286,6 +1297,7 @@ class _StampAddDialogState extends State<_StampAddDialog> {
                               id: null,
                               number: _numberController.text.trim(),
                               status: 'Muhrlangan',
+                              installedDate: widget.installedDate,
                               sealLocation: _location!.name,
                             ),
                           )

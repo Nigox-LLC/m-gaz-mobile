@@ -1,6 +1,30 @@
 import '../global/base_model.dart';
 import 'consumer_file_models.dart';
 
+int? _intValue(Object? value) {
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
+}
+
+double? _doubleValue(Object? value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString().replaceAll(',', '.') ?? '');
+}
+
+bool? _boolValue(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final text = value?.toString().trim().toLowerCase();
+  if (text == 'true' || text == '1') return true;
+  if (text == 'false' || text == '0') return false;
+  return null;
+}
+
+Map<String, dynamic>? _mapValue(Object? value) {
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return null;
+}
+
 List<T>? _mapList<T>(
   Object? value,
   T Function(Map<String, dynamic>? json) fromJson,
@@ -39,17 +63,23 @@ class WorkingWithConsumersDetailModel {
     if (json == null) return WorkingWithConsumersDetailModel();
 
     return WorkingWithConsumersDetailModel(
-      id: json['id'],
-      egxuList: (json['egxu_list'] as List?)
-          ?.map((e) => ConsumersEgxuItem.fromJson(e))
-          .toList(),
-      region: Region.fromJson(json['region']),
-      district: District.fromJson(json['district']),
-      employee: Employee.fromJson(json['employee']),
-      consumers: Consumers.fromJson(json['consumers']),
-      facial: json['facial'],
-      datetime: json['datetime'],
-      excelId: json['excel_id'],
+      id: _intValue(json['id']),
+      egxuList: json['egxu_list'] is List
+          ? (json['egxu_list'] as List)
+                .whereType<Map>()
+                .map(
+                  (e) =>
+                      ConsumersEgxuItem.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList()
+          : null,
+      region: Region.fromJson(_mapValue(json['region'])),
+      district: District.fromJson(_mapValue(json['district'])),
+      employee: Employee.fromJson(_mapValue(json['employee'])),
+      consumers: Consumers.fromJson(_mapValue(json['consumers'])),
+      facial: json['facial']?.toString(),
+      datetime: json['datetime']?.toString(),
+      excelId: _intValue(json['excel_id']),
     );
   }
 
@@ -110,6 +140,9 @@ class ConsumersEgxuItem {
   final String? fromDate;
   final String? toDate;
   final bool? isActive;
+  final bool? isRemoved;
+  final String? egxuStatus;
+  final String? egxuStatusDisplay;
 
   ConsumersEgxuItem({
     this.id,
@@ -129,22 +162,37 @@ class ConsumersEgxuItem {
     this.fromDate,
     this.toDate,
     this.isActive,
+    this.isRemoved,
+    this.egxuStatus,
+    this.egxuStatusDisplay,
   });
 
   factory ConsumersEgxuItem.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersEgxuItem();
+    final rawGasEquipmentList =
+        json['gas_equipment_list'] ?? json['gas_equipments'];
+    final rawReals = json['real'] ?? json['reals'];
 
     return ConsumersEgxuItem(
-      id: json['id'],
+      id: _intValue(json['id']),
       consumerRelationEgxu: ConsumerRelationEgxu.fromJson(
-        json['consumer_relation_egxu'],
+        _mapValue(json['consumer_relation_egxu']),
       ),
-      companyInfo: ConsumersCompanyInfo.fromJson(json['company_info']),
-      gasEquipmentList: (json['gas_equipment_list'] as List?)
-          ?.map((e) => ConsumersGasEquipmentItem.fromJson(e))
-          .toList(),
-      real: _mapList(json['real'], ConsumersRealItem.fromJson),
-      realRaw: json['real'] is List ? null : json['real']?.toString(),
+      companyInfo: ConsumersCompanyInfo.fromJson(
+        _mapValue(json['company_info']),
+      ),
+      gasEquipmentList: rawGasEquipmentList is List
+          ? rawGasEquipmentList
+                .whereType<Map>()
+                .map(
+                  (e) => ConsumersGasEquipmentItem.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                )
+                .toList()
+          : null,
+      real: _mapList(rawReals, ConsumersRealItem.fromJson),
+      realRaw: rawReals is List ? null : rawReals?.toString(),
       hourlyListIndicator: json['hourly_list_indicator']?.toString(),
       indicatorImages: _mapList(
         json['indicator_images'],
@@ -156,15 +204,23 @@ class ConsumersEgxuItem {
       hourlyFiles: json['hourly_files'] is List
           ? null
           : json['hourly_files']?.toString(),
-      certificates: (json['certificates'] as List?)
-          ?.map((e) => EgxuCertificate.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      egxuType: ConsumersEgxuType.fromJson(json['egxu_type']),
-      oneFactory: json['one_factory'],
-      twoFactory: json['two_factory'],
-      fromDate: json['from_date'],
-      toDate: json['to_date'],
-      isActive: json['is_active'],
+      certificates: json['certificates'] is List
+          ? (json['certificates'] as List)
+                .whereType<Map>()
+                .map(
+                  (e) => EgxuCertificate.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList()
+          : null,
+      egxuType: ConsumersEgxuType.fromJson(_mapValue(json['egxu_type'])),
+      oneFactory: json['one_factory']?.toString(),
+      twoFactory: json['two_factory']?.toString(),
+      fromDate: json['from_date']?.toString(),
+      toDate: json['to_date']?.toString(),
+      isActive: _boolValue(json['is_active']),
+      isRemoved: _boolValue(json['is_removed']),
+      egxuStatus: json['egxu_status']?.toString(),
+      egxuStatusDisplay: json['egxu_status_display']?.toString(),
     );
   }
 
@@ -187,6 +243,9 @@ class ConsumersEgxuItem {
       'from_date': fromDate,
       'to_date': toDate,
       'is_active': isActive,
+      'is_removed': isRemoved,
+      'egxu_status': egxuStatus,
+      'egxu_status_display': egxuStatusDisplay,
     };
   }
 
@@ -208,6 +267,9 @@ class ConsumersEgxuItem {
     String? fromDate,
     String? toDate,
     bool? isActive,
+    bool? isRemoved,
+    String? egxuStatus,
+    String? egxuStatusDisplay,
   }) {
     return ConsumersEgxuItem(
       id: id ?? this.id,
@@ -227,6 +289,9 @@ class ConsumersEgxuItem {
       fromDate: fromDate ?? this.fromDate,
       toDate: toDate ?? this.toDate,
       isActive: isActive ?? this.isActive,
+      isRemoved: isRemoved ?? this.isRemoved,
+      egxuStatus: egxuStatus ?? this.egxuStatus,
+      egxuStatusDisplay: egxuStatusDisplay ?? this.egxuStatusDisplay,
     );
   }
 }
@@ -312,13 +377,15 @@ class ConsumerRelationEgxu {
     final gasNetworksRaw = json['gas_networks'];
     final egxuConnectionPointRaw = json['egxu_connection_point'];
     return ConsumerRelationEgxu(
-      id: json['id'],
+      id: _intValue(json['id']),
       typeOfActivity: _nameOrString(typeOfActivityRaw),
       typeOfActivityId:
           _intOrNull(json['type_of_activity_id']) ??
-          (typeOfActivityRaw is Map
-              ? _intOrNull(typeOfActivityRaw['id'])
-              : null),
+          _intOrNull(
+            typeOfActivityRaw is Map
+                ? typeOfActivityRaw['id']
+                : typeOfActivityRaw,
+          ),
       gasNetworks: _nameOrString(gasNetworksRaw),
       gasNetworksId:
           _intOrNull(json['gas_networks_id']) ??
@@ -329,22 +396,22 @@ class ConsumerRelationEgxu {
           (egxuConnectionPointRaw is Map
               ? _intOrNull(egxuConnectionPointRaw['id'])
               : null),
-      monthStartReading: (json['month_start_reading'] as num?)?.toDouble(),
-      additionalGas: (json['additional_gas'] as num?)?.toDouble(),
-      violationGas: (json['violation_gas'] as num?)?.toDouble(),
-      additionalBalance: (json['additional_balance'] as num?)?.toDouble(),
-      monthEndReading: (json['month_end_reading'] as num?)?.toDouble(),
-      readingDifference: (json['reading_difference'] as num?)?.toDouble(),
-      totalGas: (json['total_gas'] as num?)?.toDouble(),
-      reasonsForViolations: json['reasons_for_violations'],
-      grpExists: json['grp_exists'],
-      grpLoss: (json['grp_loss'] as num?)?.toDouble(),
-      ghuIdNumber: json['ghu_id_number'],
-      movGrpAfterEgxu: json['mov_grp_after_egxu'],
-      gaz: json['gaz'],
-      counterStatus: json['counter_status'],
-      workActivity: json['work_activity'],
-      isActive: json['is_active'],
+      monthStartReading: _doubleValue(json['month_start_reading']),
+      additionalGas: _doubleValue(json['additional_gas']),
+      violationGas: _doubleValue(json['violation_gas']),
+      additionalBalance: _doubleValue(json['additional_balance']),
+      monthEndReading: _doubleValue(json['month_end_reading']),
+      readingDifference: _doubleValue(json['reading_difference']),
+      totalGas: _doubleValue(json['total_gas']),
+      reasonsForViolations: json['reasons_for_violations']?.toString(),
+      grpExists: _boolValue(json['grp_exists']),
+      grpLoss: _doubleValue(json['grp_loss']),
+      ghuIdNumber: _intValue(json['ghu_id_number']),
+      movGrpAfterEgxu: json['mov_grp_after_egxu']?.toString(),
+      gaz: json['gaz']?.toString(),
+      counterStatus: json['counter_status']?.toString(),
+      workActivity: _boolValue(json['work_activity']),
+      isActive: _boolValue(json['is_active']),
     );
   }
 
@@ -450,7 +517,10 @@ class ConsumersLookup {
 
   factory ConsumersLookup.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersLookup();
-    return ConsumersLookup(id: json['id'], name: json['name']);
+    return ConsumersLookup(
+      id: _intValue(json['id']),
+      name: json['name']?.toString(),
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -526,30 +596,30 @@ class ConsumersCompanyInfo {
   factory ConsumersCompanyInfo.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersCompanyInfo();
     return ConsumersCompanyInfo(
-      id: json['id'],
-      direction: ConsumersLookup.fromJson(json['direction']),
-      grs: ConsumersLookup.fromJson(json['grs']),
+      id: _intValue(json['id']),
+      direction: ConsumersLookup.fromJson(_mapValue(json['direction'])),
+      grs: ConsumersLookup.fromJson(_mapValue(json['grs'])),
       egxuIndustrialCollector: ConsumersLookup.fromJson(
-        json['egxu_industrial_collector'],
+        _mapValue(json['egxu_industrial_collector']),
       ),
       grsMeasurementDevices: ConsumersLookup.fromJson(
-        json['grs_measurement_devices'],
+        _mapValue(json['grs_measurement_devices']),
       ),
-      grpTypes: ConsumersLookup.fromJson(json['grp_types']),
-      neighborhood: ConsumersLookup.fromJson(json['neighborhood']),
-      accountNumber: json['account_number'],
-      contractNumber: json['contract_number'],
-      companyDirector: json['company_director'],
-      ministry: Ministry.fromJson(json['ministry']),
-      contractDate: json['contract_date'],
-      contractEndDate: json['contract_end_date'],
-      companyTin: json['company_tin'],
-      phone: json['phone'],
-      email: json['email'],
-      address: json['address'],
-      typeConsumers: json['type_consumers'],
-      season: json['season'],
-      isActive: json['is_active'],
+      grpTypes: ConsumersLookup.fromJson(_mapValue(json['grp_types'])),
+      neighborhood: ConsumersLookup.fromJson(_mapValue(json['neighborhood'])),
+      accountNumber: json['account_number']?.toString(),
+      contractNumber: json['contract_number']?.toString(),
+      companyDirector: json['company_director']?.toString(),
+      ministry: Ministry.fromJson(_mapValue(json['ministry'])),
+      contractDate: json['contract_date']?.toString(),
+      contractEndDate: json['contract_end_date']?.toString(),
+      companyTin: json['company_tin']?.toString(),
+      phone: json['phone']?.toString(),
+      email: json['email']?.toString(),
+      address: json['address']?.toString(),
+      typeConsumers: json['type_consumers']?.toString(),
+      season: json['season']?.toString(),
+      isActive: _boolValue(json['is_active']),
       directionId: ConsumerRelationEgxu._intOrNull(json['direction_id']),
       ministryId: ConsumerRelationEgxu._intOrNull(json['ministry_id']),
       grsId: ConsumerRelationEgxu._intOrNull(json['grs_id']),
@@ -671,9 +741,9 @@ class ConsumersGasEquipment {
   factory ConsumersGasEquipment.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersGasEquipment();
     return ConsumersGasEquipment(
-      id: json['id'],
-      name: json['name'],
-      hourlyGasConsumption: (json['hourly_gas_consumption'] ?? 0).toDouble(),
+      id: _intValue(json['id']),
+      name: json['name']?.toString(),
+      hourlyGasConsumption: _doubleValue(json['hourly_gas_consumption']) ?? 0,
     );
   }
 
@@ -690,23 +760,30 @@ class ConsumersGasEquipmentItem {
   final int? id;
   final int? quantity;
   final double? hourlyGasConsumption;
+  final double? operatingHours;
+  final double? totalConsumed;
   final ConsumersGasEquipment? gasEquipment;
 
   ConsumersGasEquipmentItem({
     this.id,
     this.quantity,
     this.hourlyGasConsumption,
+    this.operatingHours,
+    this.totalConsumed,
     this.gasEquipment,
   });
 
   factory ConsumersGasEquipmentItem.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersGasEquipmentItem();
     return ConsumersGasEquipmentItem(
-      id: json['id'],
-      quantity: json['quantity'],
-      hourlyGasConsumption: (json['hourly_gas_consumption'] as num?)
-          ?.toDouble(),
-      gasEquipment: ConsumersGasEquipment.fromJson(json['gas_equipment']),
+      id: _intValue(json['id']),
+      quantity: _intValue(json['quantity']),
+      hourlyGasConsumption: _doubleValue(json['hourly_gas_consumption']),
+      operatingHours: _doubleValue(json['operating_hours']),
+      totalConsumed: _doubleValue(json['total_consumed']),
+      gasEquipment: ConsumersGasEquipment.fromJson(
+        _mapValue(json['gas_equipment']),
+      ),
     );
   }
 
@@ -715,6 +792,8 @@ class ConsumersGasEquipmentItem {
       'id': id,
       'quantity': quantity,
       'hourly_gas_consumption': hourlyGasConsumption,
+      'operating_hours': operatingHours,
+      'total_consumed': totalConsumed,
       'gas_equipment': gasEquipment?.toJson(),
     };
   }
@@ -728,7 +807,10 @@ class ConnectionPoint {
 
   factory ConnectionPoint.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConnectionPoint();
-    return ConnectionPoint(id: json['id'], name: json['name']);
+    return ConnectionPoint(
+      id: _intValue(json['id']),
+      name: json['name']?.toString(),
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -774,25 +856,23 @@ class ConsumersRealItem {
   factory ConsumersRealItem.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersRealItem();
     return ConsumersRealItem(
-      id: json['id'],
-      employee: Employee.fromJson(json['employee']),
-      connectionPoint: ConnectionPoint.fromJson(json['connection_point']),
-      realNumber: json['real_number'],
-      installedDate: json['installed_date'],
-      sealInstalledLocation: json['seal_installed_location'],
-      qrCode: json['qr_code'],
-      removeSeal: json['remove_seal'],
-      realReasonRemoval: json['real_reason_removal'],
-      realRemovalDate: json['real_removal_date'],
-      latitude: json['latitude'] != null
-          ? (json['latitude'] as num).toDouble()
-          : null,
-      longitude: json['longitude'] != null
-          ? (json['longitude'] as num).toDouble()
-          : null,
-      created: json['created'],
-      isActive: json['is_active'],
-      realRemovalUser: json['real_removal_user'],
+      id: _intValue(json['id']),
+      employee: Employee.fromJson(_mapValue(json['employee'])),
+      connectionPoint: ConnectionPoint.fromJson(
+        _mapValue(json['connection_point']),
+      ),
+      realNumber: json['real_number']?.toString(),
+      installedDate: json['installed_date']?.toString(),
+      sealInstalledLocation: json['seal_installed_location']?.toString(),
+      qrCode: json['qr_code']?.toString(),
+      removeSeal: _boolValue(json['remove_seal']),
+      realReasonRemoval: json['real_reason_removal']?.toString(),
+      realRemovalDate: json['real_removal_date']?.toString(),
+      latitude: _doubleValue(json['latitude']),
+      longitude: _doubleValue(json['longitude']),
+      created: json['created']?.toString(),
+      isActive: _boolValue(json['is_active']),
+      realRemovalUser: json['real_removal_user']?.toString(),
     );
   }
 
@@ -825,7 +905,10 @@ class ConsumersIndicatorImage {
 
   factory ConsumersIndicatorImage.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersIndicatorImage();
-    return ConsumersIndicatorImage(id: json['id'], image: json['image']);
+    return ConsumersIndicatorImage(
+      id: _intValue(json['id']),
+      image: json['image']?.toString(),
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -844,10 +927,10 @@ class ConsumersEgxuType {
   factory ConsumersEgxuType.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ConsumersEgxuType();
     return ConsumersEgxuType(
-      id: json['id'],
-      name: json['name'],
-      photo: json['photo'],
-      code: json['code'],
+      id: _intValue(json['id']),
+      name: json['name']?.toString(),
+      photo: json['photo']?.toString(),
+      code: json['code']?.toString(),
     );
   }
 

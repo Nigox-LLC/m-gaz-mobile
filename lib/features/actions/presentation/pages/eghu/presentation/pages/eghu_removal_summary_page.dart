@@ -31,7 +31,7 @@ class EghuRemovalSummaryPage extends StatefulWidget {
   final String removalReason;
   final String gasUsageStatus;
   final String replacementReason;
-  final List<EghuRemovalGasEquipment> gasEquipments;
+  final List<EghuTargetInfoGasEquipment> gasEquipments;
   final List<EghuTargetInfoReal> realNumbers;
   final int? activityTypeId;
   final EghuRemovalFlowApi? api;
@@ -51,12 +51,15 @@ class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
   EghuTargetInfoEgxu? get _egxu {
     final selectedId = widget.preselection.eghu.id;
     for (final item in widget.targetInfo.egxus) {
-      if (item.id == selectedId) return item;
+      if (item.id == selectedId && _isSelectable(item)) return item;
     }
-    return widget.targetInfo.egxus.isEmpty
-        ? null
-        : widget.targetInfo.egxus.first;
+    for (final item in widget.targetInfo.egxus) {
+      if (_isSelectable(item)) return item;
+    }
+    return null;
   }
+
+  bool _isSelectable(EghuTargetInfoEgxu item) => item.canBeRemoved;
 
   @override
   void dispose() {
@@ -390,7 +393,6 @@ class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
           removalReason: widget.removalReason,
           gasUsageStatus: widget.gasUsageStatus,
           replacementReason: widget.replacementReason,
-          gasEquipments: widget.gasEquipments,
           realNumbers: widget.realNumbers,
         ),
       );
@@ -457,17 +459,27 @@ class _EghuRemovalSummaryPageState extends State<EghuRemovalSummaryPage> {
   };
 
   String get _gasSummary {
-    if (widget.gasEquipments.isEmpty) {
+    if (widget.gasUsageStatus == 'tagged') {
       return widget.realNumbers.isEmpty
           ? '-'
           : '${widget.realNumbers.length} ta tamg’a';
     }
-    final total = widget.gasEquipments.fold<double>(
+    final equipments = widget.gasEquipments.isNotEmpty
+        ? widget.gasEquipments
+        : _egxu?.gasEquipments ?? const [];
+    if (equipments.isEmpty) {
+      return '-';
+    }
+    final total = equipments.fold<double>(
       0,
       (sum, item) =>
-          sum + item.hourlyGasConsumption * item.operatingHours * item.quantity,
+          sum +
+          (item.totalConsumed ??
+              item.hourlyGasConsumption *
+                  (item.operatingHours ?? 0) *
+                  item.quantity),
     );
-    return '${widget.gasEquipments.length} ta anjom, ${_format(total, 1)} m³';
+    return '${equipments.length} ta anjom, ${_format(total, 1)} m³';
   }
 
   String _format(num value, int decimals) =>

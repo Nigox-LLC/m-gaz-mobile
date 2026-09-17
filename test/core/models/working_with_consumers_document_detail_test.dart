@@ -110,4 +110,44 @@ void main() {
       expect(item.indicatorImagesRaw, 'string');
     },
   );
+
+  test('accepts activity id/null and expanded real/equipment variants', () {
+    final detail = WorkingWithConsumersDetailModel.fromJson({
+      'id': '71332',
+      'region': {'id': '1', 'name': 'Toshkent'},
+      'district': {'id': '4', 'name': 'Zangiota'},
+      'egxu_list': [
+        {
+          'id': '25',
+          'consumer_relation_egxu': {'type_of_activity': '2'},
+          'gas_equipments': [
+            {
+              'id': '66',
+              'quantity': '2',
+              'hourly_gas_consumption': '1.5',
+              'operating_hours': '4.0',
+              'total_consumed': '12.0',
+            },
+          ],
+          'reals': [
+            {'id': '101', 'real_number': 'TM-1'},
+          ],
+          'is_removed': 'false',
+        },
+        {
+          'id': 26,
+          'consumer_relation_egxu': {'type_of_activity': null},
+        },
+      ],
+    });
+
+    final first = detail.egxuList!.first;
+    expect(detail.id, 71332);
+    expect(detail.region?.id, 1);
+    expect(first.consumerRelationEgxu?.typeOfActivityId, 2);
+    expect(first.gasEquipmentList!.single.totalConsumed, 12);
+    expect(first.real!.single.realNumber, 'TM-1');
+    expect(first.isRemoved, isFalse);
+    expect(detail.egxuList![1].consumerRelationEgxu?.typeOfActivityId, isNull);
+  });
 }

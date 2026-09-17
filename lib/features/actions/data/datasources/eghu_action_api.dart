@@ -25,8 +25,6 @@ abstract class EghuRemovalFlowApi {
     required int documentId,
   });
 
-  Future<void> removeStamp(EghuStampRemovalRequest request);
-
   Future<int> createRemoval(EghuStampRemovalRequest request);
 
   Future<void> changeRemovalStatus({
@@ -96,22 +94,6 @@ class EghuActionApi
   }
 
   @override
-  Future<void> removeStamp(EghuStampRemovalRequest request) async {
-    try {
-      final response = await _base.dio.post(
-        workingWithEgxuRemovalsEndpoint,
-        data: request.toJson(),
-        options: Options(contentType: Headers.jsonContentType),
-      );
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Xatolik yuz berdi: ${response.statusCode}');
-      }
-    } on DioException catch (e) {
-      throw Exception(_messageFromDio(e));
-    }
-  }
-
-  @override
   Future<int> createRemoval(EghuStampRemovalRequest request) async {
     try {
       final response = await _base.dio.post(
@@ -139,11 +121,13 @@ class EghuActionApi
   }) async {
     try {
       final response = await _base.dio.post(
-        'working-with-egxu/$documentId/change-status/',
+        '$workingWithEgxuRemovalsEndpoint$documentId/change-status/',
         data: {'status': status},
         options: Options(contentType: Headers.jsonContentType),
       );
-      if (response.statusCode != 200 && response.statusCode != 201) {
+      if (response.statusCode != 200 &&
+          response.statusCode != 201 &&
+          response.statusCode != 204) {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
       }
     } on DioException catch (e) {

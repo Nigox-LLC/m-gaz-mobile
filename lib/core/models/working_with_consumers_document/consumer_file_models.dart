@@ -1,6 +1,18 @@
 import 'dart:io';
-
 import 'package:equatable/equatable.dart';
+
+int? _intValue(Object? value) {
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
+}
+
+bool? _boolValue(Object? value) {
+  if (value is bool) return value;
+  final text = value?.toString().trim().toLowerCase();
+  if (text == 'true' || text == '1') return true;
+  if (text == 'false' || text == '0') return false;
+  return null;
+}
 
 /// Iste'molchi fayli (Loyiha texnik hujjati / Shartnoma).
 /// Manba: GET /api/directory/consumers/files/
@@ -80,7 +92,7 @@ class EgxuCertificate {
       );
     }
     return EgxuCertificate(
-      id: json['id'],
+      id: _intValue(json['id']),
       certificateType: json['certificate_type']?.toString(),
       certificateNumber: json['certificate_number']?.toString(),
       issuedDate: json['issued_date']?.toString(),
@@ -88,7 +100,7 @@ class EgxuCertificate {
       warningLetter: json['warning_letter']?.toString(),
       warningDate: json['warning_date']?.toString(),
       warningReason: json['warning_reason']?.toString(),
-      isActive: json['is_active'] ?? true,
+      isActive: _boolValue(json['is_active']) ?? true,
       files: files,
     );
   }

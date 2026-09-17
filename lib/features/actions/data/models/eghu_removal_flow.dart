@@ -1,11 +1,50 @@
 class EghuTargetInfo {
-  const EghuTargetInfo({required this.egxus});
+  const EghuTargetInfo({
+    required this.egxus,
+    this.targetName,
+    this.regionId,
+    this.regionName,
+    this.districtId,
+    this.districtName,
+    this.hasRemovedEgxu,
+    this.canReinstall,
+    this.pendingRemovals = const [],
+  });
 
   final List<EghuTargetInfoEgxu> egxus;
+  final String? targetName;
+  final int? regionId;
+  final String? regionName;
+  final int? districtId;
+  final String? districtName;
+  final bool? hasRemovedEgxu;
+  final bool? canReinstall;
+  final List<Map<String, dynamic>> pendingRemovals;
 
   factory EghuTargetInfo.fromJson(Map<String, dynamic> json) {
     final rawList = json['egxu_list'] ?? json['egxus'];
     return EghuTargetInfo(
+      targetName: _asText([json['target_name']]),
+      regionId: _asInt(json['region_id'] ?? _asMap(json['region'])?['id']),
+      regionName: _asText([
+        json['region_name'],
+        _asMap(json['region'])?['name'],
+      ]),
+      districtId: _asInt(
+        json['district_id'] ?? _asMap(json['district'])?['id'],
+      ),
+      districtName: _asText([
+        json['district_name'],
+        _asMap(json['district'])?['name'],
+      ]),
+      hasRemovedEgxu: _asBool(json['has_removed_egxu']),
+      canReinstall: _asBool(json['can_reinstall']),
+      pendingRemovals: json['pending_removals'] is List
+          ? (json['pending_removals'] as List)
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+          : const [],
       egxus: rawList is List
           ? rawList
                 .whereType<Map>()
@@ -27,6 +66,10 @@ class EghuTargetInfoEgxu {
     this.typeName,
     this.oneFactory,
     this.twoFactory,
+    this.isRemoved = false,
+    this.isActive = true,
+    this.status,
+    this.statusDisplay,
     this.gasEquipments = const [],
     this.reals = const [],
   });
@@ -35,26 +78,59 @@ class EghuTargetInfoEgxu {
   final String? typeName;
   final String? oneFactory;
   final String? twoFactory;
+  final bool isRemoved;
+  final bool? isActive;
+  final String? status;
+  final String? statusDisplay;
   final List<EghuTargetInfoGasEquipment> gasEquipments;
   final List<EghuTargetInfoReal> reals;
 
+  /// An EGHU remains a valid removal target even when it has no active seals.
+  bool get canBeRemoved => id != null;
+
   factory EghuTargetInfoEgxu.fromJson(Map<String, dynamic> json) {
+    final egxu = _asMap(json['egxu']);
     final type = _asMap(json['egxu_type']);
     final rawGasEquipments =
         json['gas_equipments'] ??
         json['gas_equipment_list'] ??
-        json['gas_equipment'];
-    final rawReals = json['reals'] ?? json['real_numbers'] ?? json['real'];
+        json['gas_equipment'] ??
+        egxu?['gas_equipments'] ??
+        egxu?['gas_equipment_list'];
+    final rawReals =
+        json['reals'] ??
+        json['real_numbers'] ??
+        json['real'] ??
+        egxu?['reals'] ??
+        egxu?['real_numbers'] ??
+        egxu?['real'];
 
     return EghuTargetInfoEgxu(
-      id: _asInt(json['egxu_id'] ?? json['id']),
+      id: _asInt([egxu?['id'], json['egxu_id'], json['egxu'], json['id']]),
       typeName: _asText([
         json['egxu_type_name'],
         type?['name'],
         json['type_name'],
+        egxu?['egxu_type_name'],
+        _asMap(egxu?['egxu_type'])?['name'],
+        egxu?['type_name'],
       ]),
-      oneFactory: _asText([json['one_factory']]),
-      twoFactory: _asText([json['two_factory']]),
+      oneFactory: _asText([json['one_factory'], egxu?['one_factory']]),
+      twoFactory: _asText([json['two_factory'], egxu?['two_factory']]),
+      isRemoved: _asBool(json['is_removed'] ?? egxu?['is_removed']) ?? false,
+      isActive: _asBool(json['is_active'] ?? egxu?['is_active']),
+      status: _asText([
+        json['egxu_status'],
+        json['status'],
+        egxu?['egxu_status'],
+        egxu?['status'],
+      ]),
+      statusDisplay: _asText([
+        json['egxu_status_display'],
+        json['status_display'],
+        egxu?['egxu_status_display'],
+        egxu?['status_display'],
+      ]),
       gasEquipments: rawGasEquipments is List
           ? rawGasEquipments
                 .whereType<Map>()
@@ -86,6 +162,7 @@ class EghuTargetInfoGasEquipment {
     this.name,
     this.hourlyGasConsumption = 0,
     this.operatingHours,
+    this.totalConsumed,
     this.quantity = 1,
   });
 
@@ -93,6 +170,7 @@ class EghuTargetInfoGasEquipment {
   final String? name;
   final double hourlyGasConsumption;
   final double? operatingHours;
+  final double? totalConsumed;
   final int quantity;
 
   factory EghuTargetInfoGasEquipment.fromJson(Map<String, dynamic> json) {
@@ -113,6 +191,7 @@ class EghuTargetInfoGasEquipment {
         json['operating_hours'],
         json['hours'],
       ]),
+      totalConsumed: _asNullableDouble([json['total_consumed']]),
       quantity: _asInt([json['quantity']]) ?? 1,
     );
   }
@@ -127,6 +206,7 @@ class EghuTargetInfoReal {
     this.sealLocation,
     this.installedLocation,
     this.installedBy,
+    this.removeSeal,
   });
 
   final int? id;
@@ -136,6 +216,7 @@ class EghuTargetInfoReal {
   final String? sealLocation;
   final String? installedLocation;
   final String? installedBy;
+  final bool? removeSeal;
 
   factory EghuTargetInfoReal.fromJson(Map<String, dynamic> json) {
     final real = _asMap(json['real']);
@@ -172,6 +253,7 @@ class EghuTargetInfoReal {
       ]),
       installedLocation: _asText([json['installed_location']]),
       installedBy: _asText([json['installed_by']]),
+      removeSeal: _asBool(json['remove_seal'] ?? json['is_removed']),
     );
   }
 }
@@ -181,7 +263,6 @@ class EghuStampRemovalRequest {
     required this.datetime,
     required this.documentId,
     required this.egxuId,
-    this.stamp,
     this.regionId,
     this.districtId,
     this.typeOfActivityId,
@@ -192,14 +273,12 @@ class EghuStampRemovalRequest {
     this.removalReason = 'for_repair',
     this.gasUsageStatus = 'tagged',
     this.replacementReason = "Tamg'ani yechib olish",
-    this.gasEquipments = const [],
     this.realNumbers = const [],
   });
 
   final DateTime datetime;
   final int documentId;
   final int egxuId;
-  final EghuTargetInfoReal? stamp;
   final int? regionId;
   final int? districtId;
   final int? typeOfActivityId;
@@ -210,12 +289,9 @@ class EghuStampRemovalRequest {
   final String removalReason;
   final String gasUsageStatus;
   final String replacementReason;
-  final List<EghuRemovalGasEquipment> gasEquipments;
   final List<EghuTargetInfoReal> realNumbers;
 
   Map<String, Object?> toJson() {
-    final realNumbersToSend = [...realNumbers, if (stamp != null) stamp!];
-
     return {
       'datetime': datetime.toUtc().toIso8601String(),
       if (regionId != null) 'region': regionId,
@@ -235,14 +311,10 @@ class EghuStampRemovalRequest {
           'removal_reason': removalReason,
           'gas_usage_status': gasUsageStatus,
           'replacement_reason': replacementReason,
-          if (gasEquipments.isNotEmpty)
-            'gas_equipments': gasEquipments
-                .map((item) => item.toJson())
-                .toList(),
-          if (realNumbersToSend.isNotEmpty)
-            'real_numbers': realNumbersToSend.map(_realToJson).toList(),
         },
       ],
+      if (realNumbers.isNotEmpty)
+        'real_numbers': realNumbers.map(_realToJson).toList(),
     };
   }
 
@@ -299,35 +371,20 @@ double? _asNullableDouble(Iterable<Object?> values) {
   return null;
 }
 
-class EghuRemovalGasEquipment {
-  const EghuRemovalGasEquipment({
-    required this.id,
-    required this.name,
-    required this.hourlyGasConsumption,
-    required this.operatingHours,
-    this.quantity = 1,
-  });
-
-  final int id;
-  final String name;
-  final double hourlyGasConsumption;
-  final double operatingHours;
-  final int quantity;
-
-  Map<String, Object?> toJson() => {
-    'gas_equipment': id,
-    'equipment_name': name,
-    'hourly_gas_consumption': hourlyGasConsumption,
-    'operating_hours': operatingHours,
-    'quantity': quantity,
-  };
-}
-
 String? _asText(Iterable<Object?> values) {
   for (final value in values) {
     final text = value?.toString().trim();
     if (text != null && text.isNotEmpty && text != 'null') return text;
   }
+  return null;
+}
+
+bool? _asBool(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final text = value?.toString().trim().toLowerCase();
+  if (text == 'true' || text == '1') return true;
+  if (text == 'false' || text == '0') return false;
   return null;
 }
 

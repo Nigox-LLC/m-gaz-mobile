@@ -147,15 +147,31 @@ class GlobalApi {
       debugPrint("🔹 Activity Types so'rov yuborilmoqda...");
 
       final response = await _base.dio.get(
-        'directory/directory/all-list/',
-        queryParameters: {'entity_type': 'Faoliyatturi'},
+        'directory/directory/',
+        queryParameters: {
+          'entity_type': 'Faoliyatturi',
+          'limit': 100,
+          'offset': 0,
+        },
       );
 
       debugPrint("🔹 Activity Types javob status code: ${response.statusCode}");
 
       if (response.statusCode == 200) {
-        return (response.data as List)
-            .map((item) => GlobalModel.fromJson(item))
+        final data = response.data;
+        final items = data is List
+            ? data
+            : data is Map
+            ? data['results']
+            : null;
+        if (items is! List) {
+          throw Exception("Noto'g'ri activity types javobi");
+        }
+        return items
+            .whereType<Map>()
+            .map(
+              (item) => GlobalModel.fromJson(Map<String, dynamic>.from(item)),
+            )
             .toList();
       } else {
         throw Exception('Xatolik yuz berdi: ${response.statusCode}');
