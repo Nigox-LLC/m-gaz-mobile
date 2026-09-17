@@ -10,20 +10,21 @@ class GlobalModel extends Equatable {
 
   factory GlobalModel.fromJson(Map<String, dynamic> json) {
     return GlobalModel(
-      id: json['id'] as int?,
-      fio: json['fio'] as String?,
-      name: json['name'] as String?,
+      id: _asInt(json['id']),
+      fio: json['fio']?.toString(),
+      name: json['name']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'fio': fio,
-      'name': name,
-    };
+    return {'id': id, 'fio': fio, 'name': name};
   }
 
   @override
   List<Object?> get props => [id, fio, name];
+}
+
+int? _asInt(Object? value) {
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
 }

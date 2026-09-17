@@ -438,7 +438,7 @@ class _EghuStampTimeDialogState extends State<_EghuStampTimeDialog> {
   }
 }
 
-class _TimeColumn extends StatelessWidget {
+class _TimeColumn extends StatefulWidget {
   const _TimeColumn({
     required this.title,
     required this.itemCount,
@@ -456,11 +456,60 @@ class _TimeColumn extends StatelessWidget {
   final ValueChanged<int> onSelected;
 
   @override
+  State<_TimeColumn> createState() => _TimeColumnState();
+}
+
+class _TimeColumnState extends State<_TimeColumn> {
+  static const _itemExtent = 36.0;
+  static const _viewportHeight = 160.0;
+
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController(
+      initialScrollOffset: _scrollOffsetFor(widget.selectedValue),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _TimeColumn oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedValue != widget.selectedValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+        _scrollController.animateTo(
+          _scrollOffsetFor(widget.selectedValue),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+        );
+      });
+    }
+  }
+
+  double _scrollOffsetFor(int value) {
+    final maxOffset = (widget.itemCount * _itemExtent - _viewportHeight).clamp(
+      0.0,
+      double.infinity,
+    );
+    final centeredOffset =
+        value * _itemExtent - (_viewportHeight - _itemExtent) / 2;
+    return centeredOffset.clamp(0.0, maxOffset).toDouble();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Text(
-          title,
+          widget.title,
           style: _calendarTextStyle(
             13,
             const Color(0xFFD9D9D9),
@@ -476,19 +525,20 @@ class _TimeColumn extends StatelessWidget {
             border: Border.all(color: _strokeColor),
           ),
           child: SingleChildScrollView(
+            controller: _scrollController,
             child: Column(
-              children: List.generate(itemCount, (index) {
-                final enabled = isEnabled(index);
-                final selected = index == selectedValue;
+              children: List.generate(widget.itemCount, (index) {
+                final enabled = widget.isEnabled(index);
+                final selected = index == widget.selectedValue;
                 return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,
                     vertical: 3,
                   ),
                   child: InkWell(
-                    key: Key('$itemKeyPrefix-${_twoDigits(index)}'),
+                    key: Key('${widget.itemKeyPrefix}-${_twoDigits(index)}'),
                     borderRadius: BorderRadius.circular(8),
-                    onTap: enabled ? () => onSelected(index) : null,
+                    onTap: enabled ? () => widget.onSelected(index) : null,
                     child: Container(
                       height: 30,
                       alignment: Alignment.center,

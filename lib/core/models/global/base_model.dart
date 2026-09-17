@@ -6,17 +6,11 @@ class Region {
 
   factory Region.fromJson(Map<String, dynamic>? json) {
     if (json == null) return Region();
-    return Region(
-      id: json['id'],
-      name: json['name'],
-    );
+    return Region(id: _intValue(json['id']), name: json['name']?.toString());
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
+    return {'id': id, 'name': name};
   }
 }
 
@@ -28,17 +22,11 @@ class District {
 
   factory District.fromJson(Map<String, dynamic>? json) {
     if (json == null) return District();
-    return District(
-      id: json['id'],
-      name: json['name'],
-    );
+    return District(id: _intValue(json['id']), name: json['name']?.toString());
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
+    return {'id': id, 'name': name};
   }
 }
 
@@ -50,17 +38,11 @@ class Employee {
 
   factory Employee.fromJson(Map<String, dynamic>? json) {
     if (json == null) return Employee();
-    return Employee(
-      id: json['id'],
-      fio: json['fio'],
-    );
+    return Employee(id: _intValue(json['id']), fio: json['fio']?.toString());
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'fio': fio,
-    };
+    return {'id': id, 'fio': fio};
   }
 }
 
@@ -72,16 +54,15 @@ class Consumers {
 
   factory Consumers.fromJson(Map<String, dynamic>? json) {
     if (json == null) return Consumers();
-    return Consumers(
-      id: json['id'],
-      name: json['name'],
-    );
+    return Consumers(id: _intValue(json['id']), name: json['name']?.toString());
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
+    return {'id': id, 'name': name};
   }
+}
+
+int? _intValue(Object? value) {
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
 }
